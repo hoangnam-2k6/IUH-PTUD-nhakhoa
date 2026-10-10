@@ -31,7 +31,7 @@ public class BenhNhanGUI extends BaseQuanLyGUI {
                 event -> addPatient()));
         content.add(statRow(
                 statCard(GuiIcons.PATIENT, "Tổng bệnh nhân", "2.491", "+12,5% so với tháng trước", BLUE),
-                statCard(GuiIcons.ADD, "Bệnh nhân mới tháng này", "184", "+8,2% so với tháng trước", GREEN),
+                statCard(GuiIcons.SHIELD, "Bệnh nhân mới tháng này", "184", "+8,2% so với tháng trước", GREEN),
                 statCard(GuiIcons.CALENDAR, "Lượt khám hôm nay", "38", "6 lịch đang chờ", ORANGE)));
         content.add(BoxGap.vertical(14));
 
@@ -72,8 +72,8 @@ public class BenhNhanGUI extends BaseQuanLyGUI {
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         filters.setOpaque(false);
         filters.add(status);
-        filters.add(outlineButton("☷  Bộ lọc"));
-        filters.add(outlineButton("⇩"));
+        filters.add(filterButton());
+        filters.add(iconButton(GuiIcons.DOWNLOAD, "Tải xuống"));
         JPanel toolbar = toolbar(search, javax.swing.Box.createHorizontalGlue(), filters);
         toolbar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 1, 0, 1, LINE),
@@ -100,7 +100,7 @@ public class BenhNhanGUI extends BaseQuanLyGUI {
     }
 
     private void styleCombo(JComboBox<String> combo) {
-        combo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        combo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
         combo.setForeground(TEXT);
         combo.setBackground(Color.WHITE);
         combo.setPreferredSize(new Dimension(150, 35));

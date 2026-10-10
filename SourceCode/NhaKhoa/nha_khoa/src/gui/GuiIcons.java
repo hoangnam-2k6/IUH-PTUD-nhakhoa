@@ -16,16 +16,24 @@ import javax.swing.ImageIcon;
 
 final class GuiIcons {
     static final String HOME = "home";
-    static final String CALENDAR = "calendar";
-    static final String PATIENT = "patient";
-    static final String TOOTH = "tooth";
-    static final String INVOICE = "invoice";
     static final String STAFF = "staff";
-    static final String BELL = "notification";
-    static final String REPORT = "report";
+    static final String DENTAL_SERVICE = "dental-service";
+    static final String PATIENT = "patient";
+    static final String CALENDAR = "calendar";
+    static final String INVOICE = "hoadon";
+    static final String REPORT = "chart";
+    static final String REVENUE = "revenue";
+    static final String PENDING_PAYMENT = "pending";
+    static final String CANCEL_REQUEST = "cancel-request";
+    static final String TOOTH_LOGO = "tooth-logo";
+    static final String SHIELD = "shield";
+    static final String BELL = "bell";
     static final String SEARCH = "search";
     static final String ADD = "add";
     static final String CHECK = "check";
+    static final String DOWNLOAD = "download";
+    static final String LOGOUT = "logout";
+    static final String FILTER = "filter";
 
     private static final Map<String, BufferedImage> SOURCE_CACHE = new HashMap<>();
     private static final Map<String, Icon> ICON_CACHE = new HashMap<>();
@@ -36,7 +44,11 @@ final class GuiIcons {
         String key = name + ":" + color.getRGB() + ":" + size;
         return ICON_CACHE.computeIfAbsent(key, ignored -> {
             BufferedImage source = loadSource(name);
-            BufferedImage glyph = trimGlyph(removeTileAndTint(source, color));
+            BufferedImage processed = TOOTH_LOGO.equals(name)
+                    ? extractLightGlyph(source)
+                    : isPaymentStatusIcon(name) ? extractColoredGlyph(source)
+                    : removeTileAndTint(source, color);
+            BufferedImage glyph = trimGlyph(processed);
             BufferedImage scaled = new BufferedImage(size, size, BufferedImage.TYPE_INT_ARGB);
             Graphics2D graphics = scaled.createGraphics();
             graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
@@ -48,9 +60,31 @@ final class GuiIcons {
         });
     }
 
+    private static boolean isPaymentStatusIcon(String name) {
+        return REVENUE.equals(name) || PENDING_PAYMENT.equals(name) || CANCEL_REQUEST.equals(name);
+    }
+
+    private static BufferedImage extractColoredGlyph(BufferedImage source) {
+        BufferedImage glyph = new BufferedImage(
+                source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < source.getHeight(); y++) {
+            for (int x = 0; x < source.getWidth(); x++) {
+                int pixel = source.getRGB(x, y);
+                int red = (pixel >>> 16) & 0xff;
+                int green = (pixel >>> 8) & 0xff;
+                int blue = pixel & 0xff;
+                int saturation = Math.max(red, Math.max(green, blue))
+                        - Math.min(red, Math.min(green, blue));
+                int alpha = Math.min(255, saturation * 2);
+                glyph.setRGB(x, y, (alpha << 24) | (pixel & 0x00ffffff));
+            }
+        }
+        return glyph;
+    }
+
     private static BufferedImage loadSource(String name) {
         return SOURCE_CACHE.computeIfAbsent(name, key -> {
-            String filename = key + ".png";
+            String filename = TOOTH_LOGO.equals(key) ? "tooth-logo.jpg" : key + ".png";
             try (InputStream resource = GuiIcons.class.getResourceAsStream("/" + filename)) {
                 if (resource != null) {
                     BufferedImage image = ImageIO.read(resource);
@@ -75,6 +109,23 @@ final class GuiIcons {
                 throw new IllegalStateException("Không thể đọc icon giao diện: " + filename, exception);
             }
         });
+    }
+
+    private static BufferedImage extractLightGlyph(BufferedImage source) {
+        BufferedImage glyph = new BufferedImage(
+                source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < source.getHeight(); y++) {
+            for (int x = 0; x < source.getWidth(); x++) {
+                int pixel = source.getRGB(x, y);
+                int red = (pixel >>> 16) & 0xff;
+                int green = (pixel >>> 8) & 0xff;
+                int blue = pixel & 0xff;
+                int luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+                int alpha = Math.max(0, Math.min(255, (luminance - 145) * 3));
+                glyph.setRGB(x, y, (alpha << 24) | 0x00ffffff);
+            }
+        }
+        return glyph;
     }
 
     private static BufferedImage trimGlyph(BufferedImage source) {
@@ -124,7 +175,7 @@ final class GuiIcons {
                 int green = (pixel >>> 8) & 0xff;
                 int blue = pixel & 0xff;
                 int luminance = (red * 299 + green * 587 + blue * 114) / 1000;
-                int glyphAlpha = Math.max(0, Math.min(255, (242 - luminance) * 3));
+                int glyphAlpha = Math.max(0, Math.min(255, (170 - luminance) * 5));
                 int alpha = originalAlpha * glyphAlpha / 255;
                 glyph.setRGB(x, y, (alpha << 24) | (tint.getRGB() & 0x00ffffff));
             }

@@ -63,13 +63,13 @@ public class BaoCaoThongKeGUI extends BaseQuanLyGUI {
                 "Các con số tổng hợp trong phạm vi đã chọn."));
         content.add(BoxGap.vertical(9));
         content.add(statRow(
-                statCard(GuiIcons.INVOICE, "Doanh thu đã thu", "3,84 tỷ đ",
+                statCard(null, "Doanh thu đã thu", "3,84 tỷ đ",
                         "Tăng 18,4% so với kỳ trước", BLUE),
-                statCard(GuiIcons.PATIENT, "Lượt khám hoàn tất", "6.248",
+                statCard(null, "Lượt khám hoàn tất", "6.248",
                         "Tăng 12,3% so với kỳ trước", GREEN),
-                statCard(GuiIcons.INVOICE, "Thu bình quân / lượt", "614.600 đ",
+                statCard(null, "Thu bình quân / lượt", "614.600 đ",
                         "Doanh thu / lượt khám", ORANGE),
-                statCard(GuiIcons.REPORT, "Tỷ lệ khách quay lại", "72,6%",
+                statCard(null, "Tỷ lệ khách quay lại", "72,6%",
                         "4.536 / 6.248 lượt khám", GREEN)));
         content.add(BoxGap.vertical(14));
 
@@ -350,7 +350,7 @@ public class BaoCaoThongKeGUI extends BaseQuanLyGUI {
             Graphics2D g = (Graphics2D) graphics.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             int left = 51, right = getWidth() - 15, top = 19, bottom = getHeight() - 38;
-            g.setFont(new Font("Segoe UI", Font.PLAIN, 9));
+            g.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             for (int i = 0; i <= 4; i++) {
                 int y = top + (bottom - top) * i / 4;
                 g.setColor(new Color(232, 238, 245));
@@ -372,12 +372,12 @@ public class BaoCaoThongKeGUI extends BaseQuanLyGUI {
                         x, bottom, new Color(0, 137, 204)));
                 g.fillRoundRect(x, y, barWidth, height, 5, 5);
                 g.setColor(TEXT);
-                g.setFont(new Font("Segoe UI", Font.BOLD, 9));
+                g.setFont(new Font("Segoe UI", Font.BOLD, 10));
                 String amount = String.valueOf(MONTHLY_REVENUE_MILLIONS[i]);
                 g.drawString(amount, x + (barWidth - g.getFontMetrics().stringWidth(amount)) / 2,
                         y - 4);
                 g.setColor(MUTED);
-                g.setFont(new Font("Segoe UI", Font.PLAIN, 8));
+                g.setFont(new Font("Segoe UI", Font.PLAIN, 9));
                 String month = "T" + (i + 1);
                 g.drawString(month, x + (barWidth - g.getFontMetrics().stringWidth(month)) / 2,
                         bottom + 15);
@@ -410,11 +410,11 @@ public class BaoCaoThongKeGUI extends BaseQuanLyGUI {
             g.setColor(Color.WHITE);
             g.fill(new Ellipse2D.Double(x + inset, y + inset, size - inset * 2, size - inset * 2));
             g.setColor(TEXT);
-            g.setFont(new Font("Segoe UI", Font.BOLD, 15));
+            g.setFont(new Font("Segoe UI", Font.BOLD, 16));
             String count = String.format("%,d", TOTAL_VISITS);
             g.drawString(count, getWidth() / 2 - g.getFontMetrics().stringWidth(count) / 2,
                     getHeight() / 2 + 2);
-            g.setFont(new Font("Segoe UI", Font.PLAIN, 9));
+            g.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             g.setColor(MUTED);
             String caption = "lượt khám";
             g.drawString(caption, getWidth() / 2 - g.getFontMetrics().stringWidth(caption) / 2,

@@ -28,10 +28,10 @@ public class ThanhToanGUI extends BaseQuanLyGUI {
         content.add(pageHeading("Thanh toán & hóa đơn", "Thanh toán & hóa đơn",
                 "Tra cứu hóa đơn, phiếu thu và trạng thái thanh toán.", null, null));
         content.add(statRow(
-                statCard(GuiIcons.INVOICE, "Doanh thu hôm nay", "48.650.000 đ", "+12,4% so với hôm qua", BLUE),
+                statCard(GuiIcons.REVENUE, "Doanh thu hôm nay", "48.650.000 đ", "+12,4% so với hôm qua", BLUE),
                 statCard(GuiIcons.CHECK, "Đã thanh toán", "42 phiếu", "44.200.000 đ", GREEN),
-                statCard(GuiIcons.CALENDAR, "Chờ thanh toán", "6 phiếu", "4.450.000 đ", ORANGE),
-                statCard(GuiIcons.INVOICE, "Hóa đơn tháng này", "50 phiếu", "Tháng 06/2026", BLUE)));
+                statCard(GuiIcons.PENDING_PAYMENT, "Chờ thanh toán", "6 phiếu", "4.450.000 đ", ORANGE),
+                statCard(GuiIcons.CANCEL_REQUEST, "Yêu cầu hủy", "2 phiếu", "Cần phê duyệt", RED)));
         content.add(BoxGap.vertical(14));
 
         DefaultTableModel model = new DefaultTableModel(new Object[] {
@@ -57,14 +57,14 @@ public class ThanhToanGUI extends BaseQuanLyGUI {
                     ? null : RowFilter.regexFilter("(?i)" + Pattern.quote(text)));
         }));
         JComboBox<String> month = new JComboBox<>(new String[] {"Tháng 06/2026", "Tháng 05/2026"});
-        month.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        month.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
         month.setBackground(Color.WHITE);
         month.setPreferredSize(new Dimension(140, 35));
         month.setBorder(fieldBorder());
         JComboBox<String> status = new JComboBox<>(new String[] {
             "Tất cả trạng thái", "Đã thanh toán", "Chờ thanh toán", "Yêu cầu hủy", "Đã hoàn tất"
         });
-        status.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        status.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
         status.setBackground(Color.WHITE);
         status.setPreferredSize(new Dimension(155, 35));
         status.setBorder(fieldBorder());
@@ -77,7 +77,7 @@ public class ThanhToanGUI extends BaseQuanLyGUI {
         controls.setOpaque(false);
         controls.add(month);
         controls.add(status);
-        controls.add(outlineButton("⇩"));
+        controls.add(iconButton(GuiIcons.DOWNLOAD, "Tải xuống"));
         JPanel toolbar = toolbar(search, javax.swing.Box.createHorizontalGlue(), controls);
         toolbar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 1, 0, 1, LINE),

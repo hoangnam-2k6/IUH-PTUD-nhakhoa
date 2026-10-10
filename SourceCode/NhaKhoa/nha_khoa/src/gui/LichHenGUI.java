@@ -27,13 +27,18 @@ public class LichHenGUI extends BaseQuanLyGUI {
                 "Theo dõi và sắp xếp toàn bộ lịch hẹn của phòng khám.", "Tạo lịch hẹn",
                 event -> createAppointment()));
 
-        JPanel stats = new JPanel(new java.awt.GridLayout(1, 4, 10, 0));
+        JPanel stats = new JPanel(new java.awt.GridLayout(1, 5, 10, 0));
         stats.setOpaque(false);
         stats.setAlignmentX(LEFT_ALIGNMENT);
         stats.add(appointmentStat("Hôm nay", "18", "Tổng lịch hẹn", BLUE, true));
         stats.add(appointmentStat("Tổng lịch hẹn", "38", "Trong ngày", BLUE, false));
         stats.add(appointmentStat("Đã xác nhận", "24", "Đúng kế hoạch", GREEN, false));
         stats.add(appointmentStat("Đang chờ", "8", "Cần xác nhận", ORANGE, false));
+        long cancelledCount = java.util.Arrays.stream(APPOINTMENTS)
+                .filter(appointment -> "Đã hủy".equals(appointment[6]))
+                .count();
+        stats.add(appointmentStat("Đã hủy", Long.toString(cancelledCount),
+                "Lịch hẹn đã hủy", RED, false));
         content.add(stats);
         content.add(BoxGap.vertical(14));
 
@@ -60,7 +65,7 @@ public class LichHenGUI extends BaseQuanLyGUI {
 
         JButton date = outlineButton("18/06/2026   ▾");
         JComboBox<String> filter = new JComboBox<>(new String[] {"Tất cả bác sĩ", "BS. Hoàng Việt", "BS. Minh Thắng", "BS. Tuấn Anh"});
-        filter.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        filter.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
         filter.setBackground(Color.WHITE);
         filter.setPreferredSize(new Dimension(150, 35));
         filter.setBorder(fieldBorder());
@@ -68,7 +73,7 @@ public class LichHenGUI extends BaseQuanLyGUI {
         actions.setOpaque(false);
         actions.add(date);
         actions.add(filter);
-        actions.add(outlineButton("☷  Bộ lọc"));
+        actions.add(filterButton());
         JPanel viewToggle = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
         viewToggle.setOpaque(false);
         viewToggle.add(flatButton("Danh sách", true));

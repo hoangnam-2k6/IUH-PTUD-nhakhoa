@@ -1,17 +1,9 @@
 package gui;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 
 public class ThemBenhNhanGUI extends BaseQuanLyGUI {
@@ -25,7 +17,7 @@ public class ThemBenhNhanGUI extends BaseQuanLyGUI {
         content.add(formHeading("Bệnh nhân   ›   Thêm bệnh nhân", "Thêm bệnh nhân mới",
                 "Tạo hồ sơ bệnh nhân mới trong hệ thống phòng khám.", this::goBack));
 
-        JPanel personalFields = verticalFields(
+        JPanel personalFields = verticalFields(13,
                 formRow(formField("Họ và tên", name, true)),
                 formRow(
                         formField("Mã bệnh nhân", readOnlyField("Tự động tạo sau khi lưu"), false),
@@ -39,7 +31,7 @@ public class ThemBenhNhanGUI extends BaseQuanLyGUI {
                 "Thông tin định danh và liên hệ của bệnh nhân.", personalFields));
         content.add(BoxGap.vertical(14));
 
-        JPanel medicalFields = verticalFields(
+        JPanel medicalFields = verticalFields(13,
                 formRow(
                         formField("Nhóm máu", formCombo("Chưa xác định", "A", "B", "AB", "O"), false),
                         formField("Nguồn giới thiệu", formCombo("Khách hàng giới thiệu",
@@ -59,22 +51,6 @@ public class ThemBenhNhanGUI extends BaseQuanLyGUI {
         showWindow();
     }
 
-    private JPanel verticalFields(JPanel... rows) {
-        JPanel fields = new JPanel();
-        fields.setOpaque(false);
-        fields.setLayout(new javax.swing.BoxLayout(fields, javax.swing.BoxLayout.Y_AXIS));
-        for (int i = 0; i < rows.length; i++) {
-            rows[i].setAlignmentX(Component.LEFT_ALIGNMENT);
-            int rowHeight = Math.max(75, rows[i].getPreferredSize().height);
-            rows[i].setMaximumSize(new Dimension(Integer.MAX_VALUE, rowHeight));
-            fields.add(rows[i]);
-            if (i < rows.length - 1) {
-                fields.add(BoxGap.vertical(13));
-            }
-        }
-        return fields;
-    }
-
     private JTextField readOnlyField(String value) {
         JTextField field = formTextField("");
         field.setText(value);
@@ -82,13 +58,6 @@ public class ThemBenhNhanGUI extends BaseQuanLyGUI {
         field.setBackground(new Color(248, 250, 252));
         field.setForeground(MUTED);
         return field;
-    }
-
-    private JScrollPane scrollableArea(JTextArea area) {
-        JScrollPane scroll = new JScrollPane(area);
-        scroll.setBorder(BorderFactory.createLineBorder(LINE));
-        scroll.setPreferredSize(new Dimension(200, 76));
-        return scroll;
     }
 
     private void savePatient() {

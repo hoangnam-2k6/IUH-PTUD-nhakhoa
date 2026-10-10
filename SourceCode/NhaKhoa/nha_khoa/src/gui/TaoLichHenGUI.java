@@ -8,11 +8,7 @@ import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
 
 public class TaoLichHenGUI extends BaseQuanLyGUI {
     private final javax.swing.JComboBox<String> patient = formCombo(
@@ -45,7 +41,7 @@ public class TaoLichHenGUI extends BaseQuanLyGUI {
         patientFields.setOpaque(false);
         patientFields.add(formField("Bệnh nhân", patient, true), BorderLayout.NORTH);
         patientFields.add(patientPreview(), BorderLayout.CENTER);
-        JPanel appointmentFields = verticalFields(
+        JPanel appointmentFields = verticalFields(12,
                 formRow(formField("Dịch vụ", service, true)),
                 formRow(
                         formField("Ngày hẹn", date, true),
@@ -84,9 +80,9 @@ public class TaoLichHenGUI extends BaseQuanLyGUI {
         service.addActionListener(event -> summaryService.setText((String) service.getSelectedItem()));
         dentist.addActionListener(event -> summaryDentist.setText((String) dentist.getSelectedItem()));
         room.addActionListener(event -> summaryRoom.setText((String) room.getSelectedItem()));
-        date.getDocument().addDocumentListener(documentListener(this::updateTimeSummary));
-        date.getDocument().addDocumentListener(documentListener(this::updateDateSummary));
-        startTime.getDocument().addDocumentListener(documentListener(this::updateTimeSummary));
+        date.getDocument().addDocumentListener(SharedListeners.document(this::updateTimeSummary));
+        date.getDocument().addDocumentListener(SharedListeners.document(this::updateDateSummary));
+        startTime.getDocument().addDocumentListener(SharedListeners.document(this::updateTimeSummary));
         duration.addActionListener(event -> updateTimeSummary());
         updatePatientPreview();
         showWindow();
@@ -158,33 +154,10 @@ public class TaoLichHenGUI extends BaseQuanLyGUI {
         return line;
     }
 
-    private JPanel verticalFields(JPanel... rows) {
-        JPanel fields = new JPanel();
-        fields.setOpaque(false);
-        fields.setLayout(new javax.swing.BoxLayout(fields, javax.swing.BoxLayout.Y_AXIS));
-        for (int i = 0; i < rows.length; i++) {
-            rows[i].setAlignmentX(Component.LEFT_ALIGNMENT);
-            int rowHeight = Math.max(75, rows[i].getPreferredSize().height);
-            rows[i].setMaximumSize(new Dimension(Integer.MAX_VALUE, rowHeight));
-            fields.add(rows[i]);
-            if (i < rows.length - 1) {
-                fields.add(BoxGap.vertical(12));
-            }
-        }
-        return fields;
-    }
-
     private JTextField filledField(String value) {
         JTextField field = formTextField("");
         field.setText(value);
         return field;
-    }
-
-    private JScrollPane scrollableArea(JTextArea area) {
-        JScrollPane scroll = new JScrollPane(area);
-        scroll.setBorder(BorderFactory.createLineBorder(LINE));
-        scroll.setPreferredSize(new Dimension(200, 76));
-        return scroll;
     }
 
     private void updatePatientPreview() {
@@ -223,25 +196,6 @@ public class TaoLichHenGUI extends BaseQuanLyGUI {
                 dateBadgeMonth.setText("NGÀY HẸN");
             }
         }
-    }
-
-    private DocumentListener documentListener(Runnable action) {
-        return new DocumentListener() {
-            @Override
-            public void insertUpdate(DocumentEvent event) {
-                action.run();
-            }
-
-            @Override
-            public void removeUpdate(DocumentEvent event) {
-                action.run();
-            }
-
-            @Override
-            public void changedUpdate(DocumentEvent event) {
-                action.run();
-            }
-        };
     }
 
     private void saveAppointment() {
