@@ -199,7 +199,7 @@ public class TrangChuQuanLyGUI extends BaseQuanLyGUI {
             "08:00|Nguyễn Minh Anh|Đã xác nhận",
             "08:30|Trần Quốc Huy|Đang chờ",
             "09:15|Lê Thị Thu Hà|Đang khám",
-            "10:30|Phạm Hoàng Nam|Chưa xác nhận"
+            "10:30|Phạm Hoàng Nam| Chưa xác nhận"
         };
 
         for (String entry : bookings) {
