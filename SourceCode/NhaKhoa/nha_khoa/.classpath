@@ -8,6 +8,6 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="img"/>
 	<classpathentry kind="src" path="SQL"/>
-	<classpathentry kind="src" path="lib"/>
+	<classpathentry kind="lib" path="lib/sqljdbc42.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
