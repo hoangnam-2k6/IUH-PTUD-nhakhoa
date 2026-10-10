@@ -51,7 +51,7 @@ final class GuiIcons {
     private static BufferedImage loadSource(String name) {
         return SOURCE_CACHE.computeIfAbsent(name, key -> {
             String filename = key + ".png";
-            try (InputStream resource = GuiIcons.class.getResourceAsStream("/img/" + filename)) {
+            try (InputStream resource = GuiIcons.class.getResourceAsStream("/" + filename)) {
                 if (resource != null) {
                     BufferedImage image = ImageIO.read(resource);
                     if (image == null) {
