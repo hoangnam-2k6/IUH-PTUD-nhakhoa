@@ -1,0 +1,109 @@
+package gui;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.util.regex.Pattern;
+import javax.swing.BorderFactory;
+import javax.swing.JComboBox;
+import javax.swing.JPanel;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.RowFilter;
+import javax.swing.SwingConstants;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
+
+public class BenhNhanGUI extends BaseQuanLyGUI {
+    private static final String[][] PATIENTS = {
+        {"NA", "Nguyễn Minh Anh", "BN-00241", "090 123 4567", "Nữ", "14/08/1992", "18/06/2026", "Đang điều trị"},
+        {"QH", "Trần Quốc Huy", "BN-00240", "091 856 2440", "Nam", "22/03/1987", "18/06/2026", "Mới"},
+        {"TH", "Lê Thị Thu Hà", "BN-00239", "093 435 6712", "Nữ", "07/11/1979", "17/06/2026", "Đang điều trị"},
+        {"HN", "Phạm Hoàng Nam", "BN-00238", "093 728 4105", "Nam", "30/01/1995", "15/06/2026", "Hoàn tất"},
+        {"NL", "Võ Ngọc Linh", "BN-00237", "097 512 3068", "Nữ", "12/05/2001", "15/06/2026", "Hoàn tất"}
+    };
+
+    public BenhNhanGUI() {
+        super("Bệnh nhân", "Quản lý bệnh nhân");
+        content.add(pageHeading("Quản lý bệnh nhân", "Quản lý bệnh nhân",
+                "Quản lý hồ sơ và thông tin bệnh nhân tại phòng khám.", "Thêm bệnh nhân",
+                event -> addPatient()));
+        content.add(statRow(
+                statCard(GuiIcons.PATIENT, "Tổng bệnh nhân", "2.491", "+12,5% so với tháng trước", BLUE),
+                statCard(GuiIcons.ADD, "Bệnh nhân mới tháng này", "184", "+8,2% so với tháng trước", GREEN),
+                statCard(GuiIcons.CALENDAR, "Lượt khám hôm nay", "38", "6 lịch đang chờ", ORANGE)));
+        content.add(BoxGap.vertical(14));
+
+        DefaultTableModel model = new DefaultTableModel(new Object[] {
+            "BỆNH NHÂN", "LIÊN HỆ", "GIỚI TÍNH", "NGÀY SINH", "LẦN KHÁM GẦN NHẤT", "TRẠNG THÁI"
+        }, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        for (String[] patient : PATIENTS) {
+            model.addRow(new Object[] {
+                patient[1] + "\n" + patient[2], patient[3], patient[4],
+                patient[5], patient[6], patient[7]
+            });
+        }
+        JTable table = new JTable(model);
+        styleTable(table);
+        TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+        table.setRowSorter(sorter);
+
+        JTextField search = searchField("Tìm theo tên, mã số hoặc điện thoại...", 310);
+        search.getDocument().addDocumentListener(SharedListeners.document(() -> {
+            String text = search.getText().trim();
+            sorter.setRowFilter(text.isEmpty()
+                    ? null : RowFilter.regexFilter("(?i)" + Pattern.quote(text)));
+        }));
+        JComboBox<String> status = new JComboBox<>(new String[] {
+            "Tất cả trạng thái", "Đang điều trị", "Mới", "Hoàn tất"
+        });
+        styleCombo(status);
+        status.addActionListener(event -> {
+            String selected = (String) status.getSelectedItem();
+            sorter.setRowFilter("Tất cả trạng thái".equals(selected)
+                    ? null : RowFilter.regexFilter(Pattern.quote(selected), 5));
+        });
+        JPanel filters = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        filters.setOpaque(false);
+        filters.add(status);
+        filters.add(outlineButton("☷  Bộ lọc"));
+        filters.add(outlineButton("⇩"));
+        JPanel toolbar = toolbar(search, javax.swing.Box.createHorizontalGlue(), filters);
+        toolbar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 1, 0, 1, LINE),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+        JPanel tableArea = new JPanel(new BorderLayout());
+        tableArea.setOpaque(false);
+        tableArea.setAlignmentX(LEFT_ALIGNMENT);
+        tableArea.add(toolbar, BorderLayout.NORTH);
+        tableArea.add(tableCard(table), BorderLayout.CENTER);
+        JPanel footer = new JPanel(new BorderLayout());
+        footer.setBackground(Color.WHITE);
+        footer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 1, 1, 1, LINE),
+                BorderFactory.createEmptyBorder(10, 12, 10, 12)));
+        footer.add(label("Hiển thị " + PATIENTS.length + " hồ sơ", 10, false, MUTED), BorderLayout.WEST);
+        footer.add(label("‹     1     2     3     …     12     ›", 10, false, BLUE), BorderLayout.EAST);
+        tableArea.add(footer, BorderLayout.SOUTH);
+        content.add(tableArea);
+        showWindow();
+    }
+
+    private void addPatient() {
+        new ThemBenhNhanGUI();
+    }
+
+    private void styleCombo(JComboBox<String> combo) {
+        combo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        combo.setForeground(TEXT);
+        combo.setBackground(Color.WHITE);
+        combo.setPreferredSize(new Dimension(150, 35));
+        combo.setBorder(fieldBorder());
+    }
+}
