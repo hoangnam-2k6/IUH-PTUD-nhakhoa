@@ -35,7 +35,7 @@ public class DichVuNhaKhoaGUI extends QuanLyBangGUI {
                     "DV-003", "Điều trị tủy",
                     "Điều trị nội nha và phục hồi mô răng tổn thương",
                     "Điều trị", "2.800.000 đ",
-                    "Đang áp dụng"
+                    "Đang áp dụng "
                 },
                 {
                     "DV-004", "Tẩy trắng răng",
@@ -60,7 +60,7 @@ public class DichVuNhaKhoaGUI extends QuanLyBangGUI {
                 "Điều trị nha chu",
                 "Điều trị",
                 "Nha khoa thẩm mỹ",
-                "Chỉnh nha"
+                "Chỉnh nha "
             }
         );
     }

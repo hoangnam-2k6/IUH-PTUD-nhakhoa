@@ -39,7 +39,7 @@ public class TrangChuQuanLyGUI extends BaseQuanLyGUI {
                 statCard(
                     GuiIcons.INVOICE,
                     "Doanh thu hôm nay", "48,65 triệu",
-                    "+14,2% so với hôm qua", RED
+                    "+14,2% so với hôm qua ", RED
                 )
             )
         );
@@ -61,7 +61,7 @@ public class TrangChuQuanLyGUI extends BaseQuanLyGUI {
         );
 
         chart.add(
-            label("Doanh thu 12 tháng — Năm 2026", 14, true, TEXT),
+            label("Doanh thu 12 tháng — Năm 2026 ", 14, true, TEXT),
             BorderLayout.NORTH
         );
 

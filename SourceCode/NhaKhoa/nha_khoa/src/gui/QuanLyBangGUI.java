@@ -517,7 +517,7 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
 
             JOptionPane.showMessageDialog(
                 this,
-                "Đã xuất dữ liệu CSV."
+                "Đã xuất dữ liệu CSV. "
             );
 
         } catch (IOException e) {

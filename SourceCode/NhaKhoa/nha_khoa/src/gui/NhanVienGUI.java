@@ -47,7 +47,7 @@ public class NhanVienGUI extends QuanLyBangGUI {
                     "NV-005", "Võ Hải Yến",
                     "yen.vo@medident.vn",
                     "Điều dưỡng", "097 315 8624",
-                    "Đang làm việc"
+                    "Đang làm việc "
                 },
                 {
                     "NV-006", "Đỗ Đức Long",
@@ -67,7 +67,7 @@ public class NhanVienGUI extends QuanLyBangGUI {
                 "Bác sĩ điều trị",
                 "Lễ tân",
                 "Điều dưỡng",
-                "Kế toán"
+                "Kế toán "
             }
         );
     }
