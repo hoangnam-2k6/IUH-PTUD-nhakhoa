@@ -1,0 +1,13 @@
+# Eclipse auto-generated, do not commit old/corrupted project settings
+.classpath
+.project
+.settings/
+# Maven output
+target/
+# legacy Eclipse output
+bin/
+# IDE files
+.idea/
+*.iml
+# never commit a personal DB config after setting credentials
+# keep db.properties template here; do not put real passwords in Git
