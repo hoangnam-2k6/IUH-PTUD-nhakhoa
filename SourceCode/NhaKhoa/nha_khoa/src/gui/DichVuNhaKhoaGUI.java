@@ -5,6 +5,7 @@ public class DichVuNhaKhoaGUI extends QuanLyBangGUI {
 
     public DichVuNhaKhoaGUI() {
         super(
+<<<<<<< Updated upstream
             "Dịch vụ nha khoa",
             "Dịch vụ nha khoa",
             "Quản lý danh mục, mô tả và bảng giá dịch vụ nha khoa.",
