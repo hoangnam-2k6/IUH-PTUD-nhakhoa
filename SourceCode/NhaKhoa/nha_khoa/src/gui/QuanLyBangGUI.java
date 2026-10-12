@@ -62,6 +62,7 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
 
         // Tiêu đề và nút thêm mới
         content.add(
+<<<<<<< Updated upstream
             pageHeading(
                 heading,
                 heading,
@@ -71,13 +72,28 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
                     : "Thêm dịch vụ",
                 e -> edit(-1)
             )
+=======
+                pageHeading(
+                        heading,
+                        heading,
+                        description,
+                        tab.equals("Nhân viên")
+                                ? "Thêm nhân viên"
+                                : "Thêm dịch vụ",
+                        e -> edit(-1)
+                )
+>>>>>>> Stashed changes
         );
 
         // Thống kê
         JPanel summary = new JPanel(new GridLayout(1, 3, 0, 0));
 
         summary.setMaximumSize(
+<<<<<<< Updated upstream
             new Dimension(Integer.MAX_VALUE, 58)
+=======
+                new Dimension(Integer.MAX_VALUE, 58)
+>>>>>>> Stashed changes
         );
         summary.setAlignmentX(LEFT_ALIGNMENT);
         summary.setBackground(Color.WHITE);
@@ -89,6 +105,7 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
         summary.add(summaryCell(count, "Tổng số"));
 
         summary.add(
+<<<<<<< Updated upstream
             summaryCell(
                 new JLabel(tab.equals("Nhân viên") ? "4" : "4"),
                 "Đang hoạt động"
@@ -100,6 +117,19 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
                 new JLabel(tab.equals("Nhân viên") ? "1" : "1"),
                 "Tạm nghỉ / Tạm ngưng"
             )
+=======
+                summaryCell(
+                        new JLabel(tab.equals("Nhân viên") ? "4" : "4"),
+                        "Đang hoạt động"
+                )
+        );
+
+        summary.add(
+                summaryCell(
+                        new JLabel(tab.equals("Nhân viên") ? "1" : "1"),
+                        "Tạm nghỉ / Tạm ngưng"
+                )
+>>>>>>> Stashed changes
         );
 
         content.add(summary);
@@ -118,7 +148,11 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
         table.setRowHeight(53);
 
         table.setSelectionMode(
+<<<<<<< Updated upstream
             ListSelectionModel.SINGLE_SELECTION
+=======
+                ListSelectionModel.SINGLE_SELECTION
+>>>>>>> Stashed changes
         );
 
         sorter = new TableRowSorter<>(model);
@@ -126,11 +160,19 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
 
         // Tìm kiếm
         search = searchField(
+<<<<<<< Updated upstream
             "Tìm theo mã, tên hoặc thông tin...", 300
         );
 
         search.getDocument().addDocumentListener(
             SharedListeners.document(this::filter)
+=======
+                "Tìm theo mã, tên hoặc thông tin...", 300
+        );
+
+        search.getDocument().addDocumentListener(
+                SharedListeners.document(this::filter)
+>>>>>>> Stashed changes
         );
 
         // Lọc danh mục
@@ -140,6 +182,7 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
 
         // Lọc trạng thái
         status = new JComboBox<>(
+<<<<<<< Updated upstream
             new String[] {
                 "Tất cả trạng thái",
                 tab.equals("Nhân viên")
@@ -150,6 +193,18 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
                     : "Tạm ngưng",
                 "Tạm ngưng"
             }
+=======
+                new String[] {
+                        "Tất cả trạng thái",
+                        tab.equals("Nhân viên")
+                                ? "Đang làm việc"
+                                : "Đang áp dụng",
+                        tab.equals("Nhân viên")
+                                ? "Đang nghỉ phép"
+                                : "Tạm ngưng",
+                        "Tạm ngưng"
+                }
+>>>>>>> Stashed changes
         );
 
         status.setBackground(Color.WHITE);
@@ -160,11 +215,19 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
         export.addActionListener(e -> export());
 
         JPanel bar = toolbar(
+<<<<<<< Updated upstream
             search,
             Box.createHorizontalGlue(),
             category,
             status,
             export
+=======
+                search,
+                Box.createHorizontalGlue(),
+                category,
+                status,
+                export
+>>>>>>> Stashed changes
         );
 
         // Khu vực bảng
@@ -176,6 +239,7 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.setBorder(
+<<<<<<< Updated upstream
             BorderFactory.createLineBorder(LINE)
         );
 
@@ -184,13 +248,27 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
                 900,
                 Math.min(480, 48 + data.size() * 53)
             )
+=======
+                BorderFactory.createLineBorder(LINE)
+        );
+
+        scroll.setPreferredSize(
+                new Dimension(
+                        900,
+                        Math.min(480, 48 + data.size() * 53)
+                )
+>>>>>>> Stashed changes
         );
 
         area.add(scroll, BorderLayout.CENTER);
 
         // Các nút chức năng
         JPanel actions = new JPanel(
+<<<<<<< Updated upstream
             new FlowLayout(FlowLayout.RIGHT, 8, 5)
+=======
+                new FlowLayout(FlowLayout.RIGHT, 8, 5)
+>>>>>>> Stashed changes
         );
 
         actions.setBackground(Color.WHITE);
@@ -232,13 +310,18 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
 
         info.setForeground(MUTED);
         info.setBorder(
+<<<<<<< Updated upstream
             BorderFactory.createEmptyBorder(13, 0, 0, 0)
+=======
+                BorderFactory.createEmptyBorder(13, 0, 0, 0)
+>>>>>>> Stashed changes
         );
 
         content.add(info);
 
         // Nhấn Enter để sửa
         table.getInputMap(JComponent.WHEN_FOCUSED).put(
+<<<<<<< Updated upstream
             KeyStroke.getKeyStroke("ENTER"),
             "edit"
         );
@@ -255,6 +338,24 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
                     }
                 }
             }
+=======
+                KeyStroke.getKeyStroke("ENTER"),
+                "edit"
+        );
+
+        table.getActionMap().put(
+                "edit",
+                new AbstractAction() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        int r = table.getSelectedRow();
+
+                        if (r >= 0) {
+                            edit(table.convertRowIndexToModel(r));
+                        }
+                    }
+                }
+>>>>>>> Stashed changes
         );
 
         // Nhấp đúp vào dòng để sửa
@@ -278,13 +379,21 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
     // Tạo ô thống kê
     private JPanel summaryCell(JLabel value, String title) {
         JPanel p = new JPanel(
+<<<<<<< Updated upstream
             new FlowLayout(FlowLayout.LEFT, 12, 16)
+=======
+                new FlowLayout(FlowLayout.LEFT, 12, 16)
+>>>>>>> Stashed changes
         );
 
         p.setOpaque(false);
 
         value.setFont(
+<<<<<<< Updated upstream
             new Font("Segoe UI", Font.BOLD, 16)
+=======
+                new Font("Segoe UI", Font.BOLD, 16)
+>>>>>>> Stashed changes
         );
 
         p.add(value);
@@ -296,9 +405,15 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
     // Lấy danh sách dữ liệu
     private List<String[]> rows() {
         return DATA.get(
+<<<<<<< Updated upstream
             heading.equals("Quản lý nhân viên")
                 ? "Nhân viên"
                 : "Dịch vụ nha khoa"
+=======
+                heading.equals("Quản lý nhân viên")
+                        ? "Nhân viên"
+                        : "Dịch vụ nha khoa"
+>>>>>>> Stashed changes
         );
     }
 
@@ -328,31 +443,52 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
 
         if (!q.isEmpty()) {
             fs.add(
+<<<<<<< Updated upstream
                 RowFilter.regexFilter(
                     "(?iu)" + Pattern.quote(q)
                 )
+=======
+                    RowFilter.regexFilter(
+                            "(?iu)" + Pattern.quote(q)
+                    )
+>>>>>>> Stashed changes
             );
         }
 
         if (cat != null && !cat.startsWith("Tất cả")) {
             fs.add(
+<<<<<<< Updated upstream
                 RowFilter.regexFilter(
                     "^" + Pattern.quote(cat) + "$",
                     categoryCol
                 )
+=======
+                    RowFilter.regexFilter(
+                            "^" + Pattern.quote(cat) + "$",
+                            categoryCol
+                    )
+>>>>>>> Stashed changes
             );
         }
 
         if (st != null && !st.startsWith("Tất cả")) {
             fs.add(
+<<<<<<< Updated upstream
                 RowFilter.regexFilter(
                     "^" + Pattern.quote(st) + "$",
                     statusCol
                 )
+=======
+                    RowFilter.regexFilter(
+                            "^" + Pattern.quote(st) + "$",
+                            statusCol
+                    )
+>>>>>>> Stashed changes
             );
         }
 
         sorter.setRowFilter(
+<<<<<<< Updated upstream
             fs.isEmpty()
                 ? null
                 : RowFilter.andFilter(fs)
@@ -362,16 +498,34 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
             "Hiển thị " + table.getRowCount()
             + " / " + model.getRowCount()
             + " kết quả"
+=======
+                fs.isEmpty()
+                        ? null
+                        : RowFilter.andFilter(fs)
+        );
+
+        info.setText(
+                "Hiển thị " + table.getRowCount()
+                        + " / " + model.getRowCount()
+                        + " kết quả"
+>>>>>>> Stashed changes
         );
     }
 
     // Thông báo chưa chọn dòng
     private void warn() {
         JOptionPane.showMessageDialog(
+<<<<<<< Updated upstream
             this,
             "Hãy chọn một dòng trong bảng.",
             heading,
             JOptionPane.INFORMATION_MESSAGE
+=======
+                this,
+                "Hãy chọn một dòng trong bảng.",
+                heading,
+                JOptionPane.INFORMATION_MESSAGE
+>>>>>>> Stashed changes
         );
     }
 
@@ -380,6 +534,7 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
         boolean updating = index >= 0;
 
         String[] old = updating
+<<<<<<< Updated upstream
             ? rows().get(index)
             : null;
 
@@ -389,24 +544,48 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
 
         JTextField[] fields =
             new JTextField[columns.length];
+=======
+                ? rows().get(index)
+                : null;
+
+        JPanel form = new JPanel(
+                new GridLayout(columns.length, 2, 8, 10)
+        );
+
+        JTextField[] fields =
+                new JTextField[columns.length];
+>>>>>>> Stashed changes
 
         for (int i = 0; i < columns.length; i++) {
             form.add(new JLabel(columns[i]));
 
             fields[i] = new JTextField(
+<<<<<<< Updated upstream
                 updating ? old[i] : "",
                 25
+=======
+                    updating ? old[i] : "",
+                    25
+>>>>>>> Stashed changes
             );
 
             form.add(fields[i]);
         }
 
         int decision = JOptionPane.showConfirmDialog(
+<<<<<<< Updated upstream
             this,
             form,
             updating ? "Sửa thông tin" : "Thêm mới",
             JOptionPane.OK_CANCEL_OPTION,
             JOptionPane.PLAIN_MESSAGE
+=======
+                this,
+                form,
+                updating ? "Sửa thông tin" : "Thêm mới",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.PLAIN_MESSAGE
+>>>>>>> Stashed changes
         );
 
         if (decision != JOptionPane.OK_OPTION) {
@@ -414,7 +593,11 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
         }
 
         String[] values =
+<<<<<<< Updated upstream
             new String[columns.length];
+=======
+                new String[columns.length];
+>>>>>>> Stashed changes
 
         for (int i = 0; i < columns.length; i++) {
             values[i] = fields[i].getText().trim();
@@ -423,8 +606,13 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
         // Kiểm tra dữ liệu bắt buộc
         if (values[0].isBlank() || values[1].isBlank()) {
             JOptionPane.showMessageDialog(
+<<<<<<< Updated upstream
                 this,
                 "Mã và tên không được bỏ trống."
+=======
+                    this,
+                    "Mã và tên không được bỏ trống."
+>>>>>>> Stashed changes
             );
             return;
         }
@@ -432,12 +620,21 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
         // Kiểm tra trùng mã
         for (int i = 0; i < rows().size(); i++) {
             if (
+<<<<<<< Updated upstream
                 i != index &&
                 rows().get(i)[0].equalsIgnoreCase(values[0])
             ) {
                 JOptionPane.showMessageDialog(
                     this,
                     "Mã đã tồn tại."
+=======
+                    i != index &&
+                            rows().get(i)[0].equalsIgnoreCase(values[0])
+            ) {
+                JOptionPane.showMessageDialog(
+                        this,
+                        "Mã đã tồn tại."
+>>>>>>> Stashed changes
                 );
                 return;
             }
@@ -455,10 +652,17 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
     // Xóa một dòng
     private void delete(int i) {
         int choice = JOptionPane.showConfirmDialog(
+<<<<<<< Updated upstream
             this,
             "Xóa " + rows().get(i)[1] + "?",
             "Xác nhận xóa",
             JOptionPane.YES_NO_OPTION
+=======
+                this,
+                "Xóa " + rows().get(i)[1] + "?",
+                "Xác nhận xóa",
+                JOptionPane.YES_NO_OPTION
+>>>>>>> Stashed changes
         );
 
         if (choice == JOptionPane.YES_OPTION) {
@@ -472,23 +676,41 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
         JFileChooser chooser = new JFileChooser();
 
         chooser.setSelectedFile(
+<<<<<<< Updated upstream
             new File("medident.csv")
         );
 
         if (
             chooser.showSaveDialog(this)
                 != JFileChooser.APPROVE_OPTION
+=======
+                new File("medident.csv")
+        );
+
+        if (
+                chooser.showSaveDialog(this)
+                        != JFileChooser.APPROVE_OPTION
+>>>>>>> Stashed changes
         ) {
             return;
         }
 
         try (
+<<<<<<< Updated upstream
             Writer w = new OutputStreamWriter(
                 new FileOutputStream(
                     chooser.getSelectedFile()
                 ),
                 StandardCharsets.UTF_8
             )
+=======
+                Writer w = new OutputStreamWriter(
+                        new FileOutputStream(
+                                chooser.getSelectedFile()
+                        ),
+                        StandardCharsets.UTF_8
+                )
+>>>>>>> Stashed changes
         ) {
             // UTF-8 BOM
             w.write('\uFEFF');
@@ -516,16 +738,28 @@ abstract class QuanLyBangGUI extends BaseQuanLyGUI {
             }
 
             JOptionPane.showMessageDialog(
+<<<<<<< Updated upstream
                 this,
                 "Đã xuất dữ liệu CSV. "
+=======
+                    this,
+                    "Đã xuất dữ liệu CSV."
+>>>>>>> Stashed changes
             );
 
         } catch (IOException e) {
             JOptionPane.showMessageDialog(
+<<<<<<< Updated upstream
                 this,
                 e.getMessage(),
                 "Lỗi",
                 JOptionPane.ERROR_MESSAGE
+=======
+                    this,
+                    e.getMessage(),
+                    "Lỗi",
+                    JOptionPane.ERROR_MESSAGE
+>>>>>>> Stashed changes
             );
         }
     }
