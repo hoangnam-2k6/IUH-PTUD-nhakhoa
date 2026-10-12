@@ -35,9 +35,12 @@ public class QuanLyPhanQuyen extends JPanel {
     private final TaiKhoan actor;
     private List<VaiTro> roles = new ArrayList<>();
 
-    private final DefaultTableModel model = new DefaultTableModel(
-            new String[]{"STT", "Vai trò", "Tài khoản", "Bệnh nhân", "Lịch hẹn",
-                "Thanh toán", "Báo cáo", "Hệ thống"}, 0) {
+    // Ma trận đọc mã quyền từ DAO, thống nhất cả quyền Nhân viên, Dịch vụ và Hỗ trợ.
+    private static final String[] TEN_QUYEN = {
+        "Tài khoản", "Bệnh nhân", "Lịch hẹn", "Thanh toán", "Báo cáo",
+        "Hệ thống", "Nhân viên", "Dịch vụ", "Hỗ trợ"
+    };
+    private final DefaultTableModel model = new DefaultTableModel(taoTieuDe(), 0) {
         @Override
         public boolean isCellEditable(int row, int column) {
             return false;
@@ -49,7 +52,26 @@ public class QuanLyPhanQuyen extends JPanel {
             return columnIndex >= 2 ? Boolean.class : super.getColumnClass(columnIndex);
         }
     };
-    private final JTable table = new JTable(model);
+    private final JTable table = new JTable(model) {
+        @Override
+        public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer,
+                                         int row, int column) {
+            Component result = super.prepareRenderer(renderer, row, column);
+            if (column == 0 && result instanceof JLabel) {
+                ((JLabel) result).setText(String.valueOf(row + 1));
+                ((JLabel) result).setHorizontalAlignment(SwingConstants.CENTER);
+            }
+            return result;
+        }
+    };
+
+    private static String[] taoTieuDe() {
+        String[] tieuDe = new String[TEN_QUYEN.length + 2];
+        tieuDe[0] = "STT";
+        tieuDe[1] = "Vai trò";
+        System.arraycopy(TEN_QUYEN, 0, tieuDe, 2, TEN_QUYEN.length);
+        return tieuDe;
+    }
 
     public QuanLyPhanQuyen(KhoDuLieu db, TaiKhoan actor) {
         this.db = db;
@@ -118,10 +140,10 @@ public class QuanLyPhanQuyen extends JPanel {
             model.setRowCount(0);
             int number = 1;
             for (VaiTro item : roles) {
-                Object[] row = new Object[8];
+                Object[] row = new Object[TEN_QUYEN.length + 2];
                 row[0] = number++;
                 row[1] = item.ten;
-                for (int index = 0; index < 6; index++) {
+                for (int index = 0; index < TEN_QUYEN.length; index++) {
                     row[index + 2] = item.quyen[index];
                 }
                 model.addRow(row);
@@ -151,11 +173,8 @@ public class QuanLyPhanQuyen extends JPanel {
         }
         JTextField name = GiaoDien.text(old == null ? "" : old.ten);
         JTextField description = GiaoDien.text(old == null ? "" : old.moTa);
-        String[] permissionNames = {
-            "Quản lý tài khoản / phân quyền", "Quản lý bệnh nhân",
-            "Quản lý lịch hẹn", "Quản lý thanh toán", "Xem báo cáo",
-            "Cấu hình hệ thống"
-        };
+        // Tên và thứ tự các quyền luôn tương ứng KhoDuLieu.cacQuyen().
+        String[] permissionNames = TEN_QUYEN;
         JCheckBox[] permissions = new JCheckBox[permissionNames.length];
         JPanel form = new JPanel(new GridLayout(0, 1, 6, 6));
         form.add(GiaoDien.label("Tên vai trò *", 12, true));

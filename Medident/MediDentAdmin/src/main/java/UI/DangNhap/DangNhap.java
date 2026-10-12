@@ -105,6 +105,10 @@ public class DangNhap extends JFrame {
                             "Sai thông tin hoặc tài khoản bị khóa.");
                     return;
                 }
+                // Nếu tài khoản vừa được cấp hoặc reset, chỉ mở khung chính SAU khi đổi mật khẩu.
+                if (account.phaiDoiMatKhau && !DoiMatKhauBatBuoc.thucHien(this, db, account)) {
+                    return;
+                }
                 dispose();
                 new KhungChinh(account, db).setVisible(true);
             } catch (Exception exception) {

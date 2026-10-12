@@ -1,0 +1,35 @@
+package UI.QuanLy;
+
+import Class.TaiKhoan;
+import DAO.KhoDuLieu;
+import UI.Chung.BaoCaoThongKePanel;
+
+/**
+ * Báo cáo dành cho Quản lý phòng khám.
+ *
+ * Giữ nguyên BaseQuanLyGUI và showWindow() trong dự án Quản lý của bạn.
+ * Mọi biểu đồ, bộ lọc, bảng, chức năng xuất CSV được dùng chung với Admin.
+ * Quản lý không thấy phần tài khoản và nhật ký hệ thống của Admin.
+ */
+public class BaoCaoThongKeGUI extends BaseQuanLyGUI {
+
+    /** Hỗ trợ cách gọi cũ: new BaoCaoThongKeGUI(). */
+    public BaoCaoThongKeGUI() {
+        this(new KhoDuLieu());
+    }
+
+    /** Hỗ trợ trường hợp màn hình chính truyền DAO vào. */
+    public BaoCaoThongKeGUI(KhoDuLieu db) {
+        super("Báo cáo - thống kê", "Báo cáo và thống kê");
+
+        // Thay số liệu minh họa bằng SQL Server thực tế.
+        BaoCaoThongKePanel noiDung = new BaoCaoThongKePanel(false);
+        content.add(noiDung);
+        showWindow();
+    }
+
+    /** Nếu menu Quản lý đang gọi (db, user), vẫn tương thích. */
+    public BaoCaoThongKeGUI(KhoDuLieu db, TaiKhoan user) {
+        this(db);
+    }
+}

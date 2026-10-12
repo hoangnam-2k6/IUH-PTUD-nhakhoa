@@ -1,29 +1,17 @@
 package UI.QuanLy;
 
-import java.awt.BorderLayout;
-
-import javax.swing.JPanel;
-import javax.swing.SwingUtilities;
-
 import Class.TaiKhoan;
 import DAO.KhoDuLieu;
+import java.awt.BorderLayout;
+import javax.swing.JPanel;
 
-public class nhanvienquanly_gui extends JPanel{
-    private nhanvienquanly_gui() { }
-    private KhoDuLieu db;
-    private TaiKhoan user;
-
-    public nhanvienquanly_gui(KhoDuLieu db, TaiKhoan user) {
-
-        this.db = db;
-        this.user = user;
-
+/**
+ * Tương thích tên class của nhóm Quản lý.
+ * Lưu ý: class này KHÔNG tạo JFrame; KhungChinh chứa sidebar/header dùng chung.
+ */
+public final class nhanvienquanly_gui extends JPanel {
+    public nhanvienquanly_gui(KhoDuLieu db,TaiKhoan user) {
         setLayout(new BorderLayout());
-
-        // Khởi tạo các thành phần giao diện ở đây.
+        add(new TrangChuQuanLy(db,user),BorderLayout.CENTER);
     }
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(BenhNhanGUI::new);
-    }
-    
 }

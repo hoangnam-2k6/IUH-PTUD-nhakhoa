@@ -1,77 +1,58 @@
 package UI.QuanLy;
 
-import java.awt.Color;
-import javax.swing.JButton;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
+import DAO.QuanLyDAO;
+import UI.Chung.NgayChon;
+import java.awt.Component;
+import java.time.LocalDate;
+import javax.swing.*;
 
-public class ThemBenhNhanGUI extends BaseQuanLyGUI {
-    private final JTextField name = formTextField("Nhập họ và tên bệnh nhân");
-    private final JTextField birthDate = formTextField("dd/mm/yyyy");
-    private final JTextField phone = formTextField("Nhập số điện thoại");
-    private final JTextField email = formTextField("name@email.com");
+/**
+ * Form thêm/sửa bệnh nhân - sử dụng như hộp thoại TRONG KhungChinh.
+ * Form không mở JFrame, chỉ lưu khi đã xác thực quyền BENHNHAN ở DAO.
+ */
+public final class ThemBenhNhanGUI {
+    private final QuanLyDAO dao;
+    private final int actor;
+    private final int maBN;
+    private final Runnable taiLai;
 
-    public ThemBenhNhanGUI() {
-        super("Bệnh nhân", "Thêm bệnh nhân mới");
-        content.add(formHeading("Bệnh nhân   ›   Thêm bệnh nhân", "Thêm bệnh nhân mới",
-                "Tạo hồ sơ bệnh nhân mới trong hệ thống phòng khám.", this::goBack));
-
-        JPanel personalFields = verticalFields(13,
-                formRow(formField("Họ và tên", name, true)),
-                formRow(
-                        formField("Mã bệnh nhân", readOnlyField("Tự động tạo sau khi lưu"), false),
-                        formField("Ngày sinh", birthDate, false)),
-                formRow(
-                        formField("Giới tính", formCombo("Chọn giới tính", "Nữ", "Nam", "Khác"), false),
-                        formField("Số điện thoại", phone, true)),
-                formRow(formField("Email", email, false)),
-                formRow(formField("Địa chỉ", formTextField("Nhập địa chỉ hiện tại"), false)));
-        content.add(formCard("1", "Thông tin cá nhân",
-                "Thông tin định danh và liên hệ của bệnh nhân.", personalFields));
-        content.add(BoxGap.vertical(14));
-
-        JPanel medicalFields = verticalFields(13,
-                formRow(
-                        formField("Nhóm máu", formCombo("Chưa xác định", "A", "B", "AB", "O"), false),
-                        formField("Nguồn giới thiệu", formCombo("Khách hàng giới thiệu",
-                                "Khách hàng giới thiệu", "Tìm kiếm trực tuyến", "Khác"), false)),
-                formRow(formField("Tên sử dụng", formTextField("Thuốc, thực phẩm hoặc vật liệu nha khoa..."), false)),
-                formRow(formField("Ghi chú y tế", scrollableArea(
-                        formTextArea("Nhập bệnh nền hoặc thông tin cần lưu ý...", 3)), false)));
-        content.add(formCard("2", "Thông tin y tế ban đầu",
-                "Ghi nhận thông tin y tế quan trọng trước lần khám đầu tiên.", medicalFields));
-        content.add(BoxGap.vertical(14));
-
-        JButton cancel = flatButton("Hủy bỏ", false);
-        cancel.addActionListener(event -> goBack());
-        JButton save = primaryButton("+   Tạo hồ sơ");
-        save.addActionListener(event -> savePatient());
-        content.add(formFooter(cancel, save));
-        showWindow();
+    public ThemBenhNhanGUI(QuanLyDAO dao,int actor,int maBN,Runnable taiLai) {
+        this.dao=dao;this.actor=actor;this.maBN=maBN;this.taiLai=taiLai;
     }
 
-    private JTextField readOnlyField(String value) {
-        JTextField field = formTextField("");
-        field.setText(value);
-        field.setEditable(false);
-        field.setBackground(new Color(248, 250, 252));
-        field.setForeground(MUTED);
-        return field;
-    }
-
-    private void savePatient() {
-        if (name.getText().isBlank() || phone.getText().isBlank()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập họ tên và số điện thoại.",
-                    "Thiếu thông tin bắt buộc", JOptionPane.WARNING_MESSAGE);
-            return;
+    public void hien(Component parent) throws Exception {
+        // Khi sửa, đọc nguyên vẹn cả địa chỉ/tiền sử từ SQL để không ghi đè giá trị cũ.
+        String[] old=maBN==0?null:dao.chiTietBenhNhan(maBN);
+        JPanel f=BieuMau.form();
+        JTextField ten=BieuMau.text(old==null?"":old[0]);
+        JTextField sdt=BieuMau.text(old==null?"":old[1]);
+        JComboBox<String> gioiTinh=BieuMau.trangThai("Nam","Nữ","Khác","Chưa xác định");
+        JComboBox<String> trangThai=BieuMau.trangThai("Mới","Đang điều trị","Hoàn tất");
+        NgayChon ngay = new NgayChon();
+        if (old != null && old[3] != null && !old[3].isBlank()) {
+            ngay.setNgay(BieuMau.ngay(old[3]));
         }
-        JOptionPane.showMessageDialog(this, "Thông tin hồ sơ đã được kiểm tra.",
-                "Tạo hồ sơ", JOptionPane.INFORMATION_MESSAGE);
-        goBack();
-    }
-
-    private void goBack() {
-        openPage("Bệnh nhân");
+        JTextField email=BieuMau.text(old==null?"":old[4]);
+        JTextField diaChi=BieuMau.text(old==null?"":old[5]);
+        JTextArea tienSu=new JTextArea(3,25);
+        if(old!=null) {
+            tienSu.setText(old[6]);
+            gioiTinh.setSelectedItem(old[2]);
+            trangThai.setSelectedItem(old[7]);
+        }
+        BieuMau.them(f,"Họ và tên *",ten);
+        BieuMau.them(f,"Điện thoại *",sdt);
+        BieuMau.them(f,"Giới tính",gioiTinh);
+        BieuMau.them(f,"Ngày sinh (chọn ngày có thật)",ngay);
+        BieuMau.them(f,"Email",email);
+        BieuMau.them(f,"Địa chỉ",diaChi);
+        BieuMau.them(f,"Tiền sử bệnh",new JScrollPane(tienSu));
+        BieuMau.them(f,"Trạng thái",trangThai);
+        if(!BieuMau.xacNhan(parent,maBN==0?"Thêm bệnh nhân":"Sửa bệnh nhân",f))return;
+        LocalDate birthday=ngay.getNgay();
+        dao.luuBenhNhan(maBN,ten.getText(),sdt.getText(),birthday,
+                (String)gioiTinh.getSelectedItem(),email.getText(),diaChi.getText(),
+                tienSu.getText(),(String)trangThai.getSelectedItem(),actor);
+        taiLai.run();
     }
 }

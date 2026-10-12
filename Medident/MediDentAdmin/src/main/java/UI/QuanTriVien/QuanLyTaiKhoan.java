@@ -5,6 +5,7 @@ import Class.VaiTro;
 import DAO.KhoDuLieu;
 import UI.Chung.BieuTuong;
 import UI.Chung.GiaoDien;
+import UI.Chung.NgayChon;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
@@ -19,6 +20,9 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JLabel;
+import javax.swing.ListSelectionModel;
 import javax.swing.JPasswordField;
 import javax.swing.JTable;
 import javax.swing.JTextField;
@@ -43,7 +47,19 @@ public class QuanLyTaiKhoan extends JPanel {
         }
     };
 
-    private final JTable table = new JTable(model);
+    private final JTable table = new JTable(model) {
+        @Override
+        public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer,
+                                         int row, int column) {
+            Component result = super.prepareRenderer(renderer, row, column);
+            if (column == 0 && result instanceof javax.swing.JLabel) {
+                ((javax.swing.JLabel) result).setText(String.valueOf(row + 1));
+                ((javax.swing.JLabel) result).setHorizontalAlignment(
+                        javax.swing.SwingConstants.CENTER);
+            }
+            return result;
+        }
+    };
     private final JTextField search = GiaoDien.text("");
     private final JComboBox<String> status = new JComboBox<>(new String[]{
         "Tất cả trạng thái", "Hoạt động", "Tạm khóa"
@@ -98,15 +114,42 @@ public class QuanLyTaiKhoan extends JPanel {
 
         // 2. Bảng dữ liệu; STT luôn từ 1 đến số dòng sau khi lọc.
         JPanel card = GiaoDien.card(new BorderLayout(0, 12));
-        card.setPreferredSize(new Dimension(700, 430));
-        card.add(GiaoDien.wrapTable(table), BorderLayout.CENTER);
-        JPanel tools = GiaoDien.hang();
-        JButton edit = GiaoDien.nutIcon("Sửa tài khoản", false, BieuTuong.Loai.SUA);
+        card.setPreferredSize(new Dimension(700, 550));
+
+        // Đặt các nút ở ĐẦU bảng, luôn dễ nhìn thấy thay vì cuối bảng cao 550px.
+        JButton edit = GiaoDien.nutIcon("Sửa thông tin", true, BieuTuong.Loai.SUA);
         JButton remove = GiaoDien.nutIcon("Xóa tài khoản", false, BieuTuong.Loai.XOA);
+        JButton reset = GiaoDien.nutIcon("Quên mật khẩu / Reset", false,
+                BieuTuong.Loai.TAI_LAI);
+
+        JPanel tools = GiaoDien.hang();
         tools.add(edit);
         tools.add(remove);
-        card.add(tools, BorderLayout.SOUTH);
+        tools.add(reset);
+
+        JLabel title = GiaoDien.label("Danh sách tài khoản", 14, true);
+        JPanel tableHeader = new JPanel(new BorderLayout(12, 0));
+        tableHeader.setOpaque(false);
+        tableHeader.add(title, BorderLayout.WEST);
+        tableHeader.add(tools, BorderLayout.EAST);
+
+        card.add(tableHeader, BorderLayout.NORTH);
+        card.add(GiaoDien.wrapTable(table), BorderLayout.CENTER);
         page.add(card);
+
+        // Chỉ cho thao tác sửa/xóa/reset sau khi người dùng chọn một tài khoản.
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        edit.setEnabled(false);
+        remove.setEnabled(false);
+        reset.setEnabled(false);
+        table.getSelectionModel().addListSelectionListener(event -> {
+            if (!event.getValueIsAdjusting()) {
+                boolean selected = table.getSelectedRow() >= 0;
+                edit.setEnabled(selected);
+                remove.setEnabled(selected);
+                reset.setEnabled(selected);
+            }
+        });
 
         // 3. Chỉ đọc các vai trò từ CSDL, không bắt người dùng tự điền vai trò.
         try {
@@ -120,13 +163,23 @@ public class QuanLyTaiKhoan extends JPanel {
         status.addActionListener(event -> taiLai());
         role.addActionListener(event -> taiLai());
         add.addActionListener(event -> hienForm(null));
-        edit.addActionListener(event -> {
-            TaiKhoan selected = taiKhoanDangChon();
-            if (selected != null) {
-                hienForm(selected);
+        // Nút Sửa và nhấp đúp vào dòng đều dùng chung một hàm sửa.
+        edit.addActionListener(event -> suaThongTinTaiKhoan());
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent event) {
+                if (event.getClickCount() == 2
+                        && javax.swing.SwingUtilities.isLeftMouseButton(event)) {
+                    int row = table.rowAtPoint(event.getPoint());
+                    if (row >= 0) {
+                        table.setRowSelectionInterval(row, row);
+                        suaThongTinTaiKhoan();
+                    }
+                }
             }
         });
         remove.addActionListener(event -> xoa());
+        reset.addActionListener(event -> datLaiMatKhau());
     }
 
     private void napVaiTro() throws Exception {
@@ -171,35 +224,98 @@ public class QuanLyTaiKhoan extends JPanel {
                 ? visibleAccounts.get(modelRow) : null;
     }
 
-    /** 6. Form thêm/sửa: tên đăng nhập tự sinh, vai trò/trạng thái dùng combo. */
+    /**
+     * Sửa tài khoản được chọn. Hàm này dùng chung cho nút Sửa và nhấp đúp.
+     * Form sẽ tải thông tin đã lưu rồi gọi db.luuTaiKhoan() khi bấm OK.
+     */
+    private void suaThongTinTaiKhoan() {
+        TaiKhoan account = taiKhoanDangChon();
+        if (account == null) {
+            return;
+        }
+        hienForm(account);
+    }
+
+    /**
+     * 6. Form thêm/sửa tài khoản.
+     *
+     * Ngay khi mở form Thêm, đọc IDENTITY kế tiếp từ SQL để XEM TRƯỚC
+     * cả mã tài khoản và tên đăng nhập. Không cho người dùng tự sửa hai ô.
+     *
+     * Ngày sinh dùng lịch chọn; các ngày không tồn tại, tương lai, quá 100
+     * tuổi đều bị khóa. Khi lưu, SQL vẫn tự sinh mã thật để tránh trùng ID.
+     */
     private void hienForm(TaiKhoan account) {
-        boolean creating = (account == null);
-        JTextField username = GiaoDien.text(creating
-                ? "Tự tạo: NV + mã tài khoản" : account.tenDangNhap);
+        boolean creating = account == null;
+
+        // Lấy MÃ DỰ KIẾN theo bộ đếm IDENTITY, không phải MAX(maTK)+1.
+        // Trường hợp đồng thời có người khác thêm, mã thực tế có thể thay đổi.
+        final int maDuKien;
+        try {
+            maDuKien = creating ? db.duKienMaTaiKhoan(actor.id) : account.id;
+        } catch (Exception ex) {
+            GiaoDien.loi(this, ex);
+            return;
+        }
+        String tenDangNhapDuKien = creating
+                ? KhoDuLieu.tenDangNhapTheoMa(maDuKien)
+                : account.tenDangNhap;
+
+        JTextField idTuDong = GiaoDien.text(String.valueOf(maDuKien));
+        idTuDong.setEditable(false);
+        idTuDong.setToolTipText(creating ? "Mã dự kiến (SQL có thể cấp mã khác nếu có tạo đồng thời)"
+                : "Mã tài khoản chính thức");
+
+        JTextField username = GiaoDien.text(tenDangNhapDuKien);
         username.setEditable(false);
+        username.setToolTipText("Tên đăng nhập hệ thống tự tạo theo mã tài khoản");
+
         JTextField name = GiaoDien.text(creating ? "" : account.hoTen);
         JTextField email = GiaoDien.text(creating ? "" : account.email);
         JPasswordField password = new JPasswordField();
-        JComboBox<VaiTro> roleBox = new JComboBox<>(roles.toArray(new VaiTro[0]));
-        JComboBox<String> statusBox = new JComboBox<>(new String[]{"Hoạt động", "Tạm khóa"});
 
+        // Calendar thực: chỉ chọn ngày đã có trong tháng/năm hợp lệ.
+        NgayChon ngaySinh = new NgayChon();
+        try {
+            if (!creating) {
+                ngaySinh.setNgay(db.ngaySinhNhanVien(account.id, actor.id));
+            }
+        } catch (Exception ex) {
+            GiaoDien.loi(this, ex);
+            return;
+        }
+
+        JTextField ngayTao = GiaoDien.text(creating
+                ? "SQL Server ghi khi bấm Lưu" : account.ngayTao);
+        ngayTao.setEditable(false);
+
+        JComboBox<VaiTro> roleBox = new JComboBox<>(roles.toArray(new VaiTro[0]));
+        JComboBox<String> statusBox = new JComboBox<>(
+                new String[]{"Hoạt động", "Tạm khóa"});
         if (!creating) {
             for (VaiTro item : roles) {
                 if (item.id == account.vaiTroId) {
                     roleBox.setSelectedItem(item);
+                    break;
                 }
             }
             statusBox.setSelectedItem(account.trangThai);
         }
 
         JPanel form = new JPanel(new GridLayout(0, 2, 10, 12));
-        form.add(GiaoDien.label("Tên đăng nhập", 12, true));
+        form.add(GiaoDien.label(creating ? "Mã tài khoản (dự kiến)" : "Mã tài khoản", 12, true));
+        form.add(idTuDong);
+        form.add(GiaoDien.label("Tên đăng nhập (tự động)", 12, true));
         form.add(username);
-        form.add(GiaoDien.label("Họ và tên", 12, true));
+        form.add(GiaoDien.label("Ngày tạo (tự động)", 12, true));
+        form.add(ngayTao);
+        form.add(GiaoDien.label("Họ và tên *", 12, true));
         form.add(name);
-        form.add(GiaoDien.label("Email", 12, true));
+        form.add(GiaoDien.label("Email *", 12, true));
         form.add(email);
-        form.add(GiaoDien.label(creating ? "Mật khẩu" : "Mật khẩu mới (trống: giữ nguyên)",
+        form.add(GiaoDien.label("Ngày sinh (chọn từ lịch) *", 12, true));
+        form.add(ngaySinh);
+        form.add(GiaoDien.label(creating ? "Mật khẩu *" : "Mật khẩu mới (trống: giữ nguyên)",
                 12, true));
         form.add(password);
         form.add(GiaoDien.label("Vai trò", 12, true));
@@ -207,31 +323,120 @@ public class QuanLyTaiKhoan extends JPanel {
         form.add(GiaoDien.label("Trạng thái", 12, true));
         form.add(statusBox);
 
-        int answer = JOptionPane.showConfirmDialog(this, form,
-                creating ? "Thêm tài khoản" : "Sửa tài khoản",
-                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-        if (answer != JOptionPane.OK_OPTION) {
-            return;
+        JPanel formChinh = new JPanel(new BorderLayout(0, 12));
+        formChinh.add(form, BorderLayout.CENTER);
+        if (creating) {
+            JLabel ghiChu = GiaoDien.label(
+                    "<html><b>Lưu ý:</b> Mã và tên đăng nhập đang hiển thị là dự kiến. </html>",
+                    11, false);
+            formChinh.add(ghiChu, BorderLayout.SOUTH);
         }
+        JScrollPane formCuon = new JScrollPane(formChinh);
+        formCuon.setBorder(null);
+        formCuon.setPreferredSize(new Dimension(650, 490));
+        formCuon.getVerticalScrollBar().setUnitIncrement(16);
 
-        String passwordValue = new String(password.getPassword());
-        if (name.getText().trim().isEmpty()
-                || !email.getText().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
-                || (creating && passwordValue.length() < 8)
-                || (!passwordValue.isEmpty() && passwordValue.length() < 8)) {
-            JOptionPane.showMessageDialog(this,
-                    "Kiểm tra tên, email và mật khẩu (tối thiểu 8 ký tự).");
-            return;
+        // Khi dữ liệu không hợp lệ, mở lại đúng form này, giữ nguyên nội dung.
+        while (true) {
+            int answer = JOptionPane.showConfirmDialog(
+                    this, formCuon,
+                    creating ? "Thêm tài khoản" : "Sửa tài khoản",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+            if (answer != JOptionPane.OK_OPTION) {
+                return;
+            }
+
+            String passwordValue = new String(password.getPassword());
+            if (name.getText().trim().isEmpty()
+                    || !email.getText().trim().matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+                    || (creating && passwordValue.length() < 8)
+                    || (!passwordValue.isEmpty() && passwordValue.length() < 8)) {
+                JOptionPane.showMessageDialog(this,
+                        "Hãy nhập họ tên, email hợp lệ và mật khẩu tối thiểu 8 ký tự.",
+                        "Kiểm tra thông tin", JOptionPane.WARNING_MESSAGE);
+                continue;
+            }
+
+            try {
+                java.time.LocalDate ngaySinhThuc = ngaySinh.getNgay();
+                if (ngaySinhThuc == null) {
+                    JOptionPane.showMessageDialog(this,
+                            "Vui lòng chọn ngày sinh bằng nút Chọn lịch.",
+                            "Thiếu ngày sinh", JOptionPane.WARNING_MESSAGE);
+                    continue;
+                }
+                VaiTro selectedRole = (VaiTro) roleBox.getSelectedItem();
+                if (selectedRole == null) {
+                    JOptionPane.showMessageDialog(this, "Chưa có vai trò để chọn.");
+                    continue;
+                }
+
+                // Lấy mã THẬT trả về sau khi SQL Server INSERT thành công.
+                int maThucTe = db.luuTaiKhoanTraVeMa(
+                        creating ? 0 : account.id,
+                        username.getText().trim(),
+                        name.getText().trim(),
+                        email.getText().trim(),
+                        selectedRole.id,
+                        (String) statusBox.getSelectedItem(),
+                        passwordValue,
+                        ngaySinhThuc,
+                        actor.id);
+
+                taiLai();
+                String tenDangNhapThuc = creating
+                        ? KhoDuLieu.tenDangNhapTheoMa(maThucTe)
+                        : account.tenDangNhap;
+
+                JOptionPane.showMessageDialog(this,
+                        creating
+                                ? "Đã thêm tài khoản thành công!\n"
+                                    + "Mã tài khoản chính thức: " + maThucTe + "\n"
+                                    + "Tên đăng nhập: " + tenDangNhapThuc
+                                : "Đã cập nhật thông tin tài khoản thành công.",
+                        "MediDent", JOptionPane.INFORMATION_MESSAGE);
+                return;
+
+            } catch (IllegalArgumentException dateError) {
+                JOptionPane.showMessageDialog(this, dateError.getMessage(),
+                        "Ngày sinh không hợp lệ", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                GiaoDien.loi(this, ex);
+                // Form giữ dữ liệu để người quản trị có thể kiểm tra và thử lại.
+            }
         }
+    }
 
+    /**
+     * Nhấn "Quên mật khẩu / Reset" trong danh sách tài khoản.
+     * Truy vấn ngày sinh trong NhanVien; người dùng không gõ mã/ngày sinh tùy ý.
+     * Chỉ dành cho môi trường DEMO: ngày sinh là mật khẩu tạm ddMMyyyy và bắt buộc đổi.
+     */
+    private void datLaiMatKhau() {
+        TaiKhoan selected = taiKhoanDangChon();
+        if (selected == null) return;
         try {
-            db.luuTaiKhoan(creating ? 0 : account.id, username.getText().trim(),
-                    name.getText().trim(), email.getText().trim(),
-                    ((VaiTro) roleBox.getSelectedItem()).id,
-                    (String) statusBox.getSelectedItem(), passwordValue, actor.id);
-            taiLai();
-        } catch (Exception exception) {
-            GiaoDien.loi(this, exception);
+            java.time.LocalDate ngay = db.ngaySinhNhanVien(selected.id, actor.id);
+            if (ngay == null) {
+                JOptionPane.showMessageDialog(this,
+                        "Nhân viên chưa có ngày sinh. Hãy mở Sửa tài khoản và chọn ngày sinh trước.");
+                return;
+            }
+            String date = ngay.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            int ok = JOptionPane.showConfirmDialog(this,
+                    "Cấp mật khẩu tạm theo ngày sinh " + date + " cho "
+                    + selected.tenDangNhap + "?\n"
+                    + "Hệ thống sẽ yêu cầu người dùng đổi mật khẩu ngay khi đăng nhập.\n"
+                    + "Chỉ sử dụng cơ chế này trong môi trường thực hành.",
+                    "Xác nhận đặt lại mật khẩu", JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE);
+            if (ok != JOptionPane.YES_OPTION) return;
+            db.datLaiMatKhauTheoNgaySinh(selected.id, actor.id);
+            JOptionPane.showMessageDialog(this,
+                    "Đã đặt mật khẩu tạm cho " + selected.tenDangNhap + ".\n"
+                    + "Thông báo trực tiếp cho nhân viên; bắt buộc đổi sau khi đăng nhập.");
+        } catch (Exception ex) {
+            GiaoDien.loi(this, ex);
         }
     }
 

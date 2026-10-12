@@ -71,16 +71,42 @@ public final class GiaoDien {
 
     /** 3. Tạo nút theo hai kiểu chính/phụ của hệ thống. */
     public static JButton nut(String title, boolean primary) {
-        JButton button = new JButton(title);
+        // Vẽ nút bo góc thuần Swing để không cần thêm thư viện UI.
+        JButton button = new JButton(title) {
+            @Override protected void paintComponent(Graphics source) {
+                Graphics2D g = (Graphics2D) source.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                Color bg = getBackground();
+                if (getModel().isPressed()) bg = primary ? HOVER : new Color(0xE2E8F0);
+                g.setColor(bg);
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 11, 11);
+                g.setColor(primary ? bg : BORDER);
+                g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 11, 11);
+                g.dispose();
+                super.paintComponent(source);
+            }
+        };
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setBackground(primary ? PRIMARY : WHITE);
         button.setForeground(primary ? WHITE : TEXT);
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setBorder(new EmptyBorder(10, 14, 10, 14));
         button.setFocusPainted(false);
-        button.setOpaque(true);
-        button.setBorder(new CompoundBorder(
-                new LineBorder(primary ? PRIMARY : BORDER, 1, true),
-                new EmptyBorder(9, 13, 9, 13)));
+        button.setRolloverEnabled(true);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mouseEntered(java.awt.event.MouseEvent e) {
+                button.putClientProperty("MEDIDENT_HOVER_BASE", button.getBackground());
+                button.setBackground(primary ? HOVER : new Color(0xF1F5F9));
+            }
+            @Override public void mouseExited(java.awt.event.MouseEvent e) {
+                Object original = button.getClientProperty("MEDIDENT_HOVER_BASE");
+                button.setBackground(original instanceof Color ? (Color) original :
+                        (primary ? PRIMARY : WHITE));
+            }
+        });
         return button;
     }
 
@@ -96,15 +122,26 @@ public final class GiaoDien {
     public static JPanel card(LayoutManager layout) {
         JPanel panel = new JPanel(layout) {
             @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(WHITE);
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                g.setColor(BORDER);
+                g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                g.dispose();
+                super.paintComponent(graphics);
+            }
+            @Override
             public Dimension getMaximumSize() {
                 return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
             }
         };
+        panel.setOpaque(false);
         panel.setBackground(WHITE);
         panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        panel.setBorder(new CompoundBorder(
-                new LineBorder(BORDER, 1, true),
-                new EmptyBorder(17, 18, 17, 18)));
+        panel.setBorder(new EmptyBorder(20, 22, 20, 22));
         return panel;
     }
 
@@ -155,7 +192,7 @@ public final class GiaoDien {
     /** 7. Đầu trang thống nhất gồm breadcrumb, tiêu đề và mô tả. */
     public static JPanel trang(String title, String description) {
         JPanel page = new CotNoiDung();
-        page.setBorder(new EmptyBorder(28, 26, 26, 26));
+        page.setBorder(new EmptyBorder(26, 28, 44, 28));
         page.add(label("Tổng quan   ›   " + title, 11, false));
         page.add(Box.createVerticalStrut(18));
         page.add(label(title, 24, true));
@@ -171,7 +208,8 @@ public final class GiaoDien {
         scroll.setBorder(null);
         scroll.getViewport().setBackground(BG);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.getVerticalScrollBar().setUnitIncrement(18);
+        scroll.getVerticalScrollBar().setUnitIncrement(22);
+        scroll.getVerticalScrollBar().setBlockIncrement(90);
         return scroll;
     }
 

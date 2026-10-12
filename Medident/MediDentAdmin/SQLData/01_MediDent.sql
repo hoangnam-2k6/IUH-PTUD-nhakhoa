@@ -1,5 +1,5 @@
 -- MEDIDENT - Tao database theo so do ERD nguoi dung cung cap.
--- SQL Server 2017+; tao moi bang khi chua ton tai; KHONG xoa bang hay du lieu cu.
+-- SQL Server 2012+; tao moi bang khi chua ton tai; KHONG xoa bang hay du lieu cu.
 -- ERD chi cho TEN COT / QUAN HE, khong cho kieu du lieu; cac kieu va NULL sau la gia dinh.
 -- IDs duoc chon INT IDENTITY, tien/chi phi DECIMAL(18,2), thoi gian DATETIME2.
 -- Quan trong: neu CSDL cua ban da ton tai, DOI CHIEU kieu du lieu truoc khi chay.
@@ -33,6 +33,7 @@ CREATE TABLE dbo.TaiKhoan (
    CHECK (trangThai IN (N'Hoạt động',N'Tạm khóa')),
  ngayTao DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
  ngayDangNhapCuoi DATETIME2 NULL,
+ phaiDoiMatKhau BIT NOT NULL DEFAULT 0, -- Buộc đổi mật khẩu sau reset/cấp lần đầu
  maVaiTro INT NOT NULL REFERENCES dbo.VaiTro(maVaiTro)
 );
 GO

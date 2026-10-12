@@ -16,13 +16,15 @@ import org.mindrot.jbcrypt.BCrypt;
  * NhatKyHeThong, ThanhToan, HoaDon, PhieuKham.
  */
 public class KhoDuLieu {
-    private static final String[] QUYEN = {"TAIKHOAN", "BENHNHAN", "LICHHEN", "THANHTOAN", "BAOCAO", "HETHONG"};
+    private static final String[] QUYEN = {"TAIKHOAN", "BENHNHAN", "LICHHEN", "THANHTOAN", "BAOCAO", "HETHONG", "NHANVIEN", "DICHVU", "HOTRO"};
     public static String[] cacQuyen() { return QUYEN.clone(); }
 
     // Ten/hop thu cua tai khoan nam trong NhanVien, khong nam trong TaiKhoan.
     private static final String COT_TAI_KHOAN =
         "t.maTK,t.tenDangNhap,COALESCE(n.hoTen,t.tenDangNhap) AS HoTen," +
-        "COALESCE(n.email,'') AS Email,t.maVaiTro,v.tenVaiTro AS TenVaiTro,t.trangThai AS TrangThai ";
+        "COALESCE(n.email,'') AS Email,t.maVaiTro,v.tenVaiTro AS TenVaiTro," +
+        "t.trangThai AS TrangThai,t.phaiDoiMatKhau AS PhaiDoiMatKhau," +
+        "CONVERT(varchar(19),t.ngayTao,120) AS NgayTao ";
     private static final String JOIN_TAI_KHOAN =
         " FROM dbo.TaiKhoan t JOIN dbo.VaiTro v ON t.maVaiTro=v.maVaiTro" +
         " LEFT JOIN dbo.NhanVien n ON n.maTK=t.maTK ";
@@ -63,9 +65,11 @@ public class KhoDuLieu {
     }
 
     private TaiKhoan docTK(ResultSet r) throws SQLException {
-        return new TaiKhoan(r.getInt("maTK"),r.getString("tenDangNhap"),
+        TaiKhoan t = new TaiKhoan(r.getInt("maTK"),r.getString("tenDangNhap"),
             r.getString("HoTen"),r.getString("Email"),r.getInt("maVaiTro"),
-            r.getString("TenVaiTro"),r.getString("TrangThai"));
+            r.getString("TenVaiTro"),r.getString("TrangThai"),r.getBoolean("PhaiDoiMatKhau"));
+        t.ngayTao = r.getString("NgayTao");
+        return t;
     }
 
     public List<TaiKhoan> taiKhoan(String keyword,int role,String status) throws SQLException {
@@ -118,11 +122,26 @@ public class KhoDuLieu {
         }
     }
 
+    /** Kiểm tra tài khoản còn được phép sử dụng phiên đăng nhập không. */
+    public boolean taiKhoanDangHoatDong(int maTK) throws SQLException {
+        try (Connection c=KetNoi.mo(); PreparedStatement p=c.prepareStatement(
+                "SELECT 1 FROM dbo.TaiKhoan WHERE maTK=? AND trangThai=N'Hoạt động'")) {
+            p.setInt(1,maTK);
+            try(ResultSet r=p.executeQuery()) { return r.next(); }
+        }
+    }
+
     /**
      * Kiem tra maVaiTro HIEN TAI cua tai khoan tai SQL, khong tin ma quyen da cache.
      * Neu bi tam khoa/doi quyen trong luc dang su dung, lan chuyen trang ke tiep bi chan.
      */
     public boolean coQuyenTaiKhoan(int maTK,String maQuyen) throws SQLException {
+        // Vai trò Admin không được dùng quyền nghiệp vụ, kể cả khi SQL cũ đã cấp.
+        if (java.util.Arrays.asList("BENHNHAN", "LICHHEN", "THANHTOAN",
+                "NHANVIEN", "DICHVU").contains(maQuyen)
+                && laQuanTriVienTaiKhoan(maTK)) {
+            return false;
+        }
         String sql="SELECT 1 FROM dbo.TaiKhoan t JOIN dbo.VaiTroQuyen q" +
             " ON t.maVaiTro=q.maVaiTro WHERE t.maTK=? AND t.trangThai=N'Hoạt động' AND q.maQuyen=?";
         try(Connection c=KetNoi.mo();PreparedStatement s=c.prepareStatement(sql)){
@@ -140,14 +159,70 @@ public class KhoDuLieu {
         }
     }
 
-    /** Tao/Sua TaiKhoan va NhanVien trong CUNG mot giao dich (transaction). */
-    public void luuTaiKhoan(int id,String username,String name,String email,int role,
-                            String status,String newPassword,int actor) throws SQLException {
+    /**
+     * Xem trước mã tài khoản được SQL IDENTITY tạo tiếp theo.
+     *
+     * Đây là DỰ KIẾN, không phải giữ chỗ: người khác INSERT trước có thể
+     * làm thay đổi mã. Sau khi lưu, luôn lấy mã THỰC TẾ từ generated keys.
+     * SQL Server 2012 hỗ trợ sys.identity_columns.
+     */
+    public int duKienMaTaiKhoan(int actor) throws SQLException {
+        yeuCauQuyen(actor, "TAIKHOAN");
+        String sql =
+                "SELECT CASE WHEN last_value IS NULL " +
+                "THEN CONVERT(bigint, seed_value) ELSE CONVERT(bigint, last_value) + " +
+                "CONVERT(bigint, increment_value) END " +
+                "FROM sys.identity_columns " +
+                "WHERE object_id = OBJECT_ID(N'dbo.TaiKhoan') " +
+                "AND name = N'maTK'";
+        try (Connection c = KetNoi.mo();
+             PreparedStatement statement = c.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
+            if (!rs.next()) {
+                throw new SQLException("Không tìm thấy cột IDENTITY dbo.TaiKhoan.maTK.");
+            }
+            long maDuKien = rs.getLong(1);
+            if (maDuKien < 1 || maDuKien > Integer.MAX_VALUE) {
+                throw new SQLException("Mã tài khoản dự kiến vượt giới hạn INT.");
+            }
+            return (int) maDuKien;
+        }
+    }
+
+    /** Định dạng tên đăng nhập xem trước đúng quy tắc tạo thực tế. */
+    public static String tenDangNhapTheoMa(int maTaiKhoan) {
+        return String.format(Locale.ROOT, "NV%06d", maTaiKhoan);
+    }
+
+    /**
+     * Giữ hàm cũ để các màn hình khác không phải sửa lời gọi.
+     */
+    public void luuTaiKhoan(int id, String username, String name, String email,
+                            int role, String status, String newPassword,
+                            LocalDate ngaySinh, int actor) throws SQLException {
+        luuTaiKhoanTraVeMa(id, username, name, email, role, status,
+                newPassword, ngaySinh, actor);
+    }
+
+    /**
+     * Lưu SQL theo transaction, trả về maTK THỰC TẾ sau khi INSERT.
+     * Không dùng mã dự kiến để INSERT: DB giữ vai trò cấp mã cuối cùng.
+     */
+    public int luuTaiKhoanTraVeMa(int id, String username, String name, String email,
+                                 int role, String status, String newPassword,
+                                 LocalDate ngaySinh, int actor) throws SQLException {
+        yeuCauQuyen(actor, "TAIKHOAN");
         // Khi them moi, tenDangNhap tu sinh NV000001...; sua thi giu nguyen.
         if(name==null||name.trim().isEmpty())
             throw new SQLException("Thiếu tên nhân viên.");
         if(email==null||!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"))
             throw new SQLException("Email không hợp lệ.");
+        // Ngày sinh nhân viên phải do người quản trị xác nhận, không tự tạo ngày giả.
+        if (id == 0 && ngaySinh == null)
+            throw new SQLException("Hãy chọn ngày sinh thực tế của nhân viên.");
+        if (ngaySinh != null && (ngaySinh.isAfter(LocalDate.now()) ||
+                ngaySinh.isBefore(LocalDate.now().minusYears(100))))
+            throw new SQLException("Ngày sinh nhân viên không hợp lệ.");
         if(id==0 && (newPassword==null||newPassword.length()<8))
             throw new SQLException("Mật khẩu mới phải có ít nhất 8 ký tự.");
         try(Connection c=KetNoi.mo()) {
@@ -166,7 +241,7 @@ public class KhoDuLieu {
                     }
                 }
                 if(id==0) {
-                    String sql="INSERT INTO dbo.TaiKhoan(tenDangNhap,matKhau,maVaiTro,trangThai) VALUES(?,?,?,?)";
+                    String sql="INSERT INTO dbo.TaiKhoan(tenDangNhap,matKhau,maVaiTro,trangThai,phaiDoiMatKhau) VALUES(?,?,?,?,1)";
                     try(PreparedStatement s=c.prepareStatement(sql,Statement.RETURN_GENERATED_KEYS)) {
                         // Dung username tam duy nhat; sau khi lay ID se doi thanh NV + 6 chu so.
                         s.setString(1,"tmp_"+UUID.randomUUID().toString().replace("-",""));
@@ -180,7 +255,7 @@ public class KhoDuLieu {
                     }
                     try(PreparedStatement s=c.prepareStatement(
                             "UPDATE dbo.TaiKhoan SET tenDangNhap=? WHERE maTK=?")) {
-                        s.setString(1,String.format("NV%06d",accountId));
+                        s.setString(1,tenDangNhapTheoMa(accountId));
                         s.setInt(2,accountId);
                         s.executeUpdate();
                     }
@@ -192,7 +267,7 @@ public class KhoDuLieu {
                     }
                     if(newPassword!=null&&!newPassword.isEmpty()) {
                         if(newPassword.length()<8)throw new SQLException("Mật khẩu phải dài tối thiểu 8 ký tự.");
-                        try(PreparedStatement s=c.prepareStatement("UPDATE dbo.TaiKhoan SET matKhau=? WHERE maTK=?")) {
+                        try(PreparedStatement s=c.prepareStatement("UPDATE dbo.TaiKhoan SET matKhau=?,phaiDoiMatKhau=1 WHERE maTK=?")) {
                             s.setString(1,BCrypt.hashpw(newPassword,BCrypt.gensalt(11)));
                             s.setInt(2,id);s.executeUpdate();
                         }
@@ -215,11 +290,14 @@ public class KhoDuLieu {
                 }
                 if(staffId==0) {
                     try(PreparedStatement s=c.prepareStatement(
-                            "INSERT INTO dbo.NhanVien(hoTen,email,chucVu,trangThai,maTK) VALUES(?,?,?,?,?)",
+                            "INSERT INTO dbo.NhanVien(hoTen,email,chucVu,trangThai,maTK,ngaySinh) VALUES(?,?,?,?,?,?)",
                             Statement.RETURN_GENERATED_KEYS)) {
                         s.setString(1,name);s.setString(2,email);s.setString(3,tenVaiTro);
                         s.setString(4,"Hoạt động".equals(status)?"Đang làm việc":"Ngừng làm việc");
-                        s.setInt(5,accountId);s.executeUpdate();
+                        s.setInt(5,accountId);
+                        if (ngaySinh == null) s.setNull(6,Types.DATE);
+                        else s.setDate(6,java.sql.Date.valueOf(ngaySinh));
+                        s.executeUpdate();
                         try(ResultSet r=s.getGeneratedKeys()){
                             if(!r.next())throw new SQLException("Không lấy được mã nhân viên mới.");
                             staffId=r.getInt(1);
@@ -227,15 +305,18 @@ public class KhoDuLieu {
                     }
                 } else {
                     try(PreparedStatement s=c.prepareStatement(
-                            "UPDATE dbo.NhanVien SET hoTen=?,email=?,chucVu=?,trangThai=? WHERE maNV=?")) {
+                            "UPDATE dbo.NhanVien SET hoTen=?,email=?,chucVu=?,trangThai=?,ngaySinh=COALESCE(?,ngaySinh) WHERE maNV=?")) {
                         s.setString(1,name);s.setString(2,email);s.setString(3,tenVaiTro);
                         s.setString(4,"Hoạt động".equals(status)?"Đang làm việc":"Ngừng làm việc");
-                        s.setInt(5,staffId);s.executeUpdate();
+                        if (ngaySinh == null) s.setNull(5,Types.DATE);
+                        else s.setDate(5,java.sql.Date.valueOf(ngaySinh));
+                        s.setInt(6,staffId);s.executeUpdate();
                     }
                 }
                 dongBoPhanLoai(c,staffId,tenVaiTro);
                 ghi(c,actor,id==0?"Thêm tài khoản":"Sửa tài khoản","TaiKhoan",name+" (maTK="+accountId+")");
                 c.commit();
+                return accountId;
             }catch(Exception e) {
                 c.rollback();
                 if(e instanceof SQLException)throw(SQLException)e;
@@ -270,6 +351,7 @@ public class KhoDuLieu {
 
     /** Chi xoa duoc nhan vien chua co lich hen, lich lam viec, phieu kham... */
     public void xoaTK(int id,int actor) throws SQLException {
+        yeuCauQuyen(actor, "TAIKHOAN");
         if(id==actor)throw new SQLException("Không thể xóa tài khoản đang đăng nhập.");
         try(Connection c=KetNoi.mo()) {
             c.setAutoCommit(false);
@@ -304,7 +386,10 @@ public class KhoDuLieu {
     }
 
     public void luuVaiTro(int id,String ten,String moTa,boolean[] rights,int actor) throws SQLException {
+        yeuCauQuyen(actor, "TAIKHOAN");
         if(ten==null||ten.trim().isEmpty())throw new SQLException("Tên vai trò không được để trống.");
+        if ((id != 0 && laQuanTriVien(id)) || "Quản trị viên".equalsIgnoreCase(ten.trim()))
+            throw new SQLException("Không sửa hoặc cấp lại vai trò Admin gốc tại ma trận phân quyền.");
         try(Connection c=KetNoi.mo()) {
             c.setAutoCommit(false);
             try {
@@ -323,7 +408,7 @@ public class KhoDuLieu {
                 }
                 try(PreparedStatement s=c.prepareStatement(
                         "INSERT INTO dbo.VaiTroQuyen(maVaiTro,maQuyen) VALUES(?,?)")) {
-                    for(int i=0;i<QUYEN.length;i++)if(rights[i]){
+                    for(int i=0;i<QUYEN.length && i<rights.length;i++)if(rights[i]){
                         s.setInt(1,rid);s.setString(2,QUYEN[i]);s.addBatch();
                     }
                     s.executeBatch();
@@ -343,6 +428,8 @@ public class KhoDuLieu {
     }
 
     public void xoaVaiTro(int id,int actor) throws SQLException {
+        yeuCauQuyen(actor, "TAIKHOAN");
+        if (laQuanTriVien(id)) throw new SQLException("Không được xóa vai trò Admin gốc.");
         try(Connection c=KetNoi.mo()) {
             c.setAutoCommit(false);
             try {
@@ -374,6 +461,7 @@ public class KhoDuLieu {
         return m;
     }
     public void luuCauHinh(Map<String,String> m,int actor)throws SQLException {
+        yeuCauQuyen(actor, "HETHONG");
         try(Connection c=KetNoi.mo()) {
             c.setAutoCommit(false);
             try {
@@ -386,6 +474,121 @@ public class KhoDuLieu {
                 ghi(c,actor,"Cập nhật cấu hình","CauHinh","Cấu hình hệ thống");c.commit();
             }catch(SQLException e){c.rollback();throw e;}
             finally{c.setAutoCommit(true);}
+        }
+    }
+
+    /** Quyền kiểm tra trực tiếp SQL, kể cả với thao tác ghi ở tầng DAO. */
+    private void yeuCauQuyen(int actor, String code) throws SQLException {
+        // Mục Quản lý tài khoản / Cấu hình chỉ do Admin thực hiện, không đủ chỉ có
+        // quyền rời rạc TAIKHOAN hoặc HETHONG do người khác cấu hình nhầm.
+        if (("TAIKHOAN".equals(code) || "HETHONG".equals(code))
+                && !laQuanTriVienTaiKhoan(actor)) {
+            throw new SQLException("Chỉ Quản trị viên được quản trị tài khoản và hệ thống.");
+        }
+        if (!coQuyenTaiKhoan(actor, code)) {
+            throw new SQLException("Tài khoản không còn quyền " + code + ".");
+        }
+    }
+
+    /** Ngày sinh lấy từ nhân viên tương ứng tài khoản, không cho sửa bằng mã tay. */
+    public LocalDate ngaySinhNhanVien(int maTK, int actor) throws SQLException {
+        if (!laQuanTriVienTaiKhoan(actor) || !coQuyenTaiKhoan(actor, "TAIKHOAN"))
+            throw new SQLException("Không có quyền đọc ngày sinh nhân viên.");
+        try (Connection c=KetNoi.mo(); PreparedStatement p=c.prepareStatement(
+                "SELECT ngaySinh FROM dbo.NhanVien WHERE maTK=?")) {
+            p.setInt(1,maTK);
+            try (ResultSet r=p.executeQuery()) {
+                if (r.next()) {
+                    java.sql.Date d=r.getDate(1);
+                    return d==null?null:d.toLocalDate();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Chức năng quản trị: đặt mật khẩu tạm theo ddMMyyyy ngày sinh NHÂN VIÊN.
+     * Chỉ dùng trong demo nội bộ: DOB có entropy thấp, bắt buộc đổi ngay sau đăng nhập.
+     * Không trả hoặc ghi nhật ký mật khẩu tạm.
+     */
+    public void datLaiMatKhauTheoNgaySinh(int maTK, int actor) throws SQLException {
+        yeuCauQuyen(actor,"TAIKHOAN");
+        if (!laQuanTriVienTaiKhoan(actor))
+            throw new SQLException("Chỉ Quản trị viên được đặt lại mật khẩu.");
+        if (maTK == actor) throw new SQLException("Không thể tự đặt lại mật khẩu bằng ngày sinh.");
+        try (Connection c=KetNoi.mo()) {
+            c.setAutoCommit(false);
+            try {
+                LocalDate dob;
+                String role;
+                try (PreparedStatement p=c.prepareStatement(
+                        "SELECT n.ngaySinh, v.tenVaiTro FROM dbo.NhanVien n " +
+                        "JOIN dbo.TaiKhoan t ON n.maTK=t.maTK " +
+                        "JOIN dbo.VaiTro v ON t.maVaiTro=v.maVaiTro WHERE t.maTK=?")) {
+                    p.setInt(1,maTK);
+                    try (ResultSet r=p.executeQuery()) {
+                        if (!r.next() || r.getDate(1)==null)
+                            throw new SQLException("Tài khoản chưa có ngày sinh nhân viên. Cập nhật ngày sinh trước khi reset.");
+                        dob=r.getDate(1).toLocalDate();
+                        role=r.getString(2);
+                    }
+                }
+                if ("Quản trị viên".equals(role))
+                    throw new SQLException("Không reset tài khoản Admin theo ngày sinh; dùng quy trình riêng.");
+                String temporary=dob.format(java.time.format.DateTimeFormatter.ofPattern("ddMMyyyy"));
+                try (PreparedStatement p=c.prepareStatement(
+                        "UPDATE dbo.TaiKhoan SET matKhau=?,phaiDoiMatKhau=1 WHERE maTK=?")) {
+                    p.setString(1,BCrypt.hashpw(temporary,BCrypt.gensalt(11)));
+                    p.setInt(2,maTK);
+                    if(p.executeUpdate()!=1)throw new SQLException("Tài khoản không còn tồn tại.");
+                }
+                ghi(c,actor,"Đặt lại mật khẩu bắt buộc đổi","TaiKhoan","maTK="+maTK);
+                c.commit();
+            }catch(Exception ex){
+                c.rollback();
+                if(ex instanceof SQLException)throw (SQLException)ex;
+                throw new SQLException("Không thể reset mật khẩu.",ex);
+            }finally{c.setAutoCommit(true);}
+        }
+    }
+
+    /** Bắt buộc đổi mật khẩu sau reset; xác thực lại mật khẩu tạm. */
+    public void doiMatKhauLanDau(int maTK, String matKhauCu, String matKhauMoi)
+            throws SQLException {
+        if(matKhauMoi==null || matKhauMoi.length()<10 ||
+                !matKhauMoi.matches("(?s).*\\d.*") || !matKhauMoi.matches("(?s).*[A-Z].*"))
+            throw new SQLException("Mật khẩu mới ít nhất 10 ký tự, có chữ hoa và số.");
+        try(Connection c=KetNoi.mo()) {
+            c.setAutoCommit(false);
+            try {
+                String oldHash;
+                try(PreparedStatement p=c.prepareStatement(
+                        "SELECT matKhau FROM dbo.TaiKhoan WITH(UPDLOCK) " +
+                        "WHERE maTK=? AND trangThai=N'Hoạt động'")) {
+                    p.setInt(1,maTK);
+                    try(ResultSet r=p.executeQuery()) {
+                        if(!r.next())throw new SQLException("Tài khoản không hoạt động.");
+                        oldHash=r.getString(1);
+                    }
+                }
+                if(!BCrypt.checkpw(matKhauCu,oldHash))
+                    throw new SQLException("Mật khẩu hiện tại không đúng.");
+                if(BCrypt.checkpw(matKhauMoi,oldHash))
+                    throw new SQLException("Mật khẩu mới phải khác mật khẩu cũ.");
+                try(PreparedStatement p=c.prepareStatement(
+                        "UPDATE dbo.TaiKhoan SET matKhau=?,phaiDoiMatKhau=0 WHERE maTK=?")) {
+                    p.setString(1,BCrypt.hashpw(matKhauMoi,BCrypt.gensalt(11)));
+                    p.setInt(2,maTK);
+                    p.executeUpdate();
+                }
+                ghi(c,maTK,"Đổi mật khẩu sau cấp lại","TaiKhoan","maTK="+maTK);
+                c.commit();
+            }catch(Exception ex){
+                c.rollback();
+                if(ex instanceof SQLException)throw (SQLException)ex;
+                throw new SQLException("Không đổi được mật khẩu.",ex);
+            }finally{c.setAutoCommit(true);}
         }
     }
 
