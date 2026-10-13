@@ -64,6 +64,51 @@ public class KhoDuLieu {
         }
     }
 
+    /**
+     * Nhận yêu cầu quên mật khẩu từ màn hình đăng nhập (CHƯA xác thực).
+     *
+     * Không cho đổi mật khẩu ngay: một người khác có thể biết tên đăng nhập/ngày sinh.
+     * Yêu cầu được lưu trong YeuCauHoTro để Admin kiểm tra danh tính rồi chủ động
+     * đặt lại tại Quản lý tài khoản. KHÔNG trả về tài khoản có tồn tại hay không.
+     *
+     * Cần bảng YeuCauHoTro trong SQLData/04_NangCap_Quyen_HoTro_SQL2012.sql.
+     */
+    public void guiYeuCauQuenMatKhau(String tenDangNhap) throws SQLException {
+        String username = tenDangNhap == null ? "" : tenDangNhap.trim();
+        if (username.isEmpty() || username.length() > 80) {
+            throw new IllegalArgumentException("Vui lòng nhập tên đăng nhập hợp lệ.");
+        }
+
+        // Dùng tham số hóa. Chỉ nhận tài khoản hoạt động, không tiết lộ kết quả.
+        // Chống tạo nhiều yêu cầu Chờ xử lý cho cùng một tài khoản.
+        String sql =
+                "INSERT INTO dbo.YeuCauHoTro(maTK, tieuDe, noiDung) " +
+                "SELECT t.maTK, N'Yêu cầu đặt lại mật khẩu', " +
+                "N'Gửi từ màn hình đăng nhập. Admin phải xác minh danh tính " +
+                "ngoài ứng dụng trước khi đặt lại mật khẩu trong Quản lý tài khoản.' " +
+                "FROM dbo.TaiKhoan t " +
+                "WHERE t.tenDangNhap=? AND t.trangThai=N'Hoạt động' " +
+                "AND NOT EXISTS (" +
+                "SELECT 1 FROM dbo.YeuCauHoTro y WITH (UPDLOCK, HOLDLOCK) " +
+                "WHERE y.maTK=t.maTK " +
+                "AND y.tieuDe=N'Yêu cầu đặt lại mật khẩu' " +
+                "AND y.trangThai=N'Chờ xử lý')";
+
+        try (Connection c = KetNoi.mo()) {
+            // SERIALIZABLE giúp hai yêu cầu đồng thời không cùng chèn bản ghi chờ.
+            c.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            c.setAutoCommit(false);
+            try (PreparedStatement p = c.prepareStatement(sql)) {
+                p.setString(1, username);
+                p.executeUpdate();  // 0 dòng cũng coi như đã tiếp nhận, tránh dò tài khoản.
+                c.commit();
+            } catch (SQLException ex) {
+                c.rollback();
+                throw ex;
+            }
+        }
+    }
+
     private TaiKhoan docTK(ResultSet r) throws SQLException {
         TaiKhoan t = new TaiKhoan(r.getInt("maTK"),r.getString("tenDangNhap"),
             r.getString("HoTen"),r.getString("Email"),r.getInt("maVaiTro"),

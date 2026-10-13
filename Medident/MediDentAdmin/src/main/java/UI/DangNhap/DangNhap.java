@@ -8,6 +8,9 @@ import UI.Chung.KhungChinh;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Font;
 import java.awt.GridLayout;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -19,6 +22,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -76,7 +80,24 @@ public class DangNhap extends JFrame {
         fields.add(username);
         fields.add(Box.createVerticalStrut(19));
 
-        fields.add(GiaoDien.label("Mật khẩu", 12, true));
+        // 3. Nhãn mật khẩu + liên kết quên mật khẩu nằm cùng một hàng.
+        JPanel passwordTitle = new JPanel(new BorderLayout(8, 0));
+        passwordTitle.setOpaque(false);
+        passwordTitle.setAlignmentX(LEFT_ALIGNMENT);
+        passwordTitle.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
+        passwordTitle.add(GiaoDien.label("Mật khẩu", 12, true), BorderLayout.WEST);
+
+        JButton forgot = new JButton("Quên mật khẩu?");
+        forgot.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        forgot.setForeground(GiaoDien.PRIMARY);
+        forgot.setBorder(new EmptyBorder(3, 0, 3, 0));
+        forgot.setContentAreaFilled(false);
+        forgot.setFocusPainted(false);
+        forgot.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        forgot.addActionListener(event -> moQuenMatKhau(db, username));
+        passwordTitle.add(forgot, BorderLayout.EAST);
+
+        fields.add(passwordTitle);
         fields.add(Box.createVerticalStrut(7));
         JPasswordField password = new JPasswordField();
         password.setBorder(new CompoundBorder(new LineBorder(GiaoDien.BORDER),
@@ -119,6 +140,70 @@ public class DangNhap extends JFrame {
         };
         login.addActionListener(event -> loginAction.run());
         password.addActionListener(event -> loginAction.run());
+    }
+
+    /**
+     * Hiển thị hộp thoại yêu cầu đặt lại mật khẩu.
+     *
+     * Không đặt lại mật khẩu tại màn hình chưa đăng nhập. Admin kiểm tra yêu cầu
+     * ở mục Hỗ trợ, xác minh danh tính nhân viên và dùng chức năng Reset trong
+     * Quản lý tài khoản. Nhờ vậy người lạ không thể reset chỉ bằng ngày sinh.
+     */
+    private void moQuenMatKhau(KhoDuLieu db, JTextField username) {
+        JTextField accountField = GiaoDien.text(username.getText().trim());
+        accountField.setPreferredSize(new Dimension(320, 38));
+
+        JPanel dialog = new JPanel();
+        dialog.setLayout(new BoxLayout(dialog, BoxLayout.Y_AXIS));
+        dialog.setBorder(new EmptyBorder(8, 8, 8, 8));
+        dialog.add(GiaoDien.label("Tên đăng nhập MediDent", 12, true));
+        dialog.add(Box.createVerticalStrut(8));
+        dialog.add(accountField);
+        dialog.add(Box.createVerticalStrut(12));
+        dialog.add(GiaoDien.label("Yêu cầu sẽ chuyển đến Quản trị viên để xác minh.", 11, false));
+        dialog.add(Box.createVerticalStrut(4));
+        dialog.add(GiaoDien.label("Bạn không cần nhập ngày sinh hoặc mật khẩu cũ.", 11, false));
+
+        int choice = JOptionPane.showConfirmDialog(
+                this, dialog, "Yêu cầu đặt lại mật khẩu",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (choice != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String name = accountField.getText().trim();
+        if (name.isEmpty() || name.length() > 80) {
+            JOptionPane.showMessageDialog(this, "Vui lòng nhập tên đăng nhập hợp lệ.",
+                    "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Không khóa giao diện khi chờ kết nối SQL Server.
+        // Cố tình không tiết lộ tài khoản có tồn tại hoặc đã gửi trùng hay không.
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                db.guiYeuCauQuenMatKhau(name);
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    get();
+                    JOptionPane.showMessageDialog(DangNhap.this,
+                            "Nếu tên đăng nhập hợp lệ, yêu cầu đã được chuyển đến Admin.\n" +
+                            "Vui lòng liên hệ quản trị viên để xác minh và nhận hướng dẫn.",
+                            "Đã tiếp nhận yêu cầu", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(DangNhap.this,
+                            "Không gửi được yêu cầu. Hãy kiểm tra kết nối SQL Server và\n" +
+                            "bảng YeuCauHoTro (script SQLData/04).\n" +
+                            "Bạn cũng có thể liên hệ trực tiếp quản trị viên.",
+                            "Yêu cầu chưa được gửi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }.execute();
     }
 
     /** Entry point chạy bằng Run As -> Java Application trong Eclipse. */
