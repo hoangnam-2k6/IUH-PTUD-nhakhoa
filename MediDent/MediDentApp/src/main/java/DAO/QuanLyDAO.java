@@ -445,51 +445,201 @@ public final class QuanLyDAO {
         }
     }
 
-    /** Quản lý/Lễ tân gửi yêu cầu, Admin quyết định hủy. */
+    /**
+     * Gửi yêu cầu hủy: bắt buộc lưu người gửi để lọc theo cấp bậc.
+     * Transaction + TABLOCKX ngăn 2 người gửi đơn chờ duyệt trùng maTT.
+     */
     public void yeuCauHuy(int maTT, String lyDo, int actor) throws SQLException {
-        batBuoc(lyDo,"Phải nhập lý do yêu cầu hủy.");
-        try(Connection c=KetNoi.mo()) {
-            canQuyen(c,actor,"THANHTOAN");
-            try(PreparedStatement ps=c.prepareStatement("INSERT dbo.YeuCauHuyPhieuThu(maTT,lyDo,trangThai) VALUES(?,?,N'Chờ duyệt')")) {
-                datThamSo(ps,maTT,lyDo);
-                ps.executeUpdate();
+        batBuoc(lyDo, "Phải nhập lý do yêu cầu hủy.");
+        if (lyDo.trim().length() > 500) {
+            throw new SQLException("Lý do tối đa 500 ký tự.");
+        }
+        try (Connection c = KetNoi.mo()) {
+            c.setAutoCommit(false);
+            try {
+                canQuyen(c, actor, "THANHTOAN");
+
+                // Khóa để hai máy không cùng tạo yêu cầu chờ duyệt cho một thanh toán.
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT COUNT(*) FROM dbo.YeuCauHuyPhieuThu WITH (TABLOCKX, HOLDLOCK) "
+                      + "WHERE maTT=? AND trangThai=N'Chờ duyệt'")) {
+                    ps.setInt(1, maTT);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                        if (rs.getInt(1) != 0) {
+                            throw new SQLException("Thanh toán đã có yêu cầu hủy đang chờ duyệt.");
+                        }
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT trangThai FROM dbo.ThanhToan WITH (UPDLOCK) WHERE maTT=?")) {
+                    ps.setInt(1, maTT);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new SQLException("Không tìm thấy thanh toán #" + maTT);
+                        }
+                        if ("Đã hủy".equalsIgnoreCase(rs.getString(1))) {
+                            throw new SQLException("Thanh toán đã hủy, không thể gửi lại yêu cầu.");
+                        }
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT dbo.YeuCauHuyPhieuThu(maTT,lyDo,trangThai,maTKNguoiGui) "
+                      + "VALUES(?,?,N'Chờ duyệt',?)")) {
+                    ps.setInt(1, maTT);
+                    ps.setString(2, lyDo.trim());
+                    ps.setInt(3, actor);
+                    ps.executeUpdate();
+                }
+                ghi(c, actor, "Gửi yêu cầu hủy hóa đơn", "YeuCauHuyPhieuThu",
+                        "maTT=" + maTT);
+                c.commit();
+            } catch (SQLException ex) {
+                c.rollback();
+                throw ex;
+            } finally {
+                c.setAutoCommit(true);
             }
-            ghi(c,actor,"Yêu cầu hủy phiếu thu","ThanhToan","maTT="+maTT);
         }
     }
 
-    public List<Hang> yeuCauHuyDangCho() throws SQLException {
-        return truyVan("SELECT y.maYC,CONVERT(varchar(19),y.ngayYeuCau,120) AS ngay, "
-                + "CONVERT(varchar(20),y.maTT) AS maTT,y.lyDo,y.trangThai "
-                + "FROM dbo.YeuCauHuyPhieuThu y ORDER BY y.maYC DESC",
-                r->new Hang(r.getInt("maYC"),chuoi(r,"ngay"),chuoi(r,"maTT"),chuoi(r,"lyDo"),chuoi(r,"trangThai")));
+    /**
+     * Cấp xem yêu cầu lấy từ SQL, không lấy tên vai trò do giao diện truyền lên.
+     * Cấp 3 Admin > cấp 2 Quản lý > cấp 1 Lễ tân.
+     * Các vai trò chưa phân cấp (0) chỉ được xem đơn của bản thân.
+     */
+    private static int capBacHoTro(Connection c, int actor) throws SQLException {
+        String sql = "SELECT v.capBacHoTro FROM dbo.TaiKhoan t "
+                + "JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro "
+                + "WHERE t.maTK=? AND t.trangThai=N'Hoạt động'";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, actor);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Tài khoản bị khóa hoặc không tồn tại.");
+                }
+                return rs.getInt(1);
+            }
+        }
     }
 
-    public void duyetYeuCauHuy(int maYC, boolean chapThuan, String note, int actor) throws SQLException {
-        try(Connection c=KetNoi.mo()) {
-            // Duyệt hủy thuộc quyền quản trị viên; không tự cấp cho lễ tân/quản lý.
-            if(!laAdmin(c,actor)) throw new SQLException("Chỉ Quản trị viên được duyệt hủy phiếu thu.");
+    private static boolean coQuyen(Connection c, int actor, String code) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT 1 FROM dbo.TaiKhoan t "
+              + "JOIN dbo.VaiTroQuyen q ON q.maVaiTro=t.maVaiTro "
+              + "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' AND q.maQuyen=?")) {
+            ps.setInt(1, actor);
+            ps.setString(2, code);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    /** Chỉ vai trò có cấp 2+ VÀ quyền HOTRO mới được phản hồi yêu cầu. */
+    public boolean coQuyenPhanHoiHoTro(int actor) throws SQLException {
+        try (Connection c = KetNoi.mo()) {
+            return capBacHoTro(c, actor) >= 2 && coQuyen(c, actor, "HOTRO");
+        }
+    }
+
+    /**
+     * Liệt kê yêu cầu hủy thuộc phạm vi cấp bậc người đăng nhập.
+     * Yêu cầu cũ không ghi maTKNguoiGui chỉ Admin được xem.
+     * Hang.cot: ngày, mã TT, mã HĐ, người gửi, vai trò, lý do, trạng thái, ghi chú duyệt.
+     */
+    public List<Hang> danhSachYeuCauHuy(int actor) throws SQLException {
+        String sql = "SELECT y.maYC,CONVERT(varchar(19),y.ngayYeuCau,120) AS ngay," 
+                + "CONVERT(varchar(20),y.maTT) AS maTT," 
+                + "ISNULL(CONVERT(varchar(20),h.maHD),'—') AS maHD," 
+                + "ISNULL(n.hoTen,t.tenDangNhap) AS nguoiGui," 
+                + "ISNULL(v.tenVaiTro,N'Không rõ') AS vaiTro," 
+                + "y.lyDo,y.trangThai,ISNULL(pd.lyDoPheDuyet,'') AS ghiChu "
+                + "FROM dbo.YeuCauHuyPhieuThu y "
+                + "LEFT JOIN dbo.HoaDon h ON h.maHD=(SELECT TOP(1) h2.maHD "
+                + " FROM dbo.HoaDon h2 WHERE h2.maTT=y.maTT ORDER BY h2.maHD DESC) "
+                + "LEFT JOIN dbo.TaiKhoan t ON t.maTK=y.maTKNguoiGui "
+                + "LEFT JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro "
+                + "LEFT JOIN dbo.NhanVien n ON n.maTK=t.maTK "
+                + "OUTER APPLY (SELECT TOP(1) p.lyDoPheDuyet "
+                + " FROM dbo.PhieuDuyetHuyPhieuThu p WHERE p.maYC=y.maYC "
+                + " ORDER BY p.maPD DESC) pd "
+                + "JOIN dbo.TaiKhoan me ON me.maTK=? AND me.trangThai=N'Hoạt động' "
+                + "JOIN dbo.VaiTro myRole ON myRole.maVaiTro=me.maVaiTro "
+                + "WHERE (myRole.tenVaiTro=N'Quản trị viên' OR y.maTKNguoiGui=? OR "
+                + "(myRole.capBacHoTro > 0 AND v.capBacHoTro > 0 "
+                + " AND v.capBacHoTro <= myRole.capBacHoTro) OR "
+                + "(y.maTKNguoiGui IS NULL AND myRole.tenVaiTro=N'Quản trị viên')) "
+                + "ORDER BY y.maYC DESC";
+        return truyVan(sql, r -> new Hang(r.getInt("maYC"),
+                chuoi(r, "ngay"), chuoi(r, "maTT"), chuoi(r, "maHD"),
+                chuoi(r, "nguoiGui"), chuoi(r, "vaiTro"), chuoi(r, "lyDo"),
+                chuoi(r, "trangThai"), chuoi(r, "ghiChu")), actor, actor);
+    }
+
+    /** Admin duyệt hoặc từ chối; dữ liệu đơn và hóa đơn cập nhật cùng transaction. */
+    public void duyetYeuCauHuy(int maYC, boolean chapThuan, String note, int actor)
+            throws SQLException {
+        if (!chapThuan) {
+            batBuoc(note, "Từ chối phải nhập lý do.");
+        }
+        if (note != null && note.length() > 500) {
+            throw new SQLException("Ghi chú duyệt tối đa 500 ký tự.");
+        }
+        try (Connection c = KetNoi.mo()) {
+            if (!laAdmin(c, actor) || !coQuyen(c, actor, "HOTRO")) {
+                throw new SQLException("Chỉ Admin có quyền Hỗ trợ được duyệt hủy hóa đơn.");
+            }
             c.setAutoCommit(false);
             try {
                 int maTT;
-                try(PreparedStatement ps=c.prepareStatement("SELECT maTT FROM dbo.YeuCauHuyPhieuThu WITH(UPDLOCK) WHERE maYC=? AND trangThai=N'Chờ duyệt'")) {
-                    ps.setInt(1,maYC);
-                    try(ResultSet r=ps.executeQuery()) { if(!r.next())throw new SQLException("Yêu cầu không còn chờ duyệt.");maTT=r.getInt(1); }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT maTT FROM dbo.YeuCauHuyPhieuThu WITH (UPDLOCK, HOLDLOCK) "
+                      + "WHERE maYC=? AND trangThai=N'Chờ duyệt'")) {
+                    ps.setInt(1, maYC);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new SQLException("Yêu cầu không còn ở trạng thái Chờ duyệt.");
+                        }
+                        maTT = rs.getInt(1);
+                    }
                 }
-                try(PreparedStatement ps=c.prepareStatement("UPDATE dbo.YeuCauHuyPhieuThu SET trangThai=? WHERE maYC=?")) {
-                    datThamSo(ps,chapThuan?"Đã duyệt":"Từ chối",maYC);ps.executeUpdate();
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.YeuCauHuyPhieuThu SET trangThai=? WHERE maYC=?")) {
+                    ps.setString(1, chapThuan ? "Đã duyệt" : "Từ chối");
+                    ps.setInt(2, maYC);
+                    ps.executeUpdate();
                 }
-                try(PreparedStatement ps=c.prepareStatement("INSERT dbo.PhieuDuyetHuyPhieuThu(maYC,ngayPheDuyet,lyDoPheDuyet) VALUES(?,SYSDATETIME(),?)")) {
-                    datThamSo(ps,maYC,note);ps.executeUpdate();
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT dbo.PhieuDuyetHuyPhieuThu(maYC,ngayPheDuyet,lyDoPheDuyet) "
+                      + "VALUES(?,SYSDATETIME(),?)")) {
+                    ps.setInt(1, maYC);
+                    ps.setString(2, note == null ? "" : note.trim());
+                    ps.executeUpdate();
                 }
-                if(chapThuan) {
-                    try(PreparedStatement ps=c.prepareStatement("UPDATE dbo.ThanhToan SET trangThai=N'Đã hủy' WHERE maTT=?")){ps.setInt(1,maTT);ps.executeUpdate();}
-                    try(PreparedStatement ps=c.prepareStatement("UPDATE dbo.HoaDon SET trangThai=N'Đã hủy' WHERE maTT=?")){ps.setInt(1,maTT);ps.executeUpdate();}
+                if (chapThuan) {
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "UPDATE dbo.ThanhToan SET trangThai=N'Đã hủy' WHERE maTT=?")) {
+                        ps.setInt(1, maTT);
+                        if (ps.executeUpdate() != 1) {
+                            throw new SQLException("Thanh toán không tồn tại, không thể duyệt.");
+                        }
+                    }
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "UPDATE dbo.HoaDon SET trangThai=N'Đã hủy' WHERE maTT=?")) {
+                        ps.setInt(1, maTT);
+                        ps.executeUpdate();
+                    }
                 }
-                ghi(c,actor,chapThuan?"Duyệt hủy phiếu thu":"Từ chối hủy phiếu thu","ThanhToan","maYC="+maYC);
+                ghi(c, actor, chapThuan ? "Duyệt hủy hóa đơn" : "Từ chối hủy hóa đơn",
+                        "YeuCauHuyPhieuThu", "maYC=" + maYC + ", maTT=" + maTT);
                 c.commit();
-            } catch(SQLException ex) { c.rollback(); throw ex; }
-            finally { c.setAutoCommit(true); }
+            } catch (SQLException ex) {
+                c.rollback();
+                throw ex;
+            } finally {
+                c.setAutoCommit(true);
+            }
         }
     }
 
@@ -518,48 +668,81 @@ public final class QuanLyDAO {
         }
     }
 
-    private boolean duocXemHoTro(Connection c,int actor) throws SQLException {
-        try(PreparedStatement ps=c.prepareStatement(
-                "SELECT 1 FROM dbo.TaiKhoan t JOIN dbo.VaiTroQuyen vq "
-               + "ON t.maVaiTro=vq.maVaiTro "
-               + "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' AND vq.maQuyen='HOTRO'")) {
-            ps.setInt(1,actor);
-            try(ResultSet r=ps.executeQuery()) { return r.next(); }
-        }
-    }
-
+    /**
+     * Xem hỗ trợ theo cấp bậc thực tế từ SQL, KHÔNG chỉ lọc y.maTK=actor.
+     * Cấp 3: xem cấp 3/2/1, cấp 2: xem 2/1, cấp 1: xem 1.
+     * Các role chưa gán cấp vẫn xem được yêu cầu của chính họ.
+     */
     public List<Hang> danhSachHoTro(int actor) throws SQLException {
-        try(Connection c=KetNoi.mo()) {
-            boolean laAdmin=laAdmin(c,actor) && duocXemHoTro(c,actor);
-            String sql="SELECT y.maYC,ISNULL(n.hoTen,t.tenDangNhap) AS nguoi, "
-                    + "CONVERT(varchar(19),y.ngayTao,120) AS ngay,y.tieuDe,y.trangThai, "
-                    + "ISNULL(y.noiDung,'') AS noiDung,ISNULL(y.phanHoi,'') AS phanHoi FROM dbo.YeuCauHoTro y "
-                    + "JOIN dbo.TaiKhoan t ON y.maTK=t.maTK "
-                    + "LEFT JOIN dbo.NhanVien n ON n.maTK=t.maTK "
-                    + (laAdmin ? "" : "WHERE y.maTK=? ") + "ORDER BY y.maYC DESC";
-            List<Hang> rows=new ArrayList<>();
-            try(PreparedStatement ps=c.prepareStatement(sql)) {
-                if(!laAdmin) ps.setInt(1,actor);
-                try(ResultSet r=ps.executeQuery()) {
-                    while(r.next()) rows.add(new Hang(r.getInt("maYC"),chuoi(r,"nguoi"),chuoi(r,"ngay"),
-                            chuoi(r,"tieuDe"),chuoi(r,"trangThai"),chuoi(r,"noiDung"),chuoi(r,"phanHoi")));
+        String sql = "SELECT y.maYC,ISNULL(n.hoTen,t.tenDangNhap) AS nguoi," 
+                + "CONVERT(varchar(19),y.ngayTao,120) AS ngay," 
+                + "y.tieuDe,y.trangThai,ISNULL(y.noiDung,'') AS noiDung," 
+                + "ISNULL(y.phanHoi,'') AS phanHoi, v.tenVaiTro AS vaiTro "
+                + "FROM dbo.YeuCauHoTro y "
+                + "JOIN dbo.TaiKhoan t ON t.maTK=y.maTK "
+                + "JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro "
+                + "LEFT JOIN dbo.NhanVien n ON n.maTK=t.maTK "
+                + "JOIN dbo.TaiKhoan me ON me.maTK=? AND me.trangThai=N'Hoạt động' "
+                + "JOIN dbo.VaiTro myRole ON myRole.maVaiTro=me.maVaiTro "
+                + "WHERE (myRole.tenVaiTro=N'Quản trị viên' OR y.maTK=? OR (myRole.capBacHoTro>0 "
+                + "AND v.capBacHoTro>0 AND v.capBacHoTro<=myRole.capBacHoTro)) "
+                + "ORDER BY y.maYC DESC";
+        return truyVan(sql, r -> new Hang(r.getInt("maYC"), chuoi(r, "nguoi"),
+                chuoi(r, "ngay"), chuoi(r, "tieuDe"), chuoi(r, "trangThai"),
+                chuoi(r, "noiDung"), chuoi(r, "phanHoi"), chuoi(r, "vaiTro")),
+                actor, actor);
+    }
+
+    /**
+     * Phản hồi chỉ khi có quyền HOTRO, cấp >= 2, và người gửi không cao cấp hơn.
+     * Kiểm tra ngay ở DAO kể cả khi UI vô tình bật nút.
+     */
+    public void phanHoiHoTro(int maYC, String phanHoi, int actor) throws SQLException {
+        batBuoc(phanHoi, "Nhập nội dung phản hồi.");
+        if (phanHoi.trim().length() > 1500) {
+            throw new SQLException("Nội dung phản hồi tối đa 1500 ký tự.");
+        }
+        try (Connection c = KetNoi.mo()) {
+            c.setAutoCommit(false);
+            try {
+                int myRank = capBacHoTro(c, actor);
+                if (myRank < 2 || !coQuyen(c, actor, "HOTRO")) {
+                    throw new SQLException("Vai trò hiện tại không có quyền phản hồi hỗ trợ.");
                 }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT t.maTK,v.capBacHoTro FROM dbo.YeuCauHoTro y WITH (UPDLOCK) "
+                      + "JOIN dbo.TaiKhoan t ON t.maTK=y.maTK "
+                      + "JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro WHERE y.maYC=?")) {
+                    ps.setInt(1, maYC);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new SQLException("Không tìm thấy yêu cầu hỗ trợ.");
+                        }
+                        int senderId = rs.getInt(1);
+                        int senderRank = rs.getInt(2);
+                        if (senderId != actor && (senderRank == 0 || senderRank > myRank)) {
+                            throw new SQLException("Không được phản hồi yêu cầu cấp cao hơn.");
+                        }
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.YeuCauHoTro SET phanHoi=?, "
+                      + "trangThai=N'Đã xử lý',ngayXuLy=SYSDATETIME() WHERE maYC=?")) {
+                    ps.setString(1, phanHoi.trim());
+                    ps.setInt(2, maYC);
+                    if (ps.executeUpdate() != 1) {
+                        throw new SQLException("Không cập nhật được yêu cầu hỗ trợ.");
+                    }
+                }
+                ghi(c, actor, "Phản hồi yêu cầu hỗ trợ", "YeuCauHoTro", "maYC=" + maYC);
+                c.commit();
+            } catch (SQLException ex) {
+                c.rollback();
+                throw ex;
+            } finally {
+                c.setAutoCommit(true);
             }
-            return rows;
         }
     }
 
-    public void phanHoiHoTro(int maYC,String phanHoi,int actor) throws SQLException {
-        batBuoc(phanHoi,"Nhập nội dung phản hồi.");
-        try(Connection c=KetNoi.mo()) {
-            canQuyen(c,actor,"HOTRO");
-            if(!laAdmin(c,actor)) throw new SQLException("Chỉ Admin xử lý yêu cầu hỗ trợ.");
-            try(PreparedStatement ps=c.prepareStatement("UPDATE dbo.YeuCauHoTro "
-                    + "SET phanHoi=?,trangThai=N'Đã xử lý',ngayXuLy=SYSDATETIME() WHERE maYC=?")) {
-                datThamSo(ps,phanHoi,maYC);
-                if(ps.executeUpdate()!=1) throw new SQLException("Không còn yêu cầu hỗ trợ.");
-            }
-            ghi(c,actor,"Phản hồi yêu cầu hỗ trợ","YeuCauHoTro","maYC="+maYC);
-        }
-    }
 }

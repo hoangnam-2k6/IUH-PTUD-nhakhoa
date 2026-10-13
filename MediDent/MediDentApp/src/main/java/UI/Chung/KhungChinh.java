@@ -66,6 +66,8 @@ public final class KhungChinh extends JFrame {
         danhMuc.add(new Muc("TAIKHOAN","Tài khoản","TAIKHOAN",BieuTuong.Loai.TAI_KHOAN,true));
         danhMuc.add(new Muc("PHANQUYEN","Phân quyền","TAIKHOAN",BieuTuong.Loai.PHAN_QUYEN,true));
         danhMuc.add(new Muc("HETHONG","Hệ thống","HETHONG",BieuTuong.Loai.HE_THONG,true));
+        // Admin: nơi xem và phê duyệt yêu cầu hủy hóa đơn/phiếu thu.
+        danhMuc.add(new Muc("DUYETHUY","Duyệt hủy hóa đơn","HOTRO",BieuTuong.Loai.KIEM_TRA,true));
         // Vận hành phòng khám: theo quyền do Admin cấp cho mỗi vai trò.
         danhMuc.add(new Muc("NHANVIEN","Nhân viên","NHANVIEN",BieuTuong.Loai.TAI_KHOAN,false));
         danhMuc.add(new Muc("DICHVU","Dịch vụ nha khoa","DICHVU",BieuTuong.Loai.HE_THONG,false));
@@ -199,6 +201,7 @@ public final class KhungChinh extends JFrame {
                 case "TAIKHOAN": view=new QuanLyTaiKhoan(db,user);break;
                 case "PHANQUYEN": view=new QuanLyPhanQuyen(db,user);break;
                 case "HETHONG": view=new QuanTriHeThong(db,user);break;
+                case "DUYETHUY": view=new DuyetHuyPhieuThu(quanLyDAO,user,currentAdmin && db.coQuyenTaiKhoan(user.id,"HOTRO"));break;
                 case "NHANVIEN": view=new NhanVienGUI(quanLyDAO,user);break;
                 case "DICHVU": view=new DichVuGUI(quanLyDAO,user);break;
                 case "BENHNHAN": view=new BenhNhanGUI(quanLyDAO,user);break;
