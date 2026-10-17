@@ -1,1 +1,0 @@
-INDEX VERSION 1.134+C:\Users\Admin\Desktop\workspace\IUH-PTUD-nhakhoa\PTUD_codespace\IUH-PTUD-nhakhoa\SourceCode\NhaKhoa\nha_khoa\.metadata\.plugins\org.eclipse.jdt.core
