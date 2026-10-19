@@ -1,3 +1,7 @@
+/*
+ * BaoCaoDuLieuDAO: truy cập dữ liệu và kiểm soát nghiệp vụ SQL Server.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package DAO;
 
 import ConnectDB.KetNoi;
@@ -12,25 +16,20 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * DAO dành riêng cho hai trang báo cáo.
- *
- * Các truy vấn tương thích SQL Server 2012 và đúng tên bảng/cột trong
- * SQLData/01_MediDent.sql. Doanh thu chỉ lấy thanh toán thành công.
- */
 public class BaoCaoDuLieuDAO {
 
-    /** Một dòng dữ liệu của biểu đồ tháng. */
     public static final class Thang {
         public final YearMonth thang;
         public final BigDecimal doanhThu;
         public final int luotKham;
         public final BigDecimal chiPhi;
 
+        /** Lưu số liệu doanh thu, lượt khám và chi phí của một tháng báo cáo. */
         public Thang(YearMonth thang, BigDecimal doanhThu, int luotKham) {
             this(thang, doanhThu, luotKham, BigDecimal.ZERO);
         }
 
+        /** Lưu số liệu doanh thu, lượt khám và chi phí của một tháng báo cáo. */
         public Thang(YearMonth thang, BigDecimal doanhThu, int luotKham,
                     BigDecimal chiPhi) {
             this.thang = thang;
@@ -39,28 +38,28 @@ public class BaoCaoDuLieuDAO {
             this.chiPhi = chiPhi;
         }
 
+        /** Tính chênh lệch doanh thu đã ghi nhận và chi phí đã nhập. */
         public BigDecimal laiLoTamTinh() {
             return doanhThu.subtract(chiPhi);
         }
     }
 
-    /** Lượt THỰC HIỆN dịch vụ điều trị, không phải số lượt khám duy nhất. */
     public static final class DichVu {
         public final String ten;
         public final int soLuot;
 
+        /** Gắn tên dịch vụ và số lượt đã thực hiện để tổng hợp thống kê. */
         public DichVu(String ten, int soLuot) {
             this.ten = ten;
             this.soLuot = soLuot;
         }
     }
 
-    /** Dữ liệu chụp cùng một khoảng ngày cho hai màn hình. */
     public static final class DuLieu {
         public LocalDate tuNgay;
         public LocalDate denNgay;
         public BigDecimal doanhThu = BigDecimal.ZERO;
-        // Chi phí là số thực tế đã ghi vào ChiPhiHoatDong trong cùng khoảng ngày.
+
         public BigDecimal chiPhi = BigDecimal.ZERO;
         public int soKhoanChi;
         public int luotKham;
@@ -71,20 +70,18 @@ public class BaoCaoDuLieuDAO {
         public final List<String[]> vaiTro = new ArrayList<>();
         public final List<String[]> nhatKy = new ArrayList<>();
 
+        /** Tính tỷ lệ bệnh nhân quay lại trên tập lượt khám đang xem. */
         public double tyLeQuayLai() {
             return soBenhNhan == 0 ? 0 : benhNhanQuayLai * 100.0 / soBenhNhan;
         }
 
-        /** Lãi/lỗ tạm tính = số tiền thực thu - chi phí đã ghi nhận. */
+        /** Tính chênh lệch doanh thu đã ghi nhận và chi phí đã nhập. */
         public BigDecimal laiLoTamTinh() {
             return doanhThu.subtract(chiPhi);
         }
     }
 
-    /**
-     * Lấy dữ liệu từ cùng cơ sở dữ liệu SQL Server.
-     * @param quanTriVien true mới tải phân bố tài khoản và nhật ký hệ thống.
-     */
+    /** Tổng hợp dữ liệu báo cáo theo khoảng ngày chỉ định từ SQL. */
     public DuLieu layBaoCao(LocalDate tuNgay, LocalDate denNgay,
                            boolean quanTriVien) throws SQLException {
         if (tuNgay == null || denNgay == null || tuNgay.isAfter(denNgay)) {
@@ -99,7 +96,7 @@ public class BaoCaoDuLieuDAO {
             layThongKeLuotKham(ketNoi, ketQua);
             layTheoThang(ketNoi, ketQua);
             if (!quanTriVien) {
-                // Admin chỉ được xem báo cáo hệ thống; số liệu tài chính thuộc Quản lý.
+
                 layChiPhi(ketNoi, ketQua);
             }
             layTheoDichVu(ketNoi, ketQua);
@@ -112,7 +109,7 @@ public class BaoCaoDuLieuDAO {
         return ketQua;
     }
 
-    /** Chỉ SUM các giao dịch đã thành công trong khoảng [từ, đến]. */
+    /** Chỉ cộng giao dịch có trạng thái thanh toán thành công để tránh tăng doanh thu giả. */
     private void layTongDoanhThu(Connection ketNoi, DuLieu dl) throws SQLException {
         String sql =
             "SELECT COALESCE(SUM(soTien), 0) FROM dbo.ThanhToan " +
@@ -127,10 +124,7 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
-    /**
-     * Khách quay lại = số bệnh nhân có từ 2 phiếu khám trong kỳ.
-     * Tỷ lệ này tính theo bệnh nhân duy nhất, không theo lượt khám.
-     */
+    /** Đếm số lượt khám, số bệnh nhân riêng biệt và bệnh nhân quay lại trong khoảng ngày. */
     private void layThongKeLuotKham(Connection ketNoi, DuLieu dl) throws SQLException {
         String sql =
             "SELECT COUNT(*) AS soBenhNhan, " +
@@ -151,10 +145,7 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
-    /**
-     * Gộp doanh thu và lượt khám theo tháng, bổ sung tháng trống bằng giá trị 0.
-     * Khoảng ngày có thể bắt đầu hoặc kết thúc giữa một tháng.
-     */
+    /** Gộp doanh thu và lượt khám theo từng tháng, bao gồm tháng không có phát sinh. */
     private void layTheoThang(Connection ketNoi, DuLieu dl) throws SQLException {
         List<YearMonth> danhSachThang = new ArrayList<>();
         List<BigDecimal> doanhThu = new ArrayList<>();
@@ -204,10 +195,7 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
-    /**
-     * Tổng chi phí và chi phí theo tháng. Không dùng số giả để suy ra lợi nhuận.
-     * Script 08 tạo bảng ChiPhiHoatDong; nếu chưa chạy, thông báo rõ nguyên nhân.
-     */
+    /** Tải tổng chi phí hoạt động trong kỳ nếu bảng dữ liệu chi phí đã được triển khai. */
     private void layChiPhi(Connection c, DuLieu dl) throws SQLException {
         try (PreparedStatement check = c.prepareStatement(
                 "SELECT OBJECT_ID(N'dbo.ChiPhiHoatDong', N'U')" );
@@ -248,10 +236,7 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
-    /**
-     * Ghi chi phí thực tế vào SQL. Chỉ Quản lý có quyền BAOCAO được phép ghi.
-     * Ngày mặc định trên form là hôm nay và không được vượt quá ngày hiện tại.
-     */
+    /** Ghi dữ liệu của lớp; kết quả được chuyển cho nơi gọi. */
     public void ghiChiPhi(LocalDate ngayChi, String loaiChi,
                           String moTa, BigDecimal soTien, int maTaiKhoan) throws SQLException {
         if (ngayChi == null || ngayChi.isAfter(LocalDate.now())
@@ -313,7 +298,7 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
-    /** Lấy TOP 6 dịch vụ điều trị theo số lần thực hiện trong kỳ. */
+    /** Thống kê sáu loại điều trị có số lượt thực hiện nhiều nhất. */
     private void layTheoDichVu(Connection ketNoi, DuLieu dl) throws SQLException {
         String sql =
             "SELECT TOP 6 dv.tenDDT, SUM(ct.soLuong) AS soLuot " +
@@ -331,7 +316,7 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
-    /** Snapshot phân bố vai trò, không áp dụng bộ lọc thời gian. */
+    /** Đếm tài khoản thuộc từng vai trò để tạo biểu đồ phân bổ tài khoản. */
     private void layPhanBoVaiTro(Connection ketNoi, DuLieu dl) throws SQLException {
         String sql =
             "SELECT v.tenVaiTro, COUNT(t.maTK) AS soTaiKhoan " +
@@ -346,7 +331,7 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
-    /** Chỉ Admin: nhật ký trong khoảng ngày đã chọn (tối đa 150 dòng). */
+    /** Tải các sự kiện hệ thống gần nhất phục vụ báo cáo quản trị. */
     private void layNhatKy(Connection ketNoi, DuLieu dl) throws SQLException {
         String sql =
             "SELECT TOP 150 CONVERT(VARCHAR(19), thoiGian, 120), hanhDong, " +
@@ -366,7 +351,7 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
-    /** Bộ lọc có cận trên loại trừ để lấy trọn cả ngày đến. */
+    /** Gắn khoảng lọc ngày bắt đầu và ngày kết thúc (loại trừ đầu ngày kế tiếp) cho truy vấn. */
     private static void datKhoangNgay(PreparedStatement ps,
                                      LocalDate tuNgay, LocalDate denNgay) throws SQLException {
         ps.setDate(1, Date.valueOf(tuNgay));

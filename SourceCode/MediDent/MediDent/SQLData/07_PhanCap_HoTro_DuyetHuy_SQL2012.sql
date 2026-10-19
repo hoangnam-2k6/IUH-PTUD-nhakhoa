@@ -1,14 +1,8 @@
--- ============================================================
--- 07 - TRUNG TAM YEU CAU VA DUYET HUY HOA DON (SQL SERVER 2012)
--- CHAY SAU SQLData/04 VA 05. KHONG XOA DU LIEU CU.
--- SAO LUU DATABASE MediDent TRUOC KHI CHAY.
--- ============================================================
+-- Lưu phân cấp hỗ trợ và chống đơn hủy trùng đang chờ.
+
 USE MediDent;
 GO
 
--- 1. VaiTro.capBacHoTro la cap xem yeu cau, doc tu SQL moi lan truy van.
--- 3: Quan tri vien, 2: Quan ly phong kham, 1: Le tan.
--- 0: Vai tro chua duoc cap -> chi duoc xem yeu cau cua chinh minh.
 IF COL_LENGTH(N'dbo.VaiTro', N'capBacHoTro') IS NULL
 BEGIN
     ALTER TABLE dbo.VaiTro
@@ -26,9 +20,6 @@ END
 WHERE tenVaiTro IN (N'Quản trị viên', N'Quản lý phòng khám', N'Quản lý', N'Lễ tân');
 GO
 
--- 2. Ban dau YeuCauHuyPhieuThu khong ghi maTK nguoi gui.
--- Them FK nullable de GIU NGUYEN cac yeu cau cu.
--- Don cu chua ro nguoi gui duoc hien cho Admin, khong hien cho cap duoi.
 IF COL_LENGTH(N'dbo.YeuCauHuyPhieuThu', N'maTKNguoiGui') IS NULL
 BEGIN
     ALTER TABLE dbo.YeuCauHuyPhieuThu
@@ -45,7 +36,6 @@ BEGIN
 END;
 GO
 
--- 3. Toi uu tim theo nguoi gui va thoi gian.
 IF NOT EXISTS (SELECT 1 FROM sys.indexes
                WHERE name=N'IX_YeuCauHuy_NguoiGui'
                  AND object_id=OBJECT_ID(N'dbo.YeuCauHuyPhieuThu'))
@@ -55,8 +45,6 @@ BEGIN
 END;
 GO
 
--- 4. Khong cho cung 1 thanh toan co 2 don CHO DUYET.
--- Neu CSDL cu da trung, KHONG tu xoa don; in canh bao de xu ly thu cong.
 IF NOT EXISTS (SELECT 1 FROM sys.indexes
                WHERE name=N'UX_YeuCauHuy_ChoDuyet_maTT'
                  AND object_id=OBJECT_ID(N'dbo.YeuCauHuyPhieuThu'))
@@ -75,7 +63,6 @@ BEGIN
 END;
 GO
 
--- 5. Bao dam Admin co quyen HOTRO (quyen phe duyet va phan hoi).
 IF NOT EXISTS (SELECT 1 FROM dbo.Quyen WHERE maQuyen='HOTRO')
     INSERT INTO dbo.Quyen(maQuyen,tenQuyen)
     VALUES('HOTRO',N'Trung tâm hỗ trợ và phê duyệt');
@@ -88,11 +75,6 @@ WHERE v.tenVaiTro=N'Quản trị viên'
                   WHERE vq.maVaiTro=v.maVaiTro AND vq.maQuyen='HOTRO');
 GO
 
--- Neu muon Quan ly duoc PHAN HOI yeu cau cua Quan ly va Le tan,
--- Admin cap quyen HOTRO tu giao dien Phan quyen. Viẹc xem don KHONG can quyen HOTRO.
--- Le tan chi co quyen xem va gui, khong duoc phe duyet huy hoa don.
-
--- 6. Kiem tra nhanh sau nang cap.
 SELECT maVaiTro, tenVaiTro, capBacHoTro
 FROM dbo.VaiTro ORDER BY capBacHoTro DESC, maVaiTro;
 SELECT TOP 30 maYC, maTT, maTKNguoiGui, ngayYeuCau, trangThai

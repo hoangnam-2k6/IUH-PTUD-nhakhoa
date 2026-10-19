@@ -1,7 +1,5 @@
--- MEDIDENT: bổ sung ghi nhận chi phí thực tế và báo cáo lãi/lỗ tạm tính.
--- SQL Server 2012+; KHÔNG xóa bảng hay dữ liệu đang có.
--- Lưu ý: Đây là chênh lệch tiền THỰC THU - tiền CHI đã nhập,
--- không thay thế hệ thống kế toán chuyên nghiệp (công nợ, khấu hao, thuế...).
+-- Bảng chi phí hoạt động dùng cho báo cáo lãi/lỗ tạm tính.
+
 USE MediDent;
 GO
 
@@ -35,7 +33,6 @@ BEGIN
 END;
 GO
 
--- Kiểm tra đã sẵn sàng. Khi chưa ghi chi phí, KPI Lãi/lỗ sẽ thông báo thiếu dữ liệu.
 SELECT COUNT(*) AS SoKhoanChiPhi,
        COALESCE(SUM(soTien), 0) AS TongChiPhiDaNhap
 FROM dbo.ChiPhiHoatDong;

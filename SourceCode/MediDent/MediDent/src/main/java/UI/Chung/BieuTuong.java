@@ -1,3 +1,7 @@
+/*
+ * BieuTuong: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.Chung;
 
 import java.awt.BasicStroke;
@@ -11,13 +15,6 @@ import java.awt.geom.Ellipse2D;
 import java.awt.geom.Path2D;
 import javax.swing.Icon;
 
-/**
- * Bộ icon dùng chung được VẼ bằng Java2D.
- *
- * Lý do: ký tự Unicode/emoji có thể hiện ô vuông trên JDK và máy trường.
- * Icon này không cần font biểu tượng, không cần Internet hay thư viện ngoài.
- * Các icon đều vẽ trên hệ tọa độ chuẩn 24 x 24 và tự co theo kích thước mong muốn.
- */
 public final class BieuTuong implements Icon {
 
     public enum Loai {
@@ -30,6 +27,7 @@ public final class BieuTuong implements Icon {
     private final Color mau;
     private final int kichThuoc;
 
+    /** Khởi tạo thông tin loại biểu tượng, màu và kích cỡ để vẽ bằng Java2D. */
     public BieuTuong(Loai loai, Color mau, int kichThuoc) {
         this.loai = loai;
         this.mau = mau;
@@ -37,16 +35,19 @@ public final class BieuTuong implements Icon {
     }
 
     @Override
+    /** Lấy giá trị thuộc tính IconWidth từ đối tượng hiện tại. */
     public int getIconWidth() {
         return kichThuoc;
     }
 
     @Override
+    /** Lấy giá trị thuộc tính IconHeight từ đối tượng hiện tại. */
     public int getIconHeight() {
         return kichThuoc;
     }
 
     @Override
+    /** Vẽ biểu tượng Java2D tại tọa độ được Swing yêu cầu. */
     public void paintIcon(Component component, Graphics graphics, int x, int y) {
         Graphics2D g = (Graphics2D) graphics.create();
         try {
@@ -61,7 +62,7 @@ public final class BieuTuong implements Icon {
         }
     }
 
-    /** Các hình được vẽ từ đường thẳng/đường cong, không dùng ký tự emoji. */
+    /** Vẽ nội dung trong thành phần đồ họa Swing. */
     private void ve(Graphics2D g) {
         switch (loai) {
             case TRANG_CHU:
@@ -167,6 +168,7 @@ public final class BieuTuong implements Icon {
         }
     }
 
+    /** Nối tập tọa độ thành đường Path2D dùng cho hình biểu tượng. */
     private static void duong(Graphics2D g, double... toaDo) {
         Path2D path = new Path2D.Double();
         path.moveTo(toaDo[0], toaDo[1]);

@@ -1,3 +1,7 @@
+/*
+ * HoTroPage: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.Chung;
 
 import Class.TaiKhoan;
@@ -21,14 +25,6 @@ import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
-/**
- * Trung tâm yêu cầu chung cho Admin / Quản lý / Lễ tân.
- *
- * Dữ liệu được lọc THEO CẤP BẬC TRONG SQL SERVER, không lọc ở mỗi JTable.
- * Gồm 2 nhóm yêu cầu đã có trong MediDent:
- * 1) YeuCauHoTro - phản ánh, quên mật khẩu, hỗ trợ nghiệp vụ.
- * 2) YeuCauHuyPhieuThu - yêu cầu hủy hóa đơn/phiếu thu.
- */
 public final class HoTroPage extends JPanel {
 
     private final QuanLyDAO dao;
@@ -39,14 +35,15 @@ public final class HoTroPage extends JPanel {
             new String[]{"STT", "Mã YC", "Người gửi", "Vai trò", "Thời điểm",
                 "Tiêu đề", "Trạng thái", "Phản hồi"}, 0) {
         @Override
+        /** Quyết định có cho nhập trực tiếp trên ô bảng hay không. */
         public boolean isCellEditable(int row, int column) {
             return false;
         }
     };
 
-    // STT theo hàng đang hiển thị, vẫn đúng khi người dùng sắp xếp bảng.
     private final JTable bang = new JTable(model) {
         @Override
+        /** Thiết lập cách hiển thị từng dòng của bảng. */
         public Component prepareRenderer(TableCellRenderer renderer, int row, int col) {
             Component component = super.prepareRenderer(renderer, row, col);
             if (col == 0 && component instanceof javax.swing.JLabel) {
@@ -59,7 +56,7 @@ public final class HoTroPage extends JPanel {
     };
     private List<QuanLyDAO.Hang> duLieu = Collections.emptyList();
 
-    /** @param admin true khi đăng nhập là Admin có quyền HOTRO. */
+    /** Khởi tạo trang gửi, tra cứu và phản hồi yêu cầu hỗ trợ theo quyền tài khoản. */
     public HoTroPage(QuanLyDAO dao, TaiKhoan user, boolean admin) {
         this.dao = dao;
         this.user = user;
@@ -67,7 +64,7 @@ public final class HoTroPage extends JPanel {
         try {
             coThePhanHoi = dao.coQuyenPhanHoiHoTro(user.id);
         } catch (Exception ex) {
-            // Không truy vấn được quyền: ẩn chức năng phản hồi.
+
         }
         this.duocPhanHoi = coThePhanHoi;
 
@@ -82,6 +79,7 @@ public final class HoTroPage extends JPanel {
         add(tabs, BorderLayout.CENTER);
     }
 
+    /** Dựng khu vực nhập yêu cầu hỗ trợ, bảng danh sách và các nút xử lý hiện có. */
     private JPanel taoHoTro() {
         JPanel container = new JPanel(new BorderLayout());
         container.setBackground(GiaoDien.BG);
@@ -129,6 +127,7 @@ public final class HoTroPage extends JPanel {
         return container;
     }
 
+    /** Đọc lại dữ liệu SQL để đưa vào các thành phần đang hiển thị. */
     private void tai() {
         try {
             duLieu = dao.danhSachHoTro(user.id);
@@ -143,6 +142,7 @@ public final class HoTroPage extends JPanel {
         }
     }
 
+    /** Trả bản ghi đang chọn trong bảng sau khi đổi chỉ số hàng từ view sang model. */
     private QuanLyDAO.Hang daChon() {
         int viewIndex = bang.getSelectedRow();
         if (viewIndex < 0) {
@@ -152,6 +152,7 @@ public final class HoTroPage extends JPanel {
         return duLieu.get(bang.convertRowIndexToModel(viewIndex));
     }
 
+    /** Kiểm tra nội dung form và chuyển yêu cầu hỗ trợ tới DAO để lưu SQL. */
     private void guiYeuCau() {
         JTextField tieuDe = GiaoDien.text("");
         JTextArea noiDung = new JTextArea(6, 36);
@@ -176,6 +177,7 @@ public final class HoTroPage extends JPanel {
         }
     }
 
+    /** Mở thông tin chi tiết của phiếu hỗ trợ được chọn. */
     private void xemNoiDung() {
         QuanLyDAO.Hang h = daChon();
         if (h == null) return;
@@ -192,6 +194,7 @@ public final class HoTroPage extends JPanel {
                 "Yêu cầu #" + h.id + " — " + h.cot[2], JOptionPane.INFORMATION_MESSAGE);
     }
 
+    /** Gửi phản hồi cho yêu cầu hỗ trợ khi tài khoản còn đủ quyền. */
     private void phanHoi() {
         if (!duocPhanHoi) return;
         QuanLyDAO.Hang h = daChon();

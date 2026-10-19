@@ -1,9 +1,8 @@
--- CHỈ ĐỌC: đối chiếu hóa đơn #1, #30 và các yêu cầu hủy gần đây.
--- KHÔNG UPDATE / DELETE: tránh khôi phục nhầm hóa đơn đã có hoàn tiền.
+-- Truy vấn đối chiếu các hóa đơn và thanh toán đã hủy, không tự thay dữ liệu.
+
 USE MediDent;
 GO
 
--- Kiểm tra hai hóa đơn người dùng báo có khả năng nhầm khi chọn STT.
 SELECT h.maHD AS MaHoaDon,
        h.maTT AS MaThanhToan,
        h.trangThai AS TrangThaiHoaDon,
@@ -19,7 +18,6 @@ WHERE h.maHD IN (1, 30)
 ORDER BY h.maHD;
 GO
 
--- Yêu cầu hủy liên quan những hóa đơn trên: kiểm tra đã gửi/duyệt hay chưa.
 SELECT TOP 50 y.maYC AS MaYeuCau,
        h.maHD AS MaHoaDon,
        y.maTT AS MaThanhToan,
@@ -33,7 +31,6 @@ WHERE h.maHD IN (1, 30)
 ORDER BY y.maYC DESC;
 GO
 
--- Phát hiện giao dịch liên kết nhiều hóa đơn (nghiệp vụ duyệt từ chối để tránh hủy nhầm).
 SELECT maTT AS MaThanhToan, COUNT(*) AS SoHoaDon
 FROM dbo.HoaDon
 GROUP BY maTT

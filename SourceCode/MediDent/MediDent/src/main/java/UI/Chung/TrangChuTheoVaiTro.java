@@ -1,15 +1,16 @@
+/*
+ * TrangChuTheoVaiTro: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.Chung;
 
 import Class.TaiKhoan;
 import java.awt.BorderLayout;
 import javax.swing.JPanel;
 
-/**
- * Trang chủ đơn giản dành cho những vai trò không phải Quản trị viên.
- * Không hiển thị số liệu quản trị nội bộ cho tài khoản không có quyền.
- */
 public class TrangChuTheoVaiTro extends JPanel {
 
+    /** Chọn trang chủ thích hợp cho vai trò trong cấu trúc điều hướng hiện tại. */
     public TrangChuTheoVaiTro(TaiKhoan user) {
         setLayout(new BorderLayout());
         setBackground(GiaoDien.BG);

@@ -1,27 +1,30 @@
+/*
+ * ThemBenhNhanGUI: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanLy;
 
 import DAO.QuanLyDAO;
+import TienIch.EmailHopLe;
 import UI.Chung.NgayChon;
 import java.awt.Component;
 import java.time.LocalDate;
 import javax.swing.*;
 
-/**
- * Form thêm/sửa bệnh nhân - sử dụng như hộp thoại TRONG KhungChinh.
- * Form không mở JFrame, chỉ lưu khi đã xác thực quyền BENHNHAN ở DAO.
- */
 public final class ThemBenhNhanGUI {
     private final QuanLyDAO dao;
     private final int actor;
     private final int maBN;
     private final Runnable taiLai;
 
+    /** Lưu ngữ cảnh và mã bệnh nhân cho form nhập hồ sơ. */
     public ThemBenhNhanGUI(QuanLyDAO dao,int actor,int maBN,Runnable taiLai) {
         this.dao=dao;this.actor=actor;this.maBN=maBN;this.taiLai=taiLai;
     }
 
+    /** Mở form thêm/sửa hiện tại và chuyển dữ liệu hợp lệ sang DAO. */
     public void hien(Component parent) throws Exception {
-        // Khi sửa, đọc nguyên vẹn cả địa chỉ/tiền sử từ SQL để không ghi đè giá trị cũ.
+
         String[] old=maBN==0?null:dao.chiTietBenhNhan(maBN);
         JPanel f=BieuMau.form();
         JTextField ten=BieuMau.text(old==null?"":old[0]);
@@ -48,11 +51,20 @@ public final class ThemBenhNhanGUI {
         BieuMau.them(f,"Địa chỉ",diaChi);
         BieuMau.them(f,"Tiền sử bệnh",new JScrollPane(tienSu));
         BieuMau.them(f,"Trạng thái",trangThai);
-        if(!BieuMau.xacNhan(parent,maBN==0?"Thêm bệnh nhân":"Sửa bệnh nhân",f))return;
-        LocalDate birthday=ngay.getNgay();
-        dao.luuBenhNhan(maBN,ten.getText(),sdt.getText(),birthday,
-                (String)gioiTinh.getSelectedItem(),email.getText(),diaChi.getText(),
-                tienSu.getText(),(String)trangThai.getSelectedItem(),actor);
-        taiLai.run();
+        while (true) {
+            if(!BieuMau.xacNhan(parent,maBN==0?"Thêm bệnh nhân":"Sửa bệnh nhân",f))return;
+            if (!email.getText().trim().isEmpty() && !EmailHopLe.kiemTra(email.getText())) {
+                JOptionPane.showMessageDialog(parent,EmailHopLe.huongDan(),
+                        "Email không hợp lệ",JOptionPane.WARNING_MESSAGE);
+                email.requestFocusInWindow();
+                continue;
+            }
+            LocalDate birthday=ngay.getNgay();
+            dao.luuBenhNhan(maBN,ten.getText(),sdt.getText(),birthday,
+                    (String)gioiTinh.getSelectedItem(),email.getText(),diaChi.getText(),
+                    tienSu.getText(),(String)trangThai.getSelectedItem(),actor);
+            taiLai.run();
+            break;
+        }
     }
 }

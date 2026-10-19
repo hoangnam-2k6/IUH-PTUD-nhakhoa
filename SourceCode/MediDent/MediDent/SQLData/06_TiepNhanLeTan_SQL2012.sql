@@ -1,19 +1,15 @@
-/*
- MEDIDENT - SO THU TU TIEP NHAN, SQL SERVER 2012 RTM.
- Chay MOT LAN sau khi sao luu database MediDent.
- An toan chay lai: kiem tra truoc khi them cot, rang buoc va index.
- */
+-- Tạo ràng buộc cấp số thứ tự duy nhất theo ngày tiếp nhận.
+
 USE MediDent;
 GO
 
+-- Chỉ tạo bảng LichHen khi chưa tồn tại trong CSDL.
 IF OBJECT_ID(N'dbo.LichHen',N'U') IS NULL
 BEGIN
     RAISERROR(N'Chua ton tai dbo.LichHen. Hay tao database truoc.',16,1);
 END
 GO
 
--- Bat buoc tao cot trong batch rieng: SQL Server 2012 tra loi sai cot
--- neu vua ALTER TABLE vua dung cot moi trong mot batch.
 IF OBJECT_ID(N'dbo.LichHen',N'U') IS NOT NULL
    AND COL_LENGTH(N'dbo.LichHen',N'soThuTuKham') IS NULL
 BEGIN
@@ -32,7 +28,6 @@ BEGIN
 END
 GO
 
--- UNIQUE filtered index: trong mot ngay khong trung so da cap.
 IF OBJECT_ID(N'dbo.LichHen',N'U') IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM sys.indexes
                    WHERE name=N'UX_LichHen_Ngay_STT'

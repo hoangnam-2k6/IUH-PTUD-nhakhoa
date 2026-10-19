@@ -1,3 +1,7 @@
+/*
+ * TrangChuQuanTriVien: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanTriVien;
 
 import DAO.KhoDuLieu;
@@ -20,16 +24,11 @@ import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingConstants;
 
-/**
- * DASHBOARD dành riêng cho Quản trị viên.
- *
- * Mọi số liệu đều lấy từ SQL Server qua KhoDuLieu, không khai báo dữ liệu giả.
- * Không kế thừa hoặc thay đổi ManHinhTrangChu dùng chung của dự án cũ.
- */
 public class TrangChuQuanTriVien extends JPanel {
 
     private final KhoDuLieu db;
 
+    /** Khởi tạo Dashboard của Quản trị viên theo bố cục hiện tại. */
     public TrangChuQuanTriVien(KhoDuLieu db) {
         this.db = db;
         setLayout(new BorderLayout());
@@ -40,7 +39,7 @@ public class TrangChuQuanTriVien extends JPanel {
         napDuLieu(page);
     }
 
-    /** 1. Nạp số lượng tài khoản, vai trò và cảnh báo từ SQL Server. */
+    /** Tải số liệu tài khoản, quyền và nhật ký từ SQL lên Dashboard. */
     private void napDuLieu(JPanel page) {
         try {
             int tong = db.dem("SELECT COUNT(*) FROM dbo.TaiKhoan");
@@ -75,7 +74,7 @@ public class TrangChuQuanTriVien extends JPanel {
         }
     }
 
-    /** 2. Mỗi thẻ hiển thị số liệu và icon được vẽ, không dùng Unicode. */
+    /** Tạo thẻ thống kê có tiêu đề, số liệu và biểu tượng. */
     private JPanel stat(String title, int value, BieuTuong.Loai icon, Color color) {
         JPanel card = GiaoDien.card(new BorderLayout(12, 0));
         JPanel text = new JPanel(new GridLayout(2, 1, 0, 5));
@@ -93,7 +92,7 @@ public class TrangChuQuanTriVien extends JPanel {
         return card;
     }
 
-    /** 3. Biểu đồ tài khoản lũy kế theo tháng của năm người dùng chọn. */
+    /** Tạo khu vực đồ thị thống kê tài khoản theo thời gian. */
     private JPanel taoBieuDo() {
         JPanel chart = GiaoDien.card(new BorderLayout(0, 12));
         chart.setAlignmentX(LEFT_ALIGNMENT);
@@ -127,7 +126,7 @@ public class TrangChuQuanTriVien extends JPanel {
         return chart;
     }
 
-    /** Vẽ cột bằng Graphics2D, chiều cao phụ thuộc dữ liệu SQL thực tế. */
+    /** Vẽ nội dung trong thành phần đồ họa Swing. */
     private void veCot(JPanel target, int year) {
         target.removeAll();
         try {
@@ -145,6 +144,7 @@ public class TrangChuQuanTriVien extends JPanel {
 
                 JComponent bar = new JComponent() {
                     @Override
+                    /** Vẽ nội dung đồ họa của thành phần Swing. */
                     protected void paintComponent(Graphics graphics) {
                         Graphics2D g = (Graphics2D) graphics.create();
                         try {
@@ -176,7 +176,7 @@ public class TrangChuQuanTriVien extends JPanel {
         target.repaint();
     }
 
-    /** 4. Hai khung dưới: phân bố vai trò và hoạt động quản trị gần đây. */
+    /** Dựng hai khu vực thông tin phụ ở cuối Dashboard quản trị. */
     private JPanel taoThongTinThem(int tongTaiKhoan) throws Exception {
         JPanel bottom = new JPanel(new GridLayout(1, 2, 16, 0));
         bottom.setOpaque(false);

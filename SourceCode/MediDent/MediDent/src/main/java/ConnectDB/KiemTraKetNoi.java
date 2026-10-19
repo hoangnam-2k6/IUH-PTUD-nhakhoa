@@ -1,12 +1,12 @@
+/*
+ * KiemTraKetNoi: cấu hình kết nối và khởi tạo cơ sở dữ liệu.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package ConnectDB;
 
 import java.sql.*;
 import java.util.*;
 
-/**
- * Chay class nay de KIEM TRA ket noi, ten bang, cot; chi SELECT, khong thay doi CSDL.
- * Eclipse: Run As > Java Application > ConnectDB.KiemTraKetNoi
- */
 public class KiemTraKetNoi {
     private static final Map<String,String[]> COT_CAN_CO=new LinkedHashMap<>();
     static {
@@ -22,6 +22,7 @@ public class KiemTraKetNoi {
         COT_CAN_CO.put("CauHinh",new String[]{"Khoa","GiaTri"});
     }
 
+    /** Khởi chạy chương trình theo điểm vào được định nghĩa tại lớp này. */
     public static void main(String[] args) {
         try(Connection c=KetNoi.mo()) {
             System.out.println("Kết nối SQL Server: THÀNH CÔNG");

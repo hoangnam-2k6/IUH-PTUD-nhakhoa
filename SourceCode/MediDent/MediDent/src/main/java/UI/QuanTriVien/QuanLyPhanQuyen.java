@@ -1,3 +1,7 @@
+/*
+ * QuanLyPhanQuyen: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanTriVien;
 
 import Class.TaiKhoan;
@@ -23,37 +27,33 @@ import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-/**
- * Quản lý phân quyền: bảng ma trận quyền theo các VaiTro / VaiTroQuyen trong SQL.
- *
- * STT tăng từ 1 đến N; quyền có/không được vẽ bằng icon Java2D xanh/xám
- * (không dùng dấu ✓ hoặc × Unicode nên không còn ô vuông).
- */
 public class QuanLyPhanQuyen extends JPanel {
 
     private final KhoDuLieu db;
     private final TaiKhoan actor;
     private List<VaiTro> roles = new ArrayList<>();
 
-    // Ma trận đọc mã quyền từ DAO, thống nhất cả quyền Nhân viên, Dịch vụ và Hỗ trợ.
     private static final String[] TEN_QUYEN = {
         "Tài khoản", "Bệnh nhân", "Lịch hẹn", "Thanh toán", "Báo cáo",
         "Hệ thống", "Nhân viên", "Dịch vụ", "Hỗ trợ"
     };
     private final DefaultTableModel model = new DefaultTableModel(taoTieuDe(), 0) {
         @Override
+        /** Quyết định có cho nhập trực tiếp trên ô bảng hay không. */
         public boolean isCellEditable(int row, int column) {
             return false;
         }
 
         @Override
+        /** Lấy giá trị thuộc tính ColumnClass từ đối tượng hiện tại. */
         public Class<?> getColumnClass(int columnIndex) {
-            // Cột quyền lưu Boolean để phân biệt có quyền / không có quyền.
+
             return columnIndex >= 2 ? Boolean.class : super.getColumnClass(columnIndex);
         }
     };
     private final JTable table = new JTable(model) {
         @Override
+        /** Thiết lập cách hiển thị từng dòng của bảng. */
         public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer,
                                          int row, int column) {
             Component result = super.prepareRenderer(renderer, row, column);
@@ -65,6 +65,7 @@ public class QuanLyPhanQuyen extends JPanel {
         }
     };
 
+    /** Tạo mảng tiêu đề gồm STT, vai trò và các mã quyền hiển thị. */
     private static String[] taoTieuDe() {
         String[] tieuDe = new String[TEN_QUYEN.length + 2];
         tieuDe[0] = "STT";
@@ -73,6 +74,7 @@ public class QuanLyPhanQuyen extends JPanel {
         return tieuDe;
     }
 
+    /** Khởi tạo bảng ma trận phân quyền và nút chỉnh sửa vai trò. */
     public QuanLyPhanQuyen(KhoDuLieu db, TaiKhoan actor) {
         this.db = db;
         this.actor = actor;
@@ -83,18 +85,12 @@ public class QuanLyPhanQuyen extends JPanel {
                 "Thiết lập vai trò và quyền truy cập cho từng nhóm người dùng.");
         add(GiaoDien.cuon(page), BorderLayout.CENTER);
 
-        // 1. Các nút thao tác với VaiTro.
         JPanel actions = GiaoDien.hang();
-        JButton add = GiaoDien.nutIcon("Thêm vai trò", true, BieuTuong.Loai.THEM);
-        JButton edit = GiaoDien.nutIcon("Sửa vai trò", false, BieuTuong.Loai.SUA);
-        JButton remove = GiaoDien.nutIcon("Xóa vai trò", false, BieuTuong.Loai.XOA);
-        actions.add(add);
+        JButton edit = GiaoDien.nutIcon("Chỉnh sửa quyền", true, BieuTuong.Loai.SUA);
         actions.add(edit);
-        actions.add(remove);
         page.add(actions);
         page.add(Box.createVerticalStrut(17));
 
-        // 2. Tạo bảng có STT, vẽ icon cho từng ô quyền.
         JPanel card = GiaoDien.card(new BorderLayout());
         card.setPreferredSize(new java.awt.Dimension(740, 440));
         card.add(GiaoDien.wrapTable(table), BorderLayout.CENTER);
@@ -102,22 +98,21 @@ public class QuanLyPhanQuyen extends JPanel {
         page.add(card);
 
         taiLai();
-        add.addActionListener(event -> hienForm(null));
         edit.addActionListener(event -> {
             VaiTro selected = vaiTroDangChon();
             if (selected != null) {
                 hienForm(selected);
             }
         });
-        remove.addActionListener(event -> xoa());
     }
 
-    /** 3. Renderer chỉ hiển thị icon, không cho JTable dùng checkbox mặc định. */
+    /** Dùng biểu tượng đúng/sai để hiển thị các quyền trong JTable. */
     private void trangTriCotQuyen() {
         for (int column = 2; column < table.getColumnCount(); column++) {
             table.getColumnModel().getColumn(column).setCellRenderer(
                     new DefaultTableCellRenderer() {
                 @Override
+                /** Tạo ô hiển thị bảng theo giá trị và trạng thái chọn. */
                 public Component getTableCellRendererComponent(JTable source, Object value,
                         boolean selected, boolean focused, int row, int column) {
                     JLabel result = (JLabel) super.getTableCellRendererComponent(
@@ -133,7 +128,7 @@ public class QuanLyPhanQuyen extends JPanel {
         }
     }
 
-    /** 4. Nạp vai trò từ CSDL; không ghi ID thật vào cột STT. */
+    /** Nạp lại dữ liệu mới nhất và làm mới bảng đang hiển thị. */
     private void taiLai() {
         try {
             roles = db.vaiTro();
@@ -153,7 +148,7 @@ public class QuanLyPhanQuyen extends JPanel {
         }
     }
 
-    /** 5. Lấy vai trò đang chọn qua model index, an toàn khi sắp xếp bảng. */
+    /** Xác định mã vai trò thực của dòng đang chọn trên bảng. */
     private VaiTro vaiTroDangChon() {
         int viewRow = table.getSelectedRow();
         if (viewRow < 0) {
@@ -164,7 +159,7 @@ public class QuanLyPhanQuyen extends JPanel {
         return modelRow >= 0 && modelRow < roles.size() ? roles.get(modelRow) : null;
     }
 
-    /** 6. Form checkbox giúp tránh gõ sai tên quyền. */
+    /** Mở hộp thoại chỉnh sửa danh sách quyền và lưu theo vai trò. */
     private void hienForm(VaiTro old) {
         if (old != null && "Quản trị viên".equals(old.ten)) {
             JOptionPane.showMessageDialog(this,
@@ -172,8 +167,10 @@ public class QuanLyPhanQuyen extends JPanel {
             return;
         }
         JTextField name = GiaoDien.text(old == null ? "" : old.ten);
+        name.setEditable(false);
         JTextField description = GiaoDien.text(old == null ? "" : old.moTa);
-        // Tên và thứ tự các quyền luôn tương ứng KhoDuLieu.cacQuyen().
+        description.setEditable(false);
+
         String[] permissionNames = TEN_QUYEN;
         JCheckBox[] permissions = new JCheckBox[permissionNames.length];
         JPanel form = new JPanel(new GridLayout(0, 1, 6, 6));
@@ -212,7 +209,7 @@ public class QuanLyPhanQuyen extends JPanel {
         }
     }
 
-    /** 7. Xóa theo ID VaiTro, không theo STT hiển thị. */
+    /** Lấy mã bản ghi đang chọn và gọi DAO để xử lý nghiệp vụ tương ứng. */
     private void xoa() {
         VaiTro selected = vaiTroDangChon();
         if (selected == null) {

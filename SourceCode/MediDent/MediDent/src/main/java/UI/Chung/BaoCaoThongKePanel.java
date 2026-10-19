@@ -1,3 +1,7 @@
+/*
+ * BaoCaoThongKePanel: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.Chung;
 
 import DAO.BaoCaoDuLieuDAO;
@@ -52,17 +56,8 @@ import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-/**
- * GIAO DIỆN BÁO CÁO DÙNG CHUNG cho Quản lý và Quản trị viên.
- *
- * - Cùng bộ màu, KPI, biểu đồ, bảng, bộ lọc và xuất CSV.
- * - Dùng DAO đọc dữ liệu SQL Server thật, không có số liệu mẫu cứng.
- * - Admin có thêm báo cáo Vai trò và Nhật ký; Quản lý không thấy hai mục đó.
- * - Không có bộ lọc chi nhánh vì ERD hiện chưa có mã chi nhánh.
- */
 public class BaoCaoThongKePanel extends JPanel implements Scrollable {
 
-    // 1. Màu sắc hệ thống MediDent (tương thích GiaoDien.java).
     private static final Color XANH = new Color(0x0284C7);
     private static final Color XANH_NHAT = new Color(0xE0F2FE);
     private static final Color XANH_LA = new Color(0x10B981);
@@ -79,13 +74,11 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
             Locale.forLanguageTag("vi-VN"));
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    // 2. Dữ liệu và quyền truy cập màn hình.
     private final BaoCaoDuLieuDAO dao;
     private final boolean laQuanTriVien;
     private final int maTaiKhoan;
     private DuLieu duLieu;
 
-    // 3. Các control bộ lọc: người dùng chọn thay vì nhập ngày/năm tùy ý.
     private final JComboBox<Integer> cbNam = new JComboBox<>();
     private final JComboBox<String> cbKy = new JComboBox<>();
     private final JComboBox<String> cbLoai = new JComboBox<>();
@@ -94,7 +87,6 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
     private final JButton nutXuat = GiaoDien.nutIcon(
             "Xuất CSV", false, BieuTuong.Loai.TAI_XUONG);
 
-    // 4. Những thành phần thay đổi khi truy vấn xong.
     private final JLabel nhanPhamVi = nhan("Chưa tải dữ liệu", 11, PHU, false);
     private final JLabel nhanTrangThai = nhan("Đang chuẩn bị...", 11, PHU, false);
     private final JLabel kpiDoanhThu = nhan("--", 23, CHU, true);
@@ -113,27 +105,31 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
     private final VongDichVu vongDichVu = new VongDichVu();
     private final JPanel danhSachDichVu = new JPanel();
 
-    // 5. Bảng luôn đánh STT tự động 1..N, kể cả khi sắp xếp.
     private final DefaultTableModel model = new DefaultTableModel() {
         @Override
+        /** Quyết định có cho nhập trực tiếp trên ô bảng hay không. */
         public boolean isCellEditable(int row, int column) {
             return false;
         }
     };
     private final JTable bang = new JTable(model);
 
+    /** Khởi tạo trang báo cáo với DAO, chế độ quyền và mã tài khoản phù hợp. */
     public BaoCaoThongKePanel(boolean laQuanTriVien) {
         this(new BaoCaoDuLieuDAO(), laQuanTriVien, -1);
     }
 
+    /** Khởi tạo trang báo cáo với DAO, chế độ quyền và mã tài khoản phù hợp. */
     public BaoCaoThongKePanel(boolean laQuanTriVien, int maTaiKhoan) {
         this(new BaoCaoDuLieuDAO(), laQuanTriVien, maTaiKhoan);
     }
 
+    /** Khởi tạo trang báo cáo với DAO, chế độ quyền và mã tài khoản phù hợp. */
     public BaoCaoThongKePanel(BaoCaoDuLieuDAO dao, boolean laQuanTriVien) {
         this(dao, laQuanTriVien, -1);
     }
 
+    /** Khởi tạo trang báo cáo với DAO, chế độ quyền và mã tài khoản phù hợp. */
     public BaoCaoThongKePanel(BaoCaoDuLieuDAO dao, boolean laQuanTriVien, int maTaiKhoan) {
         if (dao == null) throw new IllegalArgumentException("DAO không được null.");
         this.dao = dao;
@@ -148,34 +144,37 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         taiLai();
     }
 
-    // Khi nằm trong JScrollPane của Admin, chỉ cuộn dọc toàn trang;
-    // tránh lỗi các khung bị cắt ngang hoặc bị đẩy lệch lề.
     @Override
+    /** Cung cấp kích thước hiển thị vùng cuộn. */
     public Dimension getPreferredScrollableViewportSize() {
         return new Dimension(860, 620);
     }
 
     @Override
+    /** Xác định bước cuộn nhỏ khi người dùng cuộn nội dung. */
     public int getScrollableUnitIncrement(Rectangle rect, int orientation, int direction) {
         return 18;
     }
 
     @Override
+    /** Xác định bước cuộn theo trang của vùng hiển thị. */
     public int getScrollableBlockIncrement(Rectangle rect, int orientation, int direction) {
         return Math.max(80, rect.height - 50);
     }
 
     @Override
+    /** Cho vùng cuộn biết có bám theo chiều rộng viewport hay không. */
     public boolean getScrollableTracksViewportWidth() {
         return true;
     }
 
     @Override
+    /** Cho vùng cuộn biết có bám theo chiều cao viewport hay không. */
     public boolean getScrollableTracksViewportHeight() {
         return false;
     }
 
-    /** Mỗi nội dung rộng theo khu vực hiển thị, không lệch phải do BoxLayout. */
+    /** Thêm thành phần hoặc dữ liệu vào đối tượng hiện tại. */
     private void themDayDu(Component component) {
         if (component instanceof javax.swing.JComponent) {
             ((javax.swing.JComponent) component).setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -183,6 +182,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         add(component);
     }
 
+    /** Điền các giá trị năm, kỳ và loại báo cáo cho bộ lọc hiện tại. */
     private void khoiTaoBoLoc() {
         int namHienTai = LocalDate.now().getYear();
         for (int nam = namHienTai - 5; nam <= namHienTai + 1; nam++) cbNam.addItem(nam);
@@ -199,7 +199,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
             cbLoai.addItem("Tài khoản theo vai trò");
             cbLoai.addItem("Nhật ký hệ thống");
         } else {
-            // Chỉ báo cáo Quản lý mới có chi phí / lãi-lỗ.
+
             cbLoai.addItem("Lãi/lỗ theo tháng");
             cbLoai.addItem("Chi phí theo tháng");
         }
@@ -211,8 +211,9 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
     }
 
+    /** Dựng những thành phần tiêu đề, chỉ số và biểu đồ của trang báo cáo đang có. */
     private void taoGiaoDien() {
-        // PHẦN A: Breadcrumb / tiêu đề / xuất báo cáo.
+
         JPanel dauTrang = trongSuot(new BorderLayout(12, 0));
         JPanel cotTieuDe = trongSuot();
         cotTieuDe.setLayout(new BoxLayout(cotTieuDe, BoxLayout.Y_AXIS));
@@ -227,7 +228,6 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         themDayDu(dauTrang);
         themDayDu(Box.createVerticalStrut(21));
 
-        // PHẦN B: Bộ lọc và phạm vi áp dụng.
         JPanel khoangLoc = the(new BorderLayout(0, 13), 16);
         khoangLoc.add(nhan("Bộ lọc báo cáo", 14, CHU, true), BorderLayout.NORTH);
         JPanel hangLoc = trongSuot(new FlowLayout(FlowLayout.LEFT, 10, 3));
@@ -249,7 +249,6 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         themDayDu(khoangLoc);
         themDayDu(Box.createVerticalStrut(15));
 
-        // PHẦN C: Quản lý có thêm 2 thẻ Chi phí - Lãi/lỗ (Admin bị giới hạn).
         int soHangKpi = laQuanTriVien ? 2 : 3;
         int caoKpi = laQuanTriVien ? 242 : 355;
         JPanel cacKpi = trongSuot(new GridLayout(soHangKpi, 2, 13, 13));
@@ -276,7 +275,6 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
         themDayDu(Box.createVerticalStrut(16));
 
-        // PHẦN D: Biểu đồ tháng và cơ cấu dịch vụ trên cùng một hàng.
         JPanel haiBieuDo = trongSuot(new GridLayout(1, 2, 14, 0));
         haiBieuDo.setPreferredSize(new Dimension(760, 358));
         haiBieuDo.setMaximumSize(new Dimension(Integer.MAX_VALUE, 358));
@@ -307,7 +305,6 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         themDayDu(haiBieuDo);
         themDayDu(Box.createVerticalStrut(16));
 
-        // PHẦN E: Bảng báo cáo chi tiết, STT 1..N và sắp xếp theo tiêu đề.
         JPanel bangCard = the(new BorderLayout(0, 10), 15);
         JPanel dauBang = trongSuot(new BorderLayout());
         dauBang.add(nhan("Chi tiết báo cáo", 14, CHU, true), BorderLayout.WEST);
@@ -328,7 +325,6 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         themDayDu(bangCard);
         themDayDu(Box.createVerticalStrut(16));
 
-        // PHẦN F: Diễn giải có căn cứ vào số liệu thật.
         JPanel tongKet = the(new BorderLayout(0, 9), 15);
         tongKet.setBackground(new Color(0xEFF8FF));
         tongKet.add(nhan("Nhận xét từ số liệu hiện tại", 14, CHU, true), BorderLayout.NORTH);
@@ -336,7 +332,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         themDayDu(tongKet);
     }
 
-    /** Tạo nhóm tên control bên trên, JComboBox bên dưới. */
+    /** Ghép nhãn và hộp chọn thành một cụm điều kiện lọc. */
     private JPanel tieuChi(String tieuDe, JComboBox<?> combo, int chieuRong) {
         JPanel nhom = trongSuot();
         nhom.setLayout(new BoxLayout(nhom, BoxLayout.Y_AXIS));
@@ -348,6 +344,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         return nhom;
     }
 
+    /** Dựng thẻ KPI gồm biểu tượng, giá trị và chú thích cho báo cáo. */
     private JPanel theThongKe(String tieuDe, JLabel so, String ghiChu,
                               Color mau, BieuTuong.Loai icon) {
         JPanel card = the(new BorderLayout(10, 5), 15);
@@ -367,6 +364,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         return card;
     }
 
+    /** Tạo card nền trắng dùng chung cho bảng và biểu đồ. */
     private static JPanel the(java.awt.LayoutManager layout, int padding) {
         JPanel panel = new JPanel(layout);
         panel.setBackground(Color.WHITE);
@@ -376,18 +374,21 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         return panel;
     }
 
+    /** Tạo vùng JPanel trong suốt để lồng các thành phần mà không đè nền. */
     private static JPanel trongSuot() {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
         return panel;
     }
 
+    /** Tạo vùng JPanel trong suốt để lồng các thành phần mà không đè nền. */
     private static JPanel trongSuot(java.awt.LayoutManager layout) {
         JPanel panel = new JPanel(layout);
         panel.setOpaque(false);
         return panel;
     }
 
+    /** Tạo JLabel theo văn bản, cỡ chữ, màu và độ đậm yêu cầu. */
     private static JLabel nhan(String text, int coChu, Color mau, boolean dam) {
         JLabel label = new JLabel(text);
         label.setFont(new Font("Segoe UI", dam ? Font.BOLD : Font.PLAIN, coChu));
@@ -396,12 +397,11 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         return label;
     }
 
-    /** Nhấn Áp dụng để đồng bộ mọi thống kê và biểu đồ với một kỳ. */
+    /** Gắn các hành động lọc, tải lại và xuất CSV cho các nút đã có. */
     private void ganSuKien() {
         nutApDung.addActionListener(e -> taiLai());
         nutXuat.addActionListener(e -> xuatCsv());
 
-        // Đã đổi bộ lọc nhưng chưa nhấn Áp dụng: không xuất dữ liệu của kỳ cũ.
         java.awt.event.ActionListener chuaApDung = e -> {
             if (duLieu != null) {
                 nhanTrangThai.setText("Bộ lọc chưa áp dụng");
@@ -418,6 +418,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         });
     }
 
+    /** Truy xuất dữ liệu theo điều kiện của thao tác đang xử lý. */
     private LocalDate[] layKhoangNgay() {
         Integer nam = (Integer) cbNam.getSelectedItem();
         int namChon = nam == null ? LocalDate.now().getYear() : nam;
@@ -440,10 +441,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         return new LocalDate[] {tuNgay, denNgay};
     }
 
-    /**
-     * SwingWorker chạy SQL Server ngoài EDT để giao diện không bị treo.
-     * Khi thất bại, không dùng lại số cũ như dữ liệu mới.
-     */
+    /** Nạp lại dữ liệu mới nhất và làm mới bảng đang hiển thị. */
     private void taiLai() {
         LocalDate[] khoang = layKhoangNgay();
         final LocalDate tuNgay = khoang[0];
@@ -457,11 +455,13 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
 
         new SwingWorker<DuLieu, Void>() {
             @Override
+            /** Thực hiện truy vấn hoặc lưu SQL trên luồng nền, tránh treo Swing. */
             protected DuLieu doInBackground() throws Exception {
                 return dao.layBaoCao(tuNgay, denNgay, laQuanTriVien);
             }
 
             @Override
+            /** Nhận kết quả luồng nền và cập nhật giao diện trên Event Dispatch Thread. */
             protected void done() {
                 nutApDung.setEnabled(true);
                 try {
@@ -479,6 +479,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }.execute();
     }
 
+    /** Đưa các nhãn số liệu về trạng thái chờ trước khi nạp báo cáo mới. */
     private void xoaGiaTriCu() {
         kpiDoanhThu.setText("--");
         kpiLuotKham.setText("--");
@@ -495,6 +496,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         nhanKetLuan.setText("Đang tổng hợp dữ liệu...");
     }
 
+    /** Gán dữ liệu báo cáo mới vào nhãn KPI, biểu đồ, danh mục và bảng. */
     private void napGiaoDien(DuLieu dl) {
         kpiDoanhThu.setText(tien(dl.doanhThu));
         kpiLuotKham.setText(SO.format(dl.luotKham));
@@ -505,7 +507,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
                 "%.1f%%", dl.tyLeQuayLai()));
         if (!laQuanTriVien) {
             if (dl.soKhoanChi == 0) {
-                // Chưa nhập chi phí: KHÔNG báo lợi nhuận = doanh thu.
+
                 kpiChiPhi.setText("Chưa ghi");
                 kpiLaiLo.setText("Chưa đủ dữ liệu");
                 kpiLaiLo.setFont(new Font("Segoe UI", Font.BOLD, 15));
@@ -544,6 +546,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
     }
 
+    /** Vẽ lại biểu đồ theo tùy chọn doanh thu hoặc lượt khám hiện được chọn. */
     private void capNhatBieuDo() {
         if (duLieu == null) return;
         boolean xemLuotKham = cbLoai.getSelectedIndex() == 1;
@@ -554,6 +557,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         bieuDoThang.gan(duLieu.theoThang, xemLuotKham);
     }
 
+    /** Làm mới phần chú giải cho các nhóm dịch vụ trong biểu đồ. */
     private void capNhatChuThichDichVu(List<DichVu> danhSach) {
         danhSachDichVu.removeAll();
         int tong = 0;
@@ -577,6 +581,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         danhSachDichVu.repaint();
     }
 
+    /** Nạp bảng số liệu tương ứng với kiểu phân tích đang được chọn. */
     private void capNhatBang() {
         if (duLieu == null) return;
         int luaChon = cbLoai.getSelectedIndex();
@@ -616,7 +621,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
                 });
             }
         } else if (laQuanTriVien && luaChon == 3) {
-            // Đây là snapshot hiện tại, không phải số tài khoản tạo trong kỳ.
+
             cot = new String[] {"STT", "Vai trò", "Số tài khoản hiện tại"};
             dong.addAll(duLieu.vaiTro);
         } else if (laQuanTriVien && luaChon == 4) {
@@ -649,17 +654,14 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         moTaBang.setText(dong.size() + " dòng  |  " + cbLoai.getSelectedItem());
     }
 
-    /**
-     * Quản lý ghi chi phí thực tế. Mã và thời điểm tạo tự sinh ở SQL Server.
-     * Người nhập không được phép tự chọn tài khoản/ID hay sửa ngày ghi hệ thống.
-     */
+    /** Hiển thị trang được chọn, giữ nguyên sơ đồ điều hướng hiện có. */
     private void moFormChiPhi() {
         if (laQuanTriVien || maTaiKhoan <= 0) return;
         JComboBox<String> nhom = new JComboBox<>(new String[] {
                 "Vật tư", "Nhân sự", "Vận hành", "Thuê mặt bằng", "Khác"});
         JSpinner ngay = new JSpinner(new javax.swing.SpinnerDateModel());
         JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(ngay, "dd/MM/yyyy");
-        dateEditor.getFormat().setLenient(false); // 30/02 không được tự sửa thành tháng 03.
+        dateEditor.getFormat().setLenient(false);                                           
         ngay.setEditor(dateEditor);
         JSpinner soTien = new JSpinner(new javax.swing.SpinnerNumberModel(
                 100_000L, 1L, 1_000_000_000_000L, 10_000L));
@@ -680,7 +682,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
                 "Ghi chi phí thực tế", JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE) != JOptionPane.OK_OPTION) return;
         try {
-            // Đồng bộ chữ người dùng vừa gõ với model; chặn ngày/số tiền sai trước khi lưu.
+
             ngay.commitEdit();
             soTien.commitEdit();
             java.util.Date selected = (java.util.Date) ngay.getValue();
@@ -698,7 +700,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
     }
 
-    /** Xuất phạm vi + KPI + bảng theo đúng thứ tự đang hiển thị. */
+    /** Xuất dữ liệu hiện có theo định dạng đã triển khai. */
     private void xuatCsv() {
         if (duLieu == null) {
             JOptionPane.showMessageDialog(this, "Chưa có dữ liệu để xuất.");
@@ -739,7 +741,6 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
         csv.append('\n');
 
-        // STT luôn tính từ vị trí sau khi sort, không dùng ID khóa chính.
         for (int row = 0; row < bang.getRowCount(); row++) {
             for (int col = 0; col < bang.getColumnCount(); col++) {
                 if (col > 0) csv.append(',');
@@ -758,11 +759,12 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
     }
 
+    /** Nối một dòng gồm hai cột vào nội dung CSV cần xuất. */
     private static void dongCsv(StringBuilder csv, String cot1, String cot2) {
         csv.append(oCsv(cot1)).append(',').append(oCsv(cot2)).append('\n');
     }
 
-    /** Chặn Excel diễn giải nội dung nhập từ DB thành công thức CSV. */
+    /** Đóng dấu ngoặc kép và khử công thức nguy hiểm khi xuất dữ liệu sang CSV. */
     private static String oCsv(String text) {
         String value = text == null ? "" : text;
         String check = value.stripLeading();
@@ -772,11 +774,11 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         return "\"" + value.replace("\"", "\"\"") + "\"";
     }
 
+    /** Định dạng BigDecimal thành số tiền Việt Nam cho vùng hiển thị. */
     private static String tien(BigDecimal tien) {
         return SO.format(tien) + " đ";
     }
 
-    /** Biểu đồ Java2D không cần ảnh/icon/font ngoài. */
     private static final class CotThang extends JPanel {
         private List<Thang> duLieu = new ArrayList<>();
         private boolean laLuotKham;
@@ -790,6 +792,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
 
         @Override
+        /** Vẽ nội dung đồ họa của thành phần Swing. */
         protected void paintComponent(Graphics original) {
             super.paintComponent(original);
             Graphics2D g = (Graphics2D) original.create();
@@ -850,7 +853,6 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
     }
 
-    /** Vòng tròn thể hiện TOP dịch vụ điều trị trong kỳ. */
     private static final class VongDichVu extends JPanel {
         private List<DichVu> duLieu = new ArrayList<>();
 
@@ -862,6 +864,7 @@ public class BaoCaoThongKePanel extends JPanel implements Scrollable {
         }
 
         @Override
+        /** Vẽ nội dung đồ họa của thành phần Swing. */
         protected void paintComponent(Graphics original) {
             super.paintComponent(original);
             Graphics2D g = (Graphics2D) original.create();

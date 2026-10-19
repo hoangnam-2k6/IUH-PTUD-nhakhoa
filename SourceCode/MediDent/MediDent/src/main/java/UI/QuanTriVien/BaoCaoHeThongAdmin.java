@@ -1,3 +1,7 @@
+/*
+ * BaoCaoHeThongAdmin: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanTriVien;
 
 import Class.TaiKhoan;
@@ -28,11 +32,6 @@ import javax.swing.JPanel;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
-/**
- * Báo cáo GIỚI HẠN cho Admin: chỉ tài khoản, vai trò và nhật ký đăng nhập.
- * Không gọi DAO doanh thu, khám bệnh hay thanh toán.
- * Thao tác và xuất CSV đều kiểm tra lại vai trò Admin đang hoạt động trong SQL.
- */
 public final class BaoCaoHeThongAdmin extends JPanel {
     private final KhoDuLieu db;
     private final TaiKhoan actor;
@@ -63,6 +62,7 @@ public final class BaoCaoHeThongAdmin extends JPanel {
         }
     };
 
+    /** Khởi tạo báo cáo hệ thống, thống kê tài khoản và nhật ký cho Admin. */
     public BaoCaoHeThongAdmin(KhoDuLieu db, TaiKhoan actor) {
         this.db = db;
         this.actor = actor;
@@ -125,6 +125,7 @@ public final class BaoCaoHeThongAdmin extends JPanel {
         taiLai();
     }
 
+    /** Đặt nhãn và giá trị thống kê vào thẻ trên trang báo cáo hệ thống. */
     private JPanel the(String caption, JLabel value) {
         JPanel c = GiaoDien.card(new BorderLayout(0, 12));
         c.add(GiaoDien.label(caption, 12, false), BorderLayout.NORTH);
@@ -132,6 +133,7 @@ public final class BaoCaoHeThongAdmin extends JPanel {
         return c;
     }
 
+    /** Đối chiếu điều kiện hợp lệ trước khi thực hiện thao tác. */
     private void kiemTra() throws Exception {
         if (!db.laQuanTriVienTaiKhoan(actor.id) ||
                 !db.coQuyenTaiKhoan(actor.id, "BAOCAO")) {
@@ -139,6 +141,7 @@ public final class BaoCaoHeThongAdmin extends JPanel {
         }
     }
 
+    /** Nạp lại dữ liệu mới nhất và làm mới bảng đang hiển thị. */
     private void taiLai() {
         try {
             kiemTra();
@@ -192,7 +195,7 @@ public final class BaoCaoHeThongAdmin extends JPanel {
         }
     }
 
-    /** Xuất những cột được phép hiển thị; chặn công thức nguy hiểm trong CSV. */
+    /** Xuất dữ liệu hiện có theo định dạng đã triển khai. */
     private void xuat() {
         try {
             kiemTra();
@@ -218,12 +221,12 @@ public final class BaoCaoHeThongAdmin extends JPanel {
         } catch (Exception ex) { GiaoDien.loi(this, ex); }
     }
 
+    /** Escape dấu ngoặc và chống công thức khi ghi trường CSV báo cáo. */
     private static String csv(String s) {
         if (!s.isEmpty() && "=+-@".indexOf(s.charAt(0)) >= 0) s = "'" + s;
         return "\"" + s.replace("\"", "\"\"") + "\"";
     }
 
-    /** Biểu đồ Java2D: theo 12 tháng, không dùng ký tự icon Unicode. */
     private static final class BieuDoCot extends JPanel {
         private int[] values = new int[12];
         BieuDoCot() { setOpaque(false); setPreferredSize(new Dimension(600, 205)); }

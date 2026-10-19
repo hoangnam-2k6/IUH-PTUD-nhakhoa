@@ -1,3 +1,7 @@
+/*
+ * DuyetHuyPhieuThu: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanTriVien;
 
 import Class.TaiKhoan;
@@ -19,13 +23,6 @@ import javax.swing.JScrollPane;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 
-/**
- * Yêu cầu hủy hóa đơn/phiếu thu.
- *
- * - Tất cả vai trò chỉ nhìn thấy yêu cầu cùng cấp hoặc cấp thấp hơn.
- * - Riêng Admin có quyền HOTRO mới hiện nút Duyệt / Từ chối.
- * - Vẫn kiểm tra lại quyền và trạng thái trong DAO khi thực hiện thao tác.
- */
 public final class DuyetHuyPhieuThu extends JPanel {
 
     private final TaiKhoan user;
@@ -37,14 +34,15 @@ public final class DuyetHuyPhieuThu extends JPanel {
             new String[]{"STT", "Mã đơn", "Ngày gửi", "Mã TT", "Mã HĐ",
                 "Người gửi", "Vai trò", "Lý do", "Trạng thái", "Ghi chú duyệt"}, 0) {
         @Override
+        /** Quyết định có cho nhập trực tiếp trên ô bảng hay không. */
         public boolean isCellEditable(int row, int col) {
             return false;
         }
     };
 
-    // STT theo hàng đang hiển thị, vẫn đúng khi người dùng sắp xếp bảng.
     private final JTable bang = new JTable(model) {
         @Override
+        /** Thiết lập cách hiển thị từng dòng của bảng. */
         public Component prepareRenderer(TableCellRenderer renderer, int row, int col) {
             Component component = super.prepareRenderer(renderer, row, col);
             if (col == 0 && component instanceof javax.swing.JLabel) {
@@ -60,13 +58,12 @@ public final class DuyetHuyPhieuThu extends JPanel {
     private final JButton tuChoi = GiaoDien.nutIcon(
             "Từ chối", false, BieuTuong.Loai.HUY);
 
+    /** Khởi tạo bảng duyệt yêu cầu hủy theo quyền người thao tác. */
     public DuyetHuyPhieuThu(QuanLyDAO dao, TaiKhoan user) {
         this(dao, user, false);
     }
 
-    /**
-     * @param adminDuocDuyet true khi KhungChinh đã xác nhận Admin và quyền HOTRO.
-     */
+    /** Khởi tạo bảng duyệt yêu cầu hủy theo quyền người thao tác. */
     public DuyetHuyPhieuThu(QuanLyDAO dao, TaiKhoan user, boolean adminDuocDuyet) {
         this.dao = dao;
         this.user = user;
@@ -122,7 +119,7 @@ public final class DuyetHuyPhieuThu extends JPanel {
         tai();
     }
 
-    /** Dùng ID trong Hang, STT chỉ để hiển thị. */
+    /** Đọc lại dữ liệu SQL để đưa vào các thành phần đang hiển thị. */
     private void tai() {
         try {
             duLieu = dao.danhSachYeuCauHuy(user.id);
@@ -138,6 +135,7 @@ public final class DuyetHuyPhieuThu extends JPanel {
         }
     }
 
+    /** Trả bản ghi đang chọn trong bảng sau khi đổi chỉ số hàng từ view sang model. */
     private QuanLyDAO.Hang daChon() {
         int viewIndex = bang.getSelectedRow();
         if (viewIndex < 0) {
@@ -147,6 +145,7 @@ public final class DuyetHuyPhieuThu extends JPanel {
         return duLieu.get(bang.convertRowIndexToModel(viewIndex));
     }
 
+    /** Chỉ cho phép nút duyệt khi dòng đang chọn còn chờ xử lý. */
     private void capNhatNut() {
         int viewIndex = bang.getSelectedRow();
         boolean choDuyet = false;
@@ -158,6 +157,7 @@ public final class DuyetHuyPhieuThu extends JPanel {
         tuChoi.setEnabled(adminDuocDuyet && choDuyet);
     }
 
+    /** Hiển thị thông tin yêu cầu hủy hóa đơn được chọn. */
     private void xemChiTiet() {
         QuanLyDAO.Hang h = daChon();
         if (h == null) return;
@@ -177,6 +177,7 @@ public final class DuyetHuyPhieuThu extends JPanel {
                 "Chi tiết yêu cầu hủy hóa đơn", JOptionPane.INFORMATION_MESSAGE);
     }
 
+    /** Chuyển quyết định duyệt/từ chối hủy đến DAO và làm mới bảng. */
     private void xuLy(boolean dongY) {
         if (!adminDuocDuyet) return;
         QuanLyDAO.Hang h = daChon();

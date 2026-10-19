@@ -1,3 +1,7 @@
+/*
+ * GiaoDien: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.Chung;
 
 import java.awt.Color;
@@ -36,15 +40,8 @@ import javax.swing.table.TableColumn;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 
-/**
- * Giao diện dùng chung giữa các vai trò.
- *
- * Chỉ chứa những hàm tạo giao diện / bảng màu; các màn hình riêng của quản trị
- * viên nằm trong UI.QuanTriVien và không chỉnh sửa ManHinhTrangChu cũ.
- */
 public final class GiaoDien {
 
-    // 1. Màu sắc chuẩn của MediDent.
     public static final Color PRIMARY = new Color(0x0284C7);
     public static final Color HOVER = new Color(0x0369A1);
     public static final Color BG = new Color(0xF8FAFC);
@@ -56,11 +53,12 @@ public final class GiaoDien {
     public static final Color WARN = new Color(0xF59E0B);
     public static final Color RED = new Color(0xEF4444);
 
+    /** Ngăn tạo lớp tiện ích tập trung các phương thức dựng giao diện Swing. */
     private GiaoDien() {
-        // Không tạo đối tượng từ lớp tiện ích.
+
     }
 
-    /** 2. Tạo nhãn có font và màu nhất quán. */
+    /** Tạo nhãn Swing theo nội dung và định dạng chữ, không phụ thuộc dữ liệu SQL. */
     public static JLabel label(String text, int fontSize, boolean bold) {
         JLabel result = new JLabel(text);
         result.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, fontSize));
@@ -69,9 +67,9 @@ public final class GiaoDien {
         return result;
     }
 
-    /** 3. Tạo nút theo hai kiểu chính/phụ của hệ thống. */
+    /** Tạo nút Swing với màu sắc và hành vi hiển thị chính/phụ có sẵn. */
     public static JButton nut(String title, boolean primary) {
-        // Vẽ nút bo góc thuần Swing để không cần thêm thư viện UI.
+
         JButton button = new JButton(title) {
             @Override protected void paintComponent(Graphics source) {
                 Graphics2D g = (Graphics2D) source.create();
@@ -110,7 +108,7 @@ public final class GiaoDien {
         return button;
     }
 
-    /** 4. Nút có icon Java2D, không còn các ký tự Unicode gây ô vuông. */
+    /** Gắn biểu tượng vào nút Swing được tạo theo cùng theme. */
     public static JButton nutIcon(String title, boolean primary, BieuTuong.Loai loai) {
         JButton button = nut(title, primary);
         button.setIcon(new BieuTuong(loai, primary ? WHITE : MUTED, 17));
@@ -118,10 +116,11 @@ public final class GiaoDien {
         return button;
     }
 
-    /** 5. Khung trắng và viền nhạt dùng cho form, bảng và biểu đồ. */
+    /** Tạo khung thẻ với nền trắng và viền như thiết kế ban đầu. */
     public static JPanel card(LayoutManager layout) {
         JPanel panel = new JPanel(layout) {
             @Override
+            /** Vẽ nội dung đồ họa của thành phần Swing. */
             protected void paintComponent(Graphics graphics) {
                 Graphics2D g = (Graphics2D) graphics.create();
                 g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
@@ -134,6 +133,7 @@ public final class GiaoDien {
                 super.paintComponent(graphics);
             }
             @Override
+            /** Trả kích thước tối đa phục vụ bố cục Swing hiện có. */
             public Dimension getMaximumSize() {
                 return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
             }
@@ -145,10 +145,6 @@ public final class GiaoDien {
         return panel;
     }
 
-    /**
-     * 6. Nội dung co theo chiều ngang viewport để không trôi sang bên phải.
-     * Khi dài, người dùng chỉ cuộn dọc ở toàn trang.
-     */
     private static final class CotNoiDung extends JPanel implements Scrollable {
         CotNoiDung() {
             setOpaque(false);
@@ -156,6 +152,7 @@ public final class GiaoDien {
         }
 
         @Override
+        /** Căn lề con khi thêm một thành phần vào cột giao diện dùng chung. */
         protected void addImpl(Component child, Object constraints, int index) {
             if (child instanceof JComponent) {
                 ((JComponent) child).setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -164,32 +161,37 @@ public final class GiaoDien {
         }
 
         @Override
+        /** Cung cấp kích thước hiển thị vùng cuộn. */
         public Dimension getPreferredScrollableViewportSize() {
             return new Dimension(750, 560);
         }
 
         @Override
+        /** Xác định bước cuộn nhỏ khi người dùng cuộn nội dung. */
         public int getScrollableUnitIncrement(Rectangle rect, int orientation, int direction) {
             return 18;
         }
 
         @Override
+        /** Xác định bước cuộn theo trang của vùng hiển thị. */
         public int getScrollableBlockIncrement(Rectangle rect, int orientation, int direction) {
             return Math.max(40, rect.height - 50);
         }
 
         @Override
+        /** Cho vùng cuộn biết có bám theo chiều rộng viewport hay không. */
         public boolean getScrollableTracksViewportWidth() {
             return true;
         }
 
         @Override
+        /** Cho vùng cuộn biết có bám theo chiều cao viewport hay không. */
         public boolean getScrollableTracksViewportHeight() {
             return false;
         }
     }
 
-    /** 7. Đầu trang thống nhất gồm breadcrumb, tiêu đề và mô tả. */
+    /** Tạo vùng trang gồm tiêu đề và mô tả theo mẫu hiển thị chung. */
     public static JPanel trang(String title, String description) {
         JPanel page = new CotNoiDung();
         page.setBorder(new EmptyBorder(26, 28, 44, 28));
@@ -202,7 +204,7 @@ public final class GiaoDien {
         return page;
     }
 
-    /** 8. Trang cuộn dọc, bảng riêng có thể cuộn ngang. */
+    /** Bọc vùng nội dung trong JScrollPane để cuộn khi không đủ chiều cao. */
     public static JScrollPane cuon(JPanel page) {
         JScrollPane scroll = new JScrollPane(page);
         scroll.setBorder(null);
@@ -213,16 +215,12 @@ public final class GiaoDien {
         return scroll;
     }
 
-    /**
-     * 9. Đọc logo từ tài nguyên: /Image/logo(1024x884).png.
-     *
-     * Không bóp méo ảnh: luôn giữ tỷ lệ gốc và căn giữa khung hiển thị.
-     * Nếu thiếu tài nguyên, dùng logo dự phòng và không phát sinh lỗi URL null.
-     */
+    /** Đọc logo trong thư mục resources và trả ImageIcon đã co giãn. */
     public static ImageIcon logo(int kichThuoc) {
         return logo(kichThuoc, kichThuoc);
     }
 
+    /** Đọc logo trong thư mục resources và trả ImageIcon đã co giãn. */
     public static ImageIcon logo(int rong, int cao) {
         if (rong < 1 || cao < 1) {
             throw new IllegalArgumentException("Kích thước logo phải lớn hơn 0.");
@@ -253,7 +251,6 @@ public final class GiaoDien {
                         continue;
                     }
 
-                    // Scale theo cạnh nhỏ hơn để ảnh không bị méo.
                     double tyLe = Math.min(rong / (double) source.getWidth(),
                             cao / (double) source.getHeight());
                     int displayWidth = Math.max(1, (int) Math.round(source.getWidth() * tyLe));
@@ -268,7 +265,6 @@ public final class GiaoDien {
                 }
             }
 
-            // Logo dự phòng: hình tròn xanh và chữ M; không cần font biểu tượng.
             graphics.setColor(PRIMARY);
             graphics.fillRoundRect(1, 1, rong - 2, cao - 2, 14, 14);
             graphics.setColor(WHITE);
@@ -283,7 +279,7 @@ public final class GiaoDien {
         }
     }
 
-    /** 10. Hộp lỗi phân biệt SQL Server với lỗi giao diện. */
+    /** Hiển thị thông báo lỗi nghiệp vụ hoặc kết nối SQL cho người dùng. */
     public static void loi(Component owner, Exception exception) {
         exception.printStackTrace();
         String message = exception.getMessage();
@@ -295,7 +291,7 @@ public final class GiaoDien {
                 JOptionPane.ERROR_MESSAGE);
     }
 
-    /** 11. Ô nhập liệu có padding và viền đồng nhất. */
+    /** Tạo ô nhập văn bản với phông và kích thước thống nhất. */
     public static JTextField text(String value) {
         JTextField field = new JTextField(value, 23);
         field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -304,10 +300,11 @@ public final class GiaoDien {
         return field;
     }
 
-    /** 12. Hàng chứa bộ lọc, nút hành động căn trái. */
+    /** Tạo hàng nút/nhãn có FlowLayout căn trái. */
     public static JPanel hang() {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0)) {
             @Override
+            /** Trả kích thước tối đa phục vụ bố cục Swing hiện có. */
             public Dimension getMaximumSize() {
                 return new Dimension(Integer.MAX_VALUE, getPreferredSize().height);
             }
@@ -317,10 +314,7 @@ public final class GiaoDien {
         return panel;
     }
 
-    /**
-     * 13. Cột STT hiển thị 1..N theo vị trí thật trên màn hình.
-     * Nếu người dùng sắp xếp lại bằng header, STT vẫn liên tục 1..N.
-     */
+    /** Đánh số thứ tự hiển thị của JTable độc lập với mã khóa chính. */
     public static void cotSoThuTu(JTable table) {
         if (table.getColumnCount() == 0 || !"STT".equals(table.getColumnName(0))) {
             return;
@@ -332,6 +326,7 @@ public final class GiaoDien {
         column.setPreferredWidth(52);
         column.setCellRenderer(new DefaultTableCellRenderer() {
             @Override
+            /** Tạo ô hiển thị bảng theo giá trị và trạng thái chọn. */
             public Component getTableCellRendererComponent(JTable source, Object value,
                     boolean selected, boolean focused, int row, int columnIndex) {
                 JLabel result = (JLabel) super.getTableCellRendererComponent(
@@ -342,7 +337,7 @@ public final class GiaoDien {
         });
     }
 
-    /** 14. Trang trí bảng và cho phép cuộn ngang ở bảng nhiều cột. */
+    /** Định dạng JTable và bọc bảng trong vùng cuộn để giữ kích thước trang. */
     public static JComponent wrapTable(JTable table) {
         table.setRowHeight(39);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));

@@ -1,3 +1,7 @@
+/*
+ * TaoLichHenGUI: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanLy;
 
 import DAO.QuanLyDAO;
@@ -10,19 +14,20 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import javax.swing.*;
 
-/** Form tạo lịch được gọi từ menu Lịch hẹn; không tạo JFrame khác. */
 public final class TaoLichHenGUI {
     private final QuanLyDAO dao;
     private final int actor;
     private final Runnable taiLai;
+    /** Lưu DAO, tài khoản và callback tải lại cho form tạo lịch hẹn. */
     public TaoLichHenGUI(QuanLyDAO dao,int actor,Runnable taiLai) {
         this.dao=dao;this.actor=actor;this.taiLai=taiLai;
     }
+    /** Mở form thêm/sửa hiện tại và chuyển dữ liệu hợp lệ sang DAO. */
     public void hien(Component parent) throws Exception {
         JPanel f=BieuMau.form();
         JComboBox<QuanLyDAO.LuaChon> benhNhan=BieuMau.chon(dao.luaChon("BenhNhan"));
         JComboBox<QuanLyDAO.LuaChon> nhanVien=BieuMau.chon(dao.luaChon("NhanVien"));
-        // Ngày hôm sau tự chọn, chỉnh bằng nút tăng giảm; tránh gõ ngày sai định dạng.
+
         LocalDate next = LocalDate.now().plusDays(1);
         Date dateDefault = Date.from(next.atStartOfDay(ZoneId.systemDefault()).toInstant());
         JSpinner ngay = new JSpinner(new SpinnerDateModel(
@@ -30,7 +35,6 @@ public final class TaoLichHenGUI {
         ngay.setEditor(new JSpinner.DateEditor(ngay, "dd/MM/yyyy"));
         ((JSpinner.DefaultEditor)ngay.getEditor()).getTextField().setEditable(false);
 
-        // Giờ mặc định 09:00, chỉ chỉnh qua spinner.
         Calendar start = new GregorianCalendar();
         start.set(Calendar.HOUR_OF_DAY, 9);
         start.set(Calendar.MINUTE, 0);

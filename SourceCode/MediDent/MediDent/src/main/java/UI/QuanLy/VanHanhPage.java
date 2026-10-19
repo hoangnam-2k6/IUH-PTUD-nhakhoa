@@ -1,19 +1,19 @@
+/*
+ * VanHanhPage: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanLy;
 
 import DAO.QuanLyDAO;
 import UI.Chung.BieuTuong;
 import UI.Chung.GiaoDien;
 import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
 import java.util.*;
 import java.util.List;
 import java.util.regex.Pattern;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 
-/** Bảng nghiệp vụ dùng chung, không tạo JFrame/Sidebar mới. */
 abstract class VanHanhPage extends JPanel {
     @FunctionalInterface protected interface TaiDuLieu { List<QuanLyDAO.Hang> tai() throws Exception; }
     @FunctionalInterface protected interface HanhDong { void chay() throws Exception; }
@@ -21,29 +21,19 @@ abstract class VanHanhPage extends JPanel {
     protected final QuanLyDAO dao;
     protected final JTable table;
     protected final DefaultTableModel model;
-    private final boolean cuonToanTrang;
     private final JLabel thongBao;
     private final JPanel nut;
     private final JPanel tableCard;
     private final List<QuanLyDAO.Hang> hang = new ArrayList<>();
     private TaiDuLieu nguon;
 
+    /** Dựng bộ khung dùng chung cho bảng và thao tác CRUD quản lý. */
     protected VanHanhPage(QuanLyDAO dao, String title, String description, String... columns) {
-        this(dao,title,description,true,columns);
-    }
-
-    protected VanHanhPage(QuanLyDAO dao, String title, String description,
-                          boolean cuonToanTrang, String... columns) {
         this.dao=dao;
-        this.cuonToanTrang=cuonToanTrang;
         setLayout(new BorderLayout());
         setBackground(GiaoDien.BG);
         JPanel page=GiaoDien.trang(title,description);
-        if(cuonToanTrang) add(GiaoDien.cuon(page),BorderLayout.CENTER);
-        else {
-            page.setBorder(new EmptyBorder(12,20,12,20));
-            add(page,BorderLayout.CENTER);
-        }
+        add(GiaoDien.cuon(page),BorderLayout.CENTER);
 
         JPanel toolbar=GiaoDien.card(new BorderLayout(10,0));
         toolbar.setAlignmentX(LEFT_ALIGNMENT);
@@ -67,7 +57,7 @@ abstract class VanHanhPage extends JPanel {
         model=new DefaultTableModel(headers,0) {
             @Override public boolean isCellEditable(int row,int col) {return false;}
         };
-        // STT đi theo dòng đang nhìn thấy, không trùng với ID thật trong SQL.
+
         table=new JTable(model) {
             @Override public Component prepareRenderer(TableCellRenderer r,int row,int col) {
                 Component c=super.prepareRenderer(r,row,col);
@@ -80,7 +70,7 @@ abstract class VanHanhPage extends JPanel {
         };
         table.setRowHeight(42);
         table.setFont(new Font("Segoe UI",Font.PLAIN,12));
-        table.setAutoResizeMode(cuonToanTrang ? JTable.AUTO_RESIZE_OFF : JTable.AUTO_RESIZE_ALL_COLUMNS);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.getTableHeader().setFont(new Font("Segoe UI",Font.BOLD,11));
         table.getColumnModel().getColumn(0).setPreferredWidth(54);
         for(int i=1;i<table.getColumnCount();i++)
@@ -90,29 +80,14 @@ abstract class VanHanhPage extends JPanel {
         table.setRowSorter(sorter);
         tableCard=GiaoDien.card(new BorderLayout(0,10));
         tableCard.setAlignmentX(LEFT_ALIGNMENT);
-        tableCard.setPreferredSize(new Dimension(750,cuonToanTrang ? 600 : 420));
-        tableCard.setMaximumSize(new Dimension(Integer.MAX_VALUE,cuonToanTrang ? 600 : 420));
+        tableCard.setPreferredSize(new Dimension(750,600));
+        tableCard.setMaximumSize(new Dimension(Integer.MAX_VALUE,600));
         JScrollPane scroll=new JScrollPane(table);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        if(!cuonToanTrang)
-            scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         tableCard.add(scroll,BorderLayout.CENTER);
         thongBao=GiaoDien.label("Chưa tải dữ liệu",11,false);
         tableCard.add(thongBao,BorderLayout.SOUTH);
         page.add(tableCard);
-        if(!cuonToanTrang) {
-            page.addComponentListener(new ComponentAdapter() {
-                @Override public void componentResized(ComponentEvent event) {
-                    SwingUtilities.invokeLater(() -> {
-                        int height=Math.max(180,page.getHeight()-tableCard.getY()
-                                -page.getInsets().bottom);
-                        tableCard.setPreferredSize(new Dimension(750,height));
-                        tableCard.setMaximumSize(new Dimension(Integer.MAX_VALUE,height));
-                        page.revalidate();
-                    });
-                }
-            });
-        }
         search.getDocument().addDocumentListener(SharedListeners.document(() -> {
             String q=search.getText().trim();
             sorter.setRowFilter(q.isEmpty()?null:RowFilter.regexFilter("(?iu)"+Pattern.quote(q)));
@@ -121,6 +96,7 @@ abstract class VanHanhPage extends JPanel {
         themNut("Tải lại",false,BieuTuong.Loai.TAI_LAI,this::taiLai);
     }
 
+    /** Thêm thành phần hoặc dữ liệu vào đối tượng hiện tại. */
     protected void themNut(String text,boolean primary,BieuTuong.Loai icon,HanhDong action) {
         JButton b=GiaoDien.nutIcon(text,primary,icon);
         b.addActionListener(e->thucHien(action));
@@ -128,12 +104,15 @@ abstract class VanHanhPage extends JPanel {
         nut.revalidate();
     }
 
+    /** Gọi thao tác từ nút và hiển thị lỗi nếu DAO từ chối. */
     protected void thucHien(HanhDong action) {
         try { action.chay(); }
         catch(Exception e) { GiaoDien.loi(this,e); }
     }
 
+    /** Đọc lại dữ liệu SQL để đưa vào các thành phần đang hiển thị. */
     protected void nap(TaiDuLieu data) { nguon=data; taiLai(); }
+    /** Nạp lại dữ liệu mới nhất và làm mới bảng đang hiển thị. */
     protected void taiLai() {
         if(nguon==null)return;
         thucHien(() -> {
@@ -147,20 +126,18 @@ abstract class VanHanhPage extends JPanel {
                 model.addRow(a);
             }
             capNhatSoDong();
-            if(!cuonToanTrang) {
-                tableCard.revalidate();
-            } else {
-                // Các trang trong bảng cuộn dọc chứa theo số dòng hiển thị.
-                int height = Math.min(880, Math.max(470, 95 + model.getRowCount() * 42));
-                tableCard.setPreferredSize(new Dimension(750, height));
-                tableCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
-                tableCard.revalidate();
-            }
+
+            int height = Math.min(880, Math.max(470, 95 + model.getRowCount() * 42));
+            tableCard.setPreferredSize(new Dimension(750, height));
+            tableCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
+            tableCard.revalidate();
         });
     }
+    /** Hiển thị số dòng sau lọc so với tổng số bản ghi đã nạp. */
     private void capNhatSoDong() {
         thongBao.setText("Đang hiển thị "+table.getRowCount()+" / "+model.getRowCount()+" dòng");
     }
+    /** Trả bản ghi đang chọn trong bảng sau khi đổi chỉ số hàng từ view sang model. */
     protected QuanLyDAO.Hang daChon() {
         int v=table.getSelectedRow();
         if(v<0) {

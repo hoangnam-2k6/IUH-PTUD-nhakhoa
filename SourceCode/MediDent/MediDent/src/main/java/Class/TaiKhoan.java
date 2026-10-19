@@ -1,11 +1,9 @@
+/*
+ * TaiKhoan: mô hình dữ liệu dùng chung.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package Class;
 
-/**
- * Đối tượng tài khoản dùng để hiển thị dữ liệu nhận từ SQL Server.
- *
- * maTK/maVaiTro trong CSDL được đặt là id/vaiTroId ở tầng Java.
- * Họ tên và email đến từ bảng NhanVien, không nằm trong TaiKhoan.
- */
 public class TaiKhoan {
 
     public int id;
@@ -18,11 +16,13 @@ public class TaiKhoan {
     public boolean phaiDoiMatKhau;
     public String ngayTao;
 
+    /** Tải lại dữ liệu của lớp; kết quả được chuyển cho nơi gọi. */
     public TaiKhoan(int id, String tenDangNhap, String hoTen, String email,
                     int vaiTroId, String tenVaiTro, String trangThai) {
         this(id,tenDangNhap,hoTen,email,vaiTroId,tenVaiTro,trangThai,false);
     }
 
+    /** Tải lại dữ liệu của lớp; kết quả được chuyển cho nơi gọi. */
     public TaiKhoan(int id, String tenDangNhap, String hoTen, String email,
                     int vaiTroId, String tenVaiTro, String trangThai, boolean phaiDoiMatKhau) {
         this.id = id;

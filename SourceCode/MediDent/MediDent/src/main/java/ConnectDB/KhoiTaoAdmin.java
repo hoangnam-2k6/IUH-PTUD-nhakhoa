@@ -1,3 +1,7 @@
+/*
+ * KhoiTaoAdmin: cấu hình kết nối và khởi tạo cơ sở dữ liệu.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package ConnectDB;
 
 import java.awt.GraphicsEnvironment;
@@ -11,14 +15,10 @@ import org.mindrot.jbcrypt.BCrypt;
 import javax.swing.*;
 import java.awt.*;
 
-/**
- * Tao quan tri vien DAU TIEN khi CSDL chua co admin.
- * Chay duoc trong Eclipse (Swing form) hoac terminal (Console).
- * Khong hard-code tai khoan va mat khau mac dinh.
- */
 public class KhoiTaoAdmin {
+    /** Khởi chạy chương trình theo điểm vào được định nghĩa tại lớp này. */
     public static void main(String[] args) {
-        // Kiem tra truoc: tranh tao them admin qua cong cu khoi tao.
+
         try (Connection c = KetNoi.mo()) {
             if (daCoQuanTriVien(c)) {
                 thongBao("CSDL đã có tài khoản Quản trị viên.\n"
@@ -41,7 +41,7 @@ public class KhoiTaoAdmin {
             email = console.readLine("Email: ");
             matKhau = console.readPassword("Mật khẩu (ít nhất 8 ký tự): ");
         } else if (!GraphicsEnvironment.isHeadless()) {
-            // Eclipse Console khong ho tro System.console(); dung form thay the.
+
             JTextField tenDangNhap = new JTextField(20);
             JTextField ten = new JTextField(20);
             JTextField thu = new JTextField(20);
@@ -70,9 +70,9 @@ public class KhoiTaoAdmin {
             hoTen = hoTen == null ? "" : hoTen.trim();
             email = email == null ? "" : email.trim();
             if (username.isEmpty() || hoTen.isEmpty()
-                    || !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
+                    || !TienIch.EmailHopLe.kiemTra(email)
                     || matKhau.length < 8)
-                throw new SQLException("Tên đăng nhập, họ tên, email hoặc mật khẩu chưa hợp lệ.");
+                throw new SQLException("Tên đăng nhập, họ tên hoặc mật khẩu chưa hợp lệ. " + TienIch.EmailHopLe.huongDan());
             tao(username, hoTen, email, matKhau);
             thongBao("Đã tạo tài khoản quản trị viên đầu tiên thành công.\n"
                 + "Bạn có thể chạy UI.DangNhap.DangNhap để đăng nhập.");
@@ -83,6 +83,7 @@ public class KhoiTaoAdmin {
         }
     }
 
+    /** Kiểm tra SQL đã có tài khoản quản trị đang hoạt động trước khi khởi tạo tài khoản đầu tiên. */
     private static boolean daCoQuanTriVien(Connection c) throws SQLException {
         String sql = "SELECT TOP 1 1 FROM dbo.TaiKhoan t "
             + "JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro "
@@ -91,12 +92,13 @@ public class KhoiTaoAdmin {
              ResultSet rs = ps.executeQuery()) { return rs.next(); }
     }
 
+    /** Tạo bản ghi nghiệp vụ của lớp; kết quả được chuyển cho nơi gọi. */
     private static void tao(String username, String hoTen, String email, char[] pwd)
             throws SQLException {
         try (Connection c = KetNoi.mo()) {
             c.setAutoCommit(false);
             try {
-                // Serializable + kiểm tra trong giao dịch để tránh 2 lần khởi tạo song song.
+
                 c.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
                 if (daCoQuanTriVien(c))
                     throw new SQLException("Đã tồn tại Admin. Không thể khởi tạo lần nữa.");
@@ -145,10 +147,12 @@ public class KhoiTaoAdmin {
         }
     }
 
+    /** Hiển thị thông báo qua Swing hoặc ghi ra console trong môi trường không có màn hình. */
     private static void thongBao(String msg) {
         if (GraphicsEnvironment.isHeadless()) System.out.println(msg);
         else JOptionPane.showMessageDialog(null, msg, "MEDIDENT", JOptionPane.INFORMATION_MESSAGE);
     }
+    /** Hiển thị lỗi khởi tạo hoặc ghi ra stderr khi chạy chế độ headless. */
     private static void baoLoi(String msg) {
         if (GraphicsEnvironment.isHeadless()) System.err.println(msg);
         else JOptionPane.showMessageDialog(null, msg, "MEDIDENT", JOptionPane.ERROR_MESSAGE);

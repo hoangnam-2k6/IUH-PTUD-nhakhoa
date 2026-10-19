@@ -1,3 +1,7 @@
+/*
+ * GuiIcons: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanLy;
 
 import UI.Chung.BieuTuong;
@@ -5,10 +9,6 @@ import UI.Chung.GiaoDien;
 import java.awt.Color;
 import javax.swing.Icon;
 
-/**
- * Lớp tương thích khi tái sử dụng tên icon của giao diện Quản lý cũ.
- * Tất cả icon hiện vẽ Java2D, không cần file ảnh riêng nên tránh lỗi path.
- */
 final class GuiIcons {
     static final String HOME="home",STAFF="staff",DENTAL_SERVICE="dental-service";
     static final String PATIENT="patient",CALENDAR="calendar",INVOICE="invoice";
@@ -16,6 +16,7 @@ final class GuiIcons {
     static final String CANCEL_REQUEST="cancel",TOOTH_LOGO="logo",SHIELD="shield";
     static final String BELL="bell",SEARCH="search",ADD="add",CHECK="check";
     static final String DOWNLOAD="download",LOGOUT="logout",FILTER="filter";
+    /** Ngăn tạo lớp tiện ích ánh xạ tên biểu tượng vào Java2D. */
     private GuiIcons() {}
     static Icon icon(String name,Color color,int size) {
         BieuTuong.Loai kind;

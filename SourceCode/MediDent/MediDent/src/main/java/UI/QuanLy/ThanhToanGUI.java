@@ -1,3 +1,7 @@
+/*
+ * ThanhToanGUI: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanLy;
 
 import Class.TaiKhoan;
@@ -6,12 +10,11 @@ import UI.Chung.BieuTuong;
 import java.math.BigDecimal;
 import javax.swing.*;
 
-/** Thanh toán dựa trên phiếu khám và chi tiết điều trị, không điền tay tổng tiền. */
 public final class ThanhToanGUI extends VanHanhPage {
     private final int actor;
+    /** Khởi tạo bảng hóa đơn và nút thu tiền/yêu cầu hủy hiện có. */
     public ThanhToanGUI(QuanLyDAO dao,TaiKhoan user) {
         super(dao,"Thanh toán và hóa đơn", "Tổng tiền được tự tính từ chi tiết điều trị; có luồng xin hủy chờ Admin duyệt.",
-                false,
                 "Mã hóa đơn", "Bệnh nhân", "Ngày lập", "Tổng tiền",
                 "Phương thức", "Trạng thái", "Mã thanh toán");
         actor=user.id;
@@ -19,6 +22,7 @@ public final class ThanhToanGUI extends VanHanhPage {
         themNut("Yêu cầu hủy",false,BieuTuong.Loai.HUY,()->huy());
         nap(dao::hoaDon);
     }
+    /** Lấy thông tin từ form và yêu cầu DAO tạo bản ghi tương ứng. */
     private void tao() throws Exception {
         JPanel f=BieuMau.form();
         JComboBox<QuanLyDAO.LuaChon> phieu=BieuMau.chon(dao.luaChon("PhieuKham"));
@@ -35,10 +39,8 @@ public final class ThanhToanGUI extends VanHanhPage {
         dao.taoThanhToan(item.id,(String)pt.getSelectedItem(),actor);
         taiLai();
     }
-    /**
-     * Gửi yêu cầu theo maHD (khóa chính), tuyệt đối KHÔNG dùng STT của JTable.
-     * Khi người dùng sort/lọc bảng, VanHanhPage.daChon() vẫn trả đúng Hang.id.
-     */
+
+    /** Lấy mã bản ghi đang chọn và gọi DAO để xử lý nghiệp vụ tương ứng. */
     private void huy() throws Exception {
         QuanLyDAO.Hang hoaDon = daChon();
         if (hoaDon == null) return;
@@ -78,6 +80,7 @@ public final class ThanhToanGUI extends VanHanhPage {
         taiLai();
     }
 
+    /** Hiển thị số tiền, mã phiếu và người bệnh ở dạng nhãn chỉ đọc. */
     private static JLabel taoNhanGiaTri(String value) {
         JLabel label = new JLabel(value);
         label.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));

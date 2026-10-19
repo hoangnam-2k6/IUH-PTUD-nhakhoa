@@ -1,3 +1,7 @@
+/*
+ * DoiMatKhauBatBuoc: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.DangNhap;
 
 import Class.TaiKhoan;
@@ -11,11 +15,8 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
-/**
- * Chặn vào ứng dụng cho đến khi người dùng đổi mật khẩu tạm.
- * Mật khẩu mặc định theo ngày sinh chỉ dành cho demo, không phù hợp môi trường thật.
- */
 final class DoiMatKhauBatBuoc {
+    /** Dựng màn hình buộc thay mật khẩu tạm trước khi tiếp tục đăng nhập. */
     private DoiMatKhauBatBuoc() { }
 
     static boolean thucHien(Component cha, KhoDuLieu dao, TaiKhoan user) {

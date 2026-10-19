@@ -1,3 +1,7 @@
+/*
+ * TrangChuLeTan: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.LeTan;
 
 import Class.TaiKhoan;
@@ -50,20 +54,6 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
-/**
- * TRANG CHỦ LỄ TÂN - MEDIDENT.
- *
- * Một màn hình, chia hai khu vực:
- * 1) Khám & điều trị: chỉ xem phiếu khám có thật trong SQL Server.
- * 2) Tiếp nhận: tìm bệnh nhân, cấp số thứ tự theo ngày và chỉ định phòng.
- *
- * Khung header / sidebar nằm ở UI.Chung.KhungChinh, không tạo JFrame mới.
- * Cần chạy SQLData/06_TiepNhanLeTan_SQL2012.sql MỘT LẦN trước khi dùng.
- *
- * Quyền:
- * - BENHNHAN: xem hồ sơ bệnh nhân và phiếu khám.
- * - LICHHEN: tiếp nhận và cấp số khám (kiểm tra lại trong transaction SQL).
- */
 public final class TrangChuLeTan extends JPanel {
 
     private static final Color PRIMARY = new Color(0x0284C7);
@@ -74,7 +64,6 @@ public final class TrangChuLeTan extends JPanel {
     private static final Color GREEN = new Color(0x10B981);
     private static final Color WARNING = new Color(0xF59E0B);
 
-    // Danh sách phòng cố định để người sử dụng không nhập sai ký tự.
     private static final String[] ROOMS = {
         "Phòng 01", "Phòng 02", "Phòng 03", "Phòng 04",
         "Phòng 05", "Phòng 06", "Phòng 07", "Phòng 08"
@@ -103,14 +92,13 @@ public final class TrangChuLeTan extends JPanel {
     private boolean canView;
     private boolean canReceive;
 
+    /** Khởi tạo trang tiếp nhận, hai bảng dữ liệu và các nhãn thống kê. */
     public TrangChuLeTan(KhoDuLieu db, TaiKhoan user) {
         this.db = db;
         this.user = user;
         setLayout(new BorderLayout());
         setBackground(BACKGROUND);
 
-        // Đặt mã phiếu, mã bệnh nhân và mã bác sĩ ở đầu để dễ nhìn trong khung chia đôi.
-        // Các thuộc tính còn lại xem bằng cuộn ngang hoặc nhấp đúp để mở chi tiết.
         phieuModel = model(
                 "STT", "Mã phiếu", "Mã BN", "Bệnh nhân", "Mã NV", "Bác sĩ",
                 "Ngày khám", "Trạng thái", "Triệu chứng", "Chẩn đoán",
@@ -158,12 +146,10 @@ public final class TrangChuLeTan extends JPanel {
         tiepNhanButton.addActionListener(event -> receiveSelected());
         refreshButton.addActionListener(event -> refreshAsync());
 
-        // Tránh kết nối SQL trên Event Dispatch Thread khi mở trang.
         refreshAsync();
     }
 
-    // ---------- 1. Header và các thẻ thống kê ----------
-
+    /** Dựng tiêu đề, lời chào và nút làm mới trên trang Lễ tân. */
     private JPanel titlePanel() {
         JPanel outer = new JPanel(new BorderLayout());
         outer.setOpaque(false);
@@ -180,6 +166,7 @@ public final class TrangChuLeTan extends JPanel {
         return outer;
     }
 
+    /** Đặt bốn chỉ số tiếp nhận theo bố cục hàng ngang hiện tại. */
     private JPanel statsPanel() {
         JPanel grid = new JPanel(new GridLayout(1, 4, 12, 0));
         grid.setOpaque(false);
@@ -191,6 +178,7 @@ public final class TrangChuLeTan extends JPanel {
         return grid;
     }
 
+    /** Dựng một thẻ chỉ số tiếp nhận với tên và giá trị cập nhật. */
     private JPanel statCard(String title, JLabel value, Color accent) {
         JPanel card = card(new BorderLayout());
         JLabel titleLabel = label(title, 11, false);
@@ -200,8 +188,7 @@ public final class TrangChuLeTan extends JPanel {
         return card;
     }
 
-    // ---------- 2. Khu vực Khám & điều trị ----------
-
+    /** Dựng khu vực bảng phiếu khám và tìm kiếm theo thông tin khám. */
     private JPanel treatmentPanel() {
         JPanel panel = card(new BorderLayout(0, 11));
         panel.setMinimumSize(new Dimension(310, 320));
@@ -225,7 +212,7 @@ public final class TrangChuLeTan extends JPanel {
         return panel;
     }
 
-    /** Hiển thị đầy đủ thuộc tính phiếu khám, không cần kéo ngang để đọc nội dung dài. */
+    /** Hiển thị thông tin phiếu khám hiện được chọn trong bảng. */
     private void showPhieuDetail() {
         int viewRow = phieuTable.getSelectedRow();
         if (viewRow < 0) return;
@@ -239,7 +226,7 @@ public final class TrangChuLeTan extends JPanel {
         showDetail(phieuModel, row, properties, "Chi tiết phiếu khám");
     }
 
-    /** Hiển thị đầy đủ thuộc tính bệnh nhân. */
+    /** Hiển thị hồ sơ bệnh nhân được chọn trong danh sách. */
     private void showPatientDetail() {
         int viewRow = benhNhanTable.getSelectedRow();
         if (viewRow < 0) return;
@@ -253,11 +240,11 @@ public final class TrangChuLeTan extends JPanel {
         showDetail(benhNhanModel, row, properties, "Chi tiết bệnh nhân");
     }
 
-    /** Dùng chung hộp thoại cuộn nội dung để không bị cắt các thông tin dài. */
+    /** Hiển thị hộp thoại chỉ đọc với các trường thông tin chi tiết. */
     private void showDetail(DefaultTableModel model, int row, String[] titles, String caption) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < titles.length; i++) {
-            Object raw = model.getValueAt(row, i + 1); // Bỏ cột STT.
+            Object raw = model.getValueAt(row, i + 1);               
             result.append(titles[i]).append(":\n")
                   .append(raw == null || String.valueOf(raw).isBlank() ? "Chưa cập nhật" : raw)
                   .append("\n\n");
@@ -274,8 +261,7 @@ public final class TrangChuLeTan extends JPanel {
         JOptionPane.showMessageDialog(this, view, caption, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // ---------- 3. Khu vực Tiếp nhận bệnh nhân ----------
-
+    /** Dựng khu vực danh sách bệnh nhân và công cụ cấp số tiếp nhận. */
     private JPanel receptionPanel() {
         JPanel panel = card(new BorderLayout(0, 11));
         panel.setMinimumSize(new Dimension(330, 320));
@@ -322,6 +308,7 @@ public final class TrangChuLeTan extends JPanel {
         return panel;
     }
 
+    /** Cập nhật bệnh nhân đang chọn và khả năng bấm nút Tiếp nhận. */
     private void updateSelection() {
         int viewRow = benhNhanTable.getSelectedRow();
         if (viewRow < 0) {
@@ -334,7 +321,7 @@ public final class TrangChuLeTan extends JPanel {
         tiepNhanButton.setEnabled(!loading && canReceive && viewRow >= 0);
     }
 
-    /** Tạo tiếp nhận trong SQL ở luồng nền, tránh đứng giao diện. */
+    /** Thực hiện tiếp nhận ở luồng nền và tải lại danh sách sau khi hoàn tất. */
     private void receiveSelected() {
         int viewRow = benhNhanTable.getSelectedRow();
         if (viewRow < 0 || loading || !canReceive) return;
@@ -378,19 +365,23 @@ public final class TrangChuLeTan extends JPanel {
         }.execute();
     }
 
-    /**
-     * Một giao dịch SQL Server 2012:
-     * 1. Kiểm tra lại vai trò và quyền được Admin cấp.
-     * 2. Khóa cấp số theo ngày qua sp_getapplock để không trùng khi nhiều lễ tân thao tác.
-     * 3. Tìm lịch hẹn hôm nay, hoặc tạo lịch hẹn trực tiếp.
-     * 4. Cấp số thứ tự (MAX + 1), cập nhật phòng và ghi nhật ký.
-     */
+    /** Tiếp nhận và cấp số thứ tự trong giao dịch đã khóa để tránh số trùng. */
     private int receiveInSql(int patientId, String room) throws SQLException {
         try (Connection connection = KetNoi.mo()) {
             connection.setAutoCommit(false);
             connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
             try {
                 requirePermission(connection, "LICHHEN");
+                // Khi dùng danh sách đã tải trước đó, phải kiểm tra lại trạng thái BN trên SQL.
+                try (PreparedStatement patient = connection.prepareStatement(
+                        "SELECT 1 FROM dbo.BenhNhan WITH (UPDLOCK,HOLDLOCK) "
+                      + "WHERE maBN=? AND ISNULL(trangThai,N'')<>N'Ngừng hoạt động'")) {
+                    patient.setInt(1, patientId);
+                    try (ResultSet result = patient.executeQuery()) {
+                        if (!result.next()) throw new SQLException(
+                                "Bệnh nhân không tồn tại hoặc đã ngừng hoạt động; không thể tiếp nhận.");
+                    }
+                }
                 if (!columnExists(connection)) {
                     throw new SQLException("Thiếu cột soThuTuKham. Hãy chạy SQLData/06_TiepNhanLeTan_SQL2012.sql.");
                 }
@@ -417,8 +408,9 @@ public final class TrangChuLeTan extends JPanel {
 
                 int appointmentId = -1;
                 Integer previouslyAssigned = null;
+                String previouslyRoom = null;
                 try (PreparedStatement statement = connection.prepareStatement(
-                        "SELECT TOP 1 maLichHen,soThuTuKham FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
+                        "SELECT TOP 1 maLichHen,soThuTuKham,phongKham FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
                         + "WHERE maBN=? AND ngayHen=? AND trangThai NOT IN (N'Đã hủy',N'Hoàn tất') "
                         + "ORDER BY CASE WHEN soThuTuKham IS NULL THEN 1 ELSE 0 END, maLichHen")) {
                     statement.setInt(1, patientId);
@@ -428,12 +420,18 @@ public final class TrangChuLeTan extends JPanel {
                             appointmentId = result.getInt(1);
                             int value = result.getInt(2);
                             if (!result.wasNull()) previouslyAssigned = value;
+                            previouslyRoom = result.getString("phongKham");
                         }
                     }
                 }
                 if (previouslyAssigned != null) {
-                    throw new SQLException("Bệnh nhân đã được tiếp nhận hôm nay, số khám: "
-                            + String.format("%03d", previouslyAssigned));
+                    // Bấm lại sau timeout phải trả về số cũ, không sinh thêm lượt.
+                    // Nếu chọn phòng khác thì không được âm thầm chuyển phòng.
+                    if (!java.util.Objects.equals(room, previouslyRoom))
+                        throw new SQLException("Bệnh nhân đã được tiếp nhận ở "
+                                + previouslyRoom + ", số " + String.format("%03d", previouslyAssigned));
+                    connection.commit();
+                    return previouslyAssigned;
                 }
 
                 int queue = 1;
@@ -488,13 +486,15 @@ public final class TrangChuLeTan extends JPanel {
         }
     }
 
-    /** Kiểm tra ngay trong transaction để chặn ghi khi Admin vừa thu hồi quyền. */
+    /** Chỉ Lễ tân còn làm việc và còn quyền Lịch hẹn mới được cấp số tiếp nhận. */
     private void requirePermission(Connection connection, String code) throws SQLException {
         String sql = "SELECT 1 FROM dbo.TaiKhoan t "
                 + "JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro "
                 + "JOIN dbo.VaiTroQuyen q ON q.maVaiTro=t.maVaiTro "
                 + "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' "
-                + "AND v.tenVaiTro=N'Lễ tân' AND q.maQuyen=?";
+                + "AND v.tenVaiTro=N'Lễ tân' AND q.maQuyen=? "
+                + "AND NOT EXISTS(SELECT 1 FROM dbo.NhanVien n WHERE n.maTK=t.maTK "
+                + "AND (n.trangThai IS NULL OR n.trangThai<>N'Đang làm việc'))";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setInt(1, user.id);
             statement.setString(2, code);
@@ -504,6 +504,7 @@ public final class TrangChuLeTan extends JPanel {
         }
     }
 
+    /** Kiểm tra migration SQL đã bổ sung cột số thứ tự khám hay chưa. */
     private boolean columnExists(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement();
                 ResultSet result = statement.executeQuery(
@@ -512,8 +513,7 @@ public final class TrangChuLeTan extends JPanel {
         }
     }
 
-    // ---------- 4. Truy vấn SQL thật, thực hiện ngoài luồng EDT ----------
-
+    /** Tải lại bảng và thống kê bằng SwingWorker để không khóa giao diện. */
     private void refreshAsync() {
         if (loading) return;
         setLoading(true);
@@ -548,6 +548,7 @@ public final class TrangChuLeTan extends JPanel {
         }.execute();
     }
 
+    /** Truy vấn bệnh nhân, phiếu khám và hàng đợi theo quyền tài khoản. */
     private ReportData loadFromSql() throws SQLException {
         ReportData data = new ReportData();
         data.viewAllowed = db.coQuyenTaiKhoan(user.id, "BENHNHAN");
@@ -559,8 +560,6 @@ public final class TrangChuLeTan extends JPanel {
             boolean queueInstalled = columnExists(connection);
             String queueField = queueInstalled ? "l.soThuTuKham" : "CAST(NULL AS INT)";
 
-            // Lấy toàn bộ thuộc tính của PhieuKham và cả hai mã khóa ngoại.
-            // LEFT JOIN giúp phiếu vẫn hiển thị nếu hồ sơ nhân viên không tra cứu được.
             String examSql =
                     "SELECT p.maPK, p.maBN, p.maNV, "
                     + "ISNULL(b.hoTen,N'') AS benhNhan, "
@@ -598,8 +597,6 @@ public final class TrangChuLeTan extends JPanel {
                 }
             }
 
-            // Bệnh nhân: đầy đủ thuộc tính theo ERD, cộng số khám/phòng của lịch hôm nay.
-            // OUTER APPLY lấy lịch hẹn tương ứng. Không sinh số khám trong lúc xem.
             String patientSql =
                     "SELECT b.maBN, b.hoTen, "
                     + "ISNULL(CONVERT(varchar(10),b.ngaySinh,103),'') AS ngaySinh, "
@@ -658,6 +655,7 @@ public final class TrangChuLeTan extends JPanel {
         return data;
     }
 
+    /** Chạy câu truy vấn số nguyên để tính một chỉ số của trang Lễ tân. */
     private int scalar(Connection connection, String sql) throws SQLException {
         try (Statement statement = connection.createStatement();
                 ResultSet result = statement.executeQuery(sql)) {
@@ -665,11 +663,13 @@ public final class TrangChuLeTan extends JPanel {
         }
     }
 
+    /** Nạp lại danh sách hàng cho TableModel sau khi truy vấn SQL xong. */
     private void fillTable(DefaultTableModel model, List<Object[]> rows) {
         model.setRowCount(0);
         for (Object[] values : rows) model.addRow(values);
     }
 
+    /** Cập nhật thuộc tính Loading theo giá trị được truyền vào. */
     private void setLoading(boolean value) {
         loading = value;
         refreshButton.setEnabled(!value);
@@ -677,6 +677,7 @@ public final class TrangChuLeTan extends JPanel {
         tiepNhanButton.setEnabled(!value && canReceive && benhNhanTable.getSelectedRow() >= 0);
     }
 
+    /** Thông báo lỗi truy vấn hoặc lưu dữ liệu cho người dùng tại Lễ tân. */
     private void showError(Throwable error) {
         trangThai.setText("Không tải/lưu được dữ liệu SQL Server.");
         JOptionPane.showMessageDialog(this, error.getMessage(),
@@ -694,8 +695,7 @@ public final class TrangChuLeTan extends JPanel {
         final List<Object[]> patientRows = new ArrayList<>();
     }
 
-    // ---------- 5. Các hàm dựng giao diện dùng chung ----------
-
+    /** Hiển thị trang được chọn, giữ nguyên sơ đồ điều hướng hiện có. */
     private static DefaultTableModel model(String... headers) {
         return new DefaultTableModel(headers, 0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
@@ -705,6 +705,7 @@ public final class TrangChuLeTan extends JPanel {
         };
     }
 
+    /** Khởi tạo JTable với cột và thuộc tính hiển thị theo theme hiện tại. */
     private static JTable table(DefaultTableModel model) {
         JTable table = new JTable(model);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -719,8 +720,8 @@ public final class TrangChuLeTan extends JPanel {
         table.getTableHeader().setBackground(new Color(0xF1F5F9));
         table.getTableHeader().setForeground(MUTED);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        table.getColumnModel().getColumn(0).setPreferredWidth(43); // STT
-        table.getColumnModel().getColumn(1).setPreferredWidth(80); // Mã phiếu / Mã BN
+        table.getColumnModel().getColumn(0).setPreferredWidth(43);       
+        table.getColumnModel().getColumn(1).setPreferredWidth(80);                    
         for (int i = 2; i < table.getColumnCount(); i++) {
             String title = table.getColumnName(i);
             int width;
@@ -746,7 +747,7 @@ public final class TrangChuLeTan extends JPanel {
         return table;
     }
 
-    /** STT tính theo thứ tự đang xem, nên lọc và sắp xếp vẫn bắt đầu từ 1. */
+    /** Cập nhật thuộc tính upStt theo giá trị được truyền vào. */
     private static void setupStt(JTable table) {
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override public Component getTableCellRendererComponent(JTable t, Object value,
@@ -759,6 +760,7 @@ public final class TrangChuLeTan extends JPanel {
         table.getColumnModel().getColumn(0).setCellRenderer(renderer);
     }
 
+    /** Bọc JTable trong JScrollPane và thiết lập viền hiển thị. */
     private static JScrollPane scrollTable(JTable table) {
         JScrollPane pane = new JScrollPane(table);
         pane.setBorder(BorderFactory.createLineBorder(BORDER));
@@ -769,6 +771,7 @@ public final class TrangChuLeTan extends JPanel {
         return pane;
     }
 
+    /** Tạo bảng nền trắng có viền cho các khối thông tin Lễ tân. */
     private static JPanel card(java.awt.LayoutManager layout) {
         JPanel panel = new JPanel(layout);
         panel.setBackground(Color.WHITE);
@@ -777,6 +780,7 @@ public final class TrangChuLeTan extends JPanel {
         return panel;
     }
 
+    /** Tạo tiêu đề và chú thích cho từng khu vực trang Lễ tân. */
     private static JPanel sectionTitle(String title, String subtitle) {
         JPanel panel = new JPanel();
         panel.setOpaque(false);
@@ -787,6 +791,7 @@ public final class TrangChuLeTan extends JPanel {
         return panel;
     }
 
+    /** Tạo nhãn Swing theo nội dung và định dạng chữ, không phụ thuộc dữ liệu SQL. */
     private static JLabel label(String text, int size, boolean bold) {
         JLabel label = new JLabel(text);
         label.setForeground(bold ? TEXT : MUTED);
@@ -794,10 +799,12 @@ public final class TrangChuLeTan extends JPanel {
         return label;
     }
 
+    /** Tạo nhãn số lớn cho các chỉ số tổng quan. */
     private static JLabel bigValue(String text) {
         return label(text, 25, true);
     }
 
+    /** Tạo nút chính hoặc phụ với trạng thái hiển thị hiện hành. */
     private static JButton button(String text, boolean primary) {
         JButton button = new JButton(text);
         button.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -810,8 +817,9 @@ public final class TrangChuLeTan extends JPanel {
         return button;
     }
 
+    /** Tạo ô tìm kiếm với chữ gợi ý trên bảng dữ liệu. */
     private static JTextField search(String prompt) {
-        // Swing thuần không hỗ trợ placeholderText nên tự vẽ gợi ý.
+
         JTextField field = new JTextField() {
             @Override protected void paintComponent(java.awt.Graphics graphics) {
                 super.paintComponent(graphics);
@@ -832,6 +840,7 @@ public final class TrangChuLeTan extends JPanel {
         return field;
     }
 
+    /** Cập nhật bộ lọc dòng JTable theo từ khóa người dùng nhập. */
     private static void filter(TableRowSorter<DefaultTableModel> sorter, String text) {
         String query = text == null ? "" : text.trim();
         sorter.setRowFilter(query.isEmpty() ? null

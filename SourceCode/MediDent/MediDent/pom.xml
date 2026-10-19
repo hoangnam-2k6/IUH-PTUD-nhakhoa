@@ -5,23 +5,24 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>vn.medident</groupId>
     <artifactId>medident-admin</artifactId>
-    <version>0.0.2</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
-    <!-- Build Java 17 de tuong thich may truong; can dung JDK 17. -->
+    <!-- Dùng Java 17 để biên dịch nhất quán, có thể thực hiện bằng JDK 17 hoặc 21. -->
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <!-- Hai thư viện đang dùng: JDBC truy cập SQL Server, BCrypt kiểm tra mật khẩu. -->
     <dependencies>
-        <!-- Driver de Java ket noi Microsoft SQL Server. -->
+
         <dependency>
             <groupId>com.microsoft.sqlserver</groupId>
             <artifactId>mssql-jdbc</artifactId>
             <version>13.2.1.jre11</version>
         </dependency>
-        <!-- Ma hoa mat khau BCrypt, KHONG luu plaintext. -->
+
         <dependency>
             <groupId>org.mindrot</groupId>
             <artifactId>jbcrypt</artifactId>
@@ -29,47 +30,15 @@
         </dependency>
     </dependencies>
 
+    <!-- Maven Compiler và plugin chạy ứng dụng; không thay đổi target hoặc bố cục giao diện. -->
     <build>
-        <finalName>medident-technical_test_ver_0.0.2</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.0</version>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <version>3.6.0</version>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <configuration>
-                            <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <filters>
-                                <filter>
-                                    <artifact>*:*</artifact>
-                                    <excludes>
-                                        <exclude>META-INF/*.SF</exclude>
-                                        <exclude>META-INF/*.DSA</exclude>
-                                        <exclude>META-INF/*.RSA</exclude>
-                                        <exclude>db.properties</exclude>
-                                    </excludes>
-                                </filter>
-                            </filters>
-                            <transformers>
-                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>UI.DangNhap.DangNhap</mainClass>
-                                </transformer>
-                            </transformers>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- Co the chay: mvn exec:java -Dexec.mainClass=UI.DangNhap.DangNhap -->
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>

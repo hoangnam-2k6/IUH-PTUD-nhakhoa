@@ -1,3 +1,7 @@
+/*
+ * DangNhap: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.DangNhap;
 
 import Class.TaiKhoan;
@@ -27,14 +31,9 @@ import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 
-/**
- * Màn hình đăng nhập chung của MediDent.
- *
- * Kiểm tra tên đăng nhập và BCrypt bằng KhoDuLieu (SQL Server).
- * Quyền/menu được lấy từ CSDL sau khi xác thực, không chọn vai trò thủ công.
- */
 public class DangNhap extends JFrame {
 
+    /** Dựng màn hình đăng nhập và gắn hành động xác minh tài khoản qua DAO. */
     public DangNhap(KhoDuLieu db) {
         setTitle("MEDIDENT | Đăng nhập");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -45,7 +44,6 @@ public class DangNhap extends JFrame {
         JPanel root = new JPanel(new GridLayout(1, 2));
         setContentPane(root);
 
-        // 1. Banner bên trái: nhận diện thương hiệu và lời giới thiệu.
         JPanel banner = new JPanel(new GridBagLayout());
         banner.setBackground(new Color(0x075985));
         JLabel brand = new JLabel("<html><div style='color:white;font-size:26px'>"
@@ -56,7 +54,6 @@ public class DangNhap extends JFrame {
         banner.add(brand);
         root.add(banner);
 
-        // 2. Form bên phải và logo lấy từ resources/Image.
         JPanel form = new JPanel(new GridBagLayout());
         form.setBackground(Color.WHITE);
         form.setBorder(new EmptyBorder(35, 48, 35, 48));
@@ -80,7 +77,6 @@ public class DangNhap extends JFrame {
         fields.add(username);
         fields.add(Box.createVerticalStrut(19));
 
-        // 3. Nhãn mật khẩu + liên kết quên mật khẩu nằm cùng một hàng.
         JPanel passwordTitle = new JPanel(new BorderLayout(8, 0));
         passwordTitle.setOpaque(false);
         passwordTitle.setAlignmentX(LEFT_ALIGNMENT);
@@ -109,7 +105,6 @@ public class DangNhap extends JFrame {
         fields.add(login);
         form.add(fields);
 
-        // 3. Chỉ gọi DAO để xác thực, không ghi mật khẩu thô vào log.
         Runnable loginAction = () -> {
             char[] secret = password.getPassword();
             String typedPassword = new String(secret);
@@ -126,7 +121,7 @@ public class DangNhap extends JFrame {
                             "Sai thông tin hoặc tài khoản bị khóa.");
                     return;
                 }
-                // Nếu tài khoản vừa được cấp hoặc reset, chỉ mở khung chính SAU khi đổi mật khẩu.
+
                 if (account.phaiDoiMatKhau && !DoiMatKhauBatBuoc.thucHien(this, db, account)) {
                     return;
                 }
@@ -142,13 +137,7 @@ public class DangNhap extends JFrame {
         password.addActionListener(event -> loginAction.run());
     }
 
-    /**
-     * Hiển thị hộp thoại yêu cầu đặt lại mật khẩu.
-     *
-     * Không đặt lại mật khẩu tại màn hình chưa đăng nhập. Admin kiểm tra yêu cầu
-     * ở mục Hỗ trợ, xác minh danh tính nhân viên và dùng chức năng Reset trong
-     * Quản lý tài khoản. Nhờ vậy người lạ không thể reset chỉ bằng ngày sinh.
-     */
+    /** Hiển thị trang được chọn, giữ nguyên sơ đồ điều hướng hiện có. */
     private void moQuenMatKhau(KhoDuLieu db, JTextField username) {
         JTextField accountField = GiaoDien.text(username.getText().trim());
         accountField.setPreferredSize(new Dimension(320, 38));
@@ -178,16 +167,16 @@ public class DangNhap extends JFrame {
             return;
         }
 
-        // Không khóa giao diện khi chờ kết nối SQL Server.
-        // Cố tình không tiết lộ tài khoản có tồn tại hoặc đã gửi trùng hay không.
         new SwingWorker<Void, Void>() {
             @Override
+            /** Thực hiện truy vấn hoặc lưu SQL trên luồng nền, tránh treo Swing. */
             protected Void doInBackground() throws Exception {
                 db.guiYeuCauQuenMatKhau(name);
                 return null;
             }
 
             @Override
+            /** Nhận kết quả luồng nền và cập nhật giao diện trên Event Dispatch Thread. */
             protected void done() {
                 try {
                     get();
@@ -206,7 +195,7 @@ public class DangNhap extends JFrame {
         }.execute();
     }
 
-    /** Entry point chạy bằng Run As -> Java Application trong Eclipse. */
+    /** Khởi chạy chương trình theo điểm vào được định nghĩa tại lớp này. */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new DangNhap(new KhoDuLieu()).setVisible(true));
     }

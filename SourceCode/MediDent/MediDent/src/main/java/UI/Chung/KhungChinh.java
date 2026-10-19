@@ -1,3 +1,7 @@
+/*
+ * KhungChinh: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.Chung;
 
 import Class.TaiKhoan;
@@ -12,12 +16,6 @@ import java.util.List;
 import javax.swing.*;
 import javax.swing.border.*;
 
-/**
- * CỬA SỔ DUY NHẤT của MEDIDENT sau đăng nhập.
- * - Header, logo, nav, nút hỗ trợ và đăng xuất dùng chung mọi vai trò.
- * - Chọn trang theo vai trò + quyền đang lưu trong SQL Server.
- * - Không tạo JFrame/MainWindow khác trong các màn hình Quản lý/Lễ tân.
- */
 public final class KhungChinh extends JFrame {
 
     private static final Color ACTIVE = new Color(0xE0F2FE);
@@ -38,15 +36,13 @@ public final class KhungChinh extends JFrame {
         }
     }
 
+    /** Khởi tạo khung chính và điều hướng giữa ba nhóm trang theo tài khoản đăng nhập. */
     public KhungChinh(TaiKhoan user,KhoDuLieu db) {
         this.user=Objects.requireNonNull(user);
         this.db=Objects.requireNonNull(db);
         taoDanhMuc();
         setTitle("MEDIDENT - "+user.tenVaiTro);
-        Dimension kichThuocManHinh = GraphicsEnvironment.getLocalGraphicsEnvironment()
-                .getMaximumWindowBounds().getSize();
-        setSize(Math.min(1400, kichThuocManHinh.width),
-                Math.min(900, kichThuocManHinh.height));
+        setSize(1220,790);
         setMinimumSize(new Dimension(950,620));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
@@ -63,15 +59,16 @@ public final class KhungChinh extends JFrame {
         moTrang("HOME");
     }
 
+    /** Xác định danh sách chức năng hiển thị dựa trên vai trò đang đăng nhập. */
     private void taoDanhMuc() {
         danhMuc.add(new Muc("HOME","Trang chủ",null,BieuTuong.Loai.TRANG_CHU,false));
-        // Admin chỉ có Trang chủ, Tài khoản, Phân quyền, Hệ thống, Báo cáo hệ thống và Hỗ trợ.
+
         danhMuc.add(new Muc("TAIKHOAN","Tài khoản","TAIKHOAN",BieuTuong.Loai.TAI_KHOAN,true));
         danhMuc.add(new Muc("PHANQUYEN","Phân quyền","TAIKHOAN",BieuTuong.Loai.PHAN_QUYEN,true));
         danhMuc.add(new Muc("HETHONG","Hệ thống","HETHONG",BieuTuong.Loai.HE_THONG,true));
-        // Admin: nơi xem và phê duyệt yêu cầu hủy hóa đơn/phiếu thu.
+
         danhMuc.add(new Muc("DUYETHUY","Duyệt hủy hóa đơn","HOTRO",BieuTuong.Loai.KIEM_TRA,true));
-        // Vận hành phòng khám: theo quyền do Admin cấp cho mỗi vai trò.
+
         danhMuc.add(new Muc("NHANVIEN","Nhân viên","NHANVIEN",BieuTuong.Loai.TAI_KHOAN,false));
         danhMuc.add(new Muc("DICHVU","Dịch vụ nha khoa","DICHVU",BieuTuong.Loai.HE_THONG,false));
         danhMuc.add(new Muc("BENHNHAN","Bệnh nhân","BENHNHAN",BieuTuong.Loai.TAI_KHOAN,false));
@@ -80,6 +77,7 @@ public final class KhungChinh extends JFrame {
         danhMuc.add(new Muc("BAOCAO","Báo cáo - thống kê","BAOCAO",BieuTuong.Loai.BAO_CAO,false));
     }
 
+    /** Dựng thanh menu bên trái với các mục chức năng đã có. */
     private JPanel taoSidebar() {
         JPanel side=new JPanel(new BorderLayout());
         side.setBackground(Color.WHITE);
@@ -146,7 +144,7 @@ public final class KhungChinh extends JFrame {
         return side;
     }
 
-    /** Header gồm 2 hàng tên và vai trò, tự lấy từ TaiKhoan / NhanVien. */
+    /** Dựng phần tiêu đề và thông tin người đang đăng nhập trên cửa sổ chính. */
     private JPanel taoHeader() {
         JPanel top=new JPanel(new BorderLayout());
         top.setBackground(Color.WHITE);
@@ -161,30 +159,29 @@ public final class KhungChinh extends JFrame {
         return top;
     }
 
-    /**
-     * Phân định tuyệt đối menu Admin và menu nghiệp vụ.
-     * Quyền SQL tiếp tục quyết định từng mục trong phạm vi vai trò tương ứng.
-     */
+    /** Đối chiếu nhóm vai trò để lựa chọn chức năng khả dụng. */
     private boolean dungNhomVaiTro(Muc muc, boolean laAdmin) {
         if (muc.id.equals("HOME") || muc.id.equals("BAOCAO")) return true;
         return muc.chiAdmin == laAdmin;
     }
 
+    /** Làm mới trạng thái menu dựa trên quyền và trang đang được chọn. */
     private void capNhatMenu() {
         for(Muc muc:danhMuc) {
             boolean allowed=false;
             try {
-                // Không tin vai trò đã cache từ lúc đăng nhập: luôn đối chiếu SQL.
+
                 boolean adminHienTai = db.laQuanTriVienTaiKhoan(user.id);
                 allowed=dungNhomVaiTro(muc,adminHienTai)
                         && (muc.quyen==null || db.coQuyenTaiKhoan(user.id,muc.quyen));
             } catch(Exception ignored) {
-                // Không xác định được quyền => ẩn, tránh hiển thị nhầm chức năng.
+
             }
             buttons.get(muc.id).setVisible(allowed);
         }
     }
 
+    /** Hiển thị trang được chọn, giữ nguyên sơ đồ điều hướng hiện có. */
     private void moTrang(String page) {
         try {
             if(!db.taiKhoanDangHoatDong(user.id)) {

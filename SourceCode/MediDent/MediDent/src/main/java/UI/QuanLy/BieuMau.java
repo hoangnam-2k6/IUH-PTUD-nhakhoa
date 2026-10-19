@@ -1,3 +1,7 @@
+/*
+ * BieuMau: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.QuanLy;
 
 import DAO.QuanLyDAO;
@@ -10,10 +14,10 @@ import java.time.format.ResolverStyle;
 import java.util.List;
 import javax.swing.*;
 
-/** Form điền dữ liệu có nhãn rõ, các danh mục bắt buộc dùng JComboBox. */
 final class BieuMau {
     private static final DateTimeFormatter VN=DateTimeFormatter.ofPattern("dd/MM/uuuu")
             .withResolverStyle(ResolverStyle.STRICT);
+    /** Ngăn tạo lớp tiện ích xây dựng hộp thoại nhập liệu quản lý. */
     private BieuMau() {}
 
     static JPanel form() {

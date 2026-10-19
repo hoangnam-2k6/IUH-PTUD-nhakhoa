@@ -1,3 +1,7 @@
+/*
+ * NgayChon: giao diện hiện hữu theo phân quyền.
+ * Chú thích mới: chỉ mô tả trách nhiệm của mã hiện tại; không thay đổi bố cục UI.
+ */
 package UI.Chung;
 
 import java.awt.BorderLayout;
@@ -20,14 +24,6 @@ import javax.swing.JPopupMenu;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 
-/**
- * Bộ chọn ngày sinh dùng chung cho nhân viên và bệnh nhân.
- *
- * - Hiển thị lịch theo tháng, nhấn trực tiếp ngày cần chọn.
- * - Không thể chọn 30/02, 31/04, ngày tương lai hoặc quá 100 tuổi.
- * - Không tự điền một ngày sinh giả. Giá trị null nghĩa là chưa chọn.
- * - Hoạt động bằng Swing/Java Time, không cần thư viện ngoài.
- */
 public final class NgayChon extends JPanel {
 
     private static final DateTimeFormatter FORMAT =
@@ -41,7 +37,6 @@ public final class NgayChon extends JPanel {
     private static final Color CHU_DAO = new Color(0x0284C7);
     private static final Color NEN_CHON = new Color(0xE0F2FE);
 
-    // Giá trị đã được chọn; không nhập qua JTextField.
     private LocalDate ngayDuocChon;
     private YearMonth thangDangXem = YearMonth.from(LocalDate.now().minusYears(25));
 
@@ -49,11 +44,11 @@ public final class NgayChon extends JPanel {
     private final JButton moLich = new JButton("Chọn lịch");
     private final JPopupMenu popup = new JPopupMenu();
 
+    /** Khởi tạo bộ chọn ngày tháng bằng điều khiển Swing. */
     public NgayChon() {
         super(new BorderLayout(6, 0));
         setOpaque(false);
 
-        // Chỉ cho xem ngày đã chọn, không cho gõ để tránh sai định dạng.
         hienThi.setEditable(false);
         hienThi.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         hienThi.setForeground(GiaoDien.MUTED);
@@ -77,7 +72,7 @@ public final class NgayChon extends JPanel {
         setPreferredSize(new Dimension(300, 37));
     }
 
-    /** Khoảng thời gian được phép: từ hôm nay - 100 năm tới hôm nay. */
+    /** Kiểm tra ngày sinh đã chọn có nằm trong khoảng chấp nhận được hay không. */
     public static boolean ngaySinhHopLe(LocalDate date) {
         LocalDate homNay = LocalDate.now();
         return date != null
@@ -85,7 +80,7 @@ public final class NgayChon extends JPanel {
                 && !date.isBefore(homNay.minusYears(100));
     }
 
-    /** Nạp ngày đã có trong SQL vào ô chọn (null = chưa có ngày sinh). */
+    /** Cập nhật thuộc tính Ngay theo giá trị được truyền vào. */
     public void setNgay(LocalDate date) {
         ngayDuocChon = date;
         if (date != null) {
@@ -105,7 +100,7 @@ public final class NgayChon extends JPanel {
         }
     }
 
-    /** Trả null nếu chưa chọn; từ chối ngày đã trở thành không hợp lệ. */
+    /** Lấy giá trị thuộc tính Ngay từ đối tượng hiện tại. */
     public LocalDate getNgay() {
         if (ngayDuocChon != null && !ngaySinhHopLe(ngayDuocChon)) {
             throw new IllegalArgumentException(
@@ -115,6 +110,7 @@ public final class NgayChon extends JPanel {
         return ngayDuocChon;
     }
 
+    /** Hiển thị trang được chọn, giữ nguyên sơ đồ điều hướng hiện có. */
     private void moBoChonNgay() {
         popup.removeAll();
         popup.setBorder(BorderFactory.createLineBorder(GiaoDien.BORDER));
@@ -124,7 +120,7 @@ public final class NgayChon extends JPanel {
         popup.show(this, 0, getHeight() + 2);
     }
 
-    /** Vẽ một trang lịch. Những ô ngày ngoài 100 năm hoặc tương lai bị khóa. */
+    /** Vẽ nội dung trong thành phần đồ họa Swing. */
     private void veLich() {
         popup.removeAll();
         JPanel khung = new JPanel(new BorderLayout(0, 10));
@@ -157,7 +153,6 @@ public final class NgayChon extends JPanel {
         dau.add(thang, BorderLayout.CENTER);
         dau.add(sau, BorderLayout.EAST);
 
-        // Chọn trực tiếp tháng/năm để không phải nhấn 12 x 100 lần.
         JPanel chonThangNam = new JPanel(new GridLayout(1, 2, 8, 0));
         chonThangNam.setOpaque(false);
         JComboBox<String> thangBox = new JComboBox<>(TEN_THANG);
@@ -178,7 +173,6 @@ public final class NgayChon extends JPanel {
         thanhDieuHuong.add(chonThangNam, BorderLayout.SOUTH);
         khung.add(thanhDieuHuong, BorderLayout.NORTH);
 
-        // 7 cột là thứ Hai ... Chủ nhật. Ngày của tháng lấy từ YearMonth.
         JPanel luoi = new JPanel(new GridLayout(0, 7, 3, 3));
         luoi.setOpaque(false);
         String[] thu = {"T2", "T3", "T4", "T5", "T6", "T7", "CN"};
@@ -226,6 +220,7 @@ public final class NgayChon extends JPanel {
         popup.pack();
     }
 
+    /** Thay đổi số ngày và ô ngày khi người dùng chọn tháng hoặc năm khác. */
     private void doiThangNam(JComboBox<String> thangBox, JComboBox<Integer> namBox) {
         Integer nam = (Integer) namBox.getSelectedItem();
         if (nam == null) return;
@@ -236,7 +231,7 @@ public final class NgayChon extends JPanel {
         if (moi.isAfter(max)) moi = max;
         if (!moi.equals(thangDangXem)) {
             thangDangXem = moi;
-            // Đặt lại toàn bộ dropdown theo tháng sau khi được giới hạn.
+
             veLich();
         }
     }
