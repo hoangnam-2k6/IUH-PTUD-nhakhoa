@@ -33,22 +33,27 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.JRadioButtonMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ScrollPaneConstants;
@@ -318,10 +323,18 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
         top.setOpaque(false);
         top.add(sectionTitle("Khám & điều trị", "Danh sách phiếu khám; nhấp đúp để xem chi tiết",
                 phieuCount), BorderLayout.NORTH);
-        JTextField search = search("Tìm mã phiếu, bệnh nhân, bác sĩ...");
-        search.getDocument().addDocumentListener(new SearchListener(() ->
-                filter(phieuSorter, search.getText())));
-        top.add(search, BorderLayout.SOUTH);
+        Criterion[] phieuCriteria = {
+            new Criterion("Tất cả", new int[] {1, 2}, new int[] {3, 5}, new int[] {}),
+            new Criterion("Mã phiếu", new int[] {1}, new int[] {}, new int[] {}),
+            new Criterion("Mã BN", new int[] {2}, new int[] {}, new int[] {}),
+            new Criterion("Tên bệnh nhân", new int[] {}, new int[] {3}, new int[] {}),
+            new Criterion("Mã bác sĩ", new int[] {4}, new int[] {}, new int[] {}),
+            new Criterion("Tên bác sĩ", new int[] {}, new int[] {5}, new int[] {}),
+            new Criterion("Ngày khám", new int[] {}, new int[] {6}, new int[] {}),
+            new Criterion("Trạng thái", new int[] {}, new int[] {7}, new int[] {}),
+            new Criterion("Chẩn đoán", new int[] {}, new int[] {9}, new int[] {})
+        };
+        top.add(searchBar(phieuSorter, phieuCriteria), BorderLayout.SOUTH);
         panel.add(top, BorderLayout.NORTH);
         panel.add(scrollTable(phieuTable), BorderLayout.CENTER);
         phieuTable.addMouseListener(new MouseAdapter() {
@@ -435,9 +448,15 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
         receptionHeader.add(receptionTitle);
         receptionHeader.add(Box.createVerticalStrut(10));
 
-        JTextField search = search("Tìm họ tên, mã bệnh nhân, số điện thoại...");
-        search.getDocument().addDocumentListener(new SearchListener(() ->
-                filter(benhNhanSorter, search.getText())));
+        Criterion[] benhNhanCriteria = {
+            new Criterion("Tất cả", new int[] {1}, new int[] {2}, new int[] {5}),
+            new Criterion("Mã BN", new int[] {1}, new int[] {}, new int[] {}),
+            new Criterion("Họ tên", new int[] {}, new int[] {2}, new int[] {}),
+            new Criterion("SĐT", new int[] {}, new int[] {5}, new int[] {}),
+            new Criterion("Trạng thái", new int[] {}, new int[] {9}, new int[] {}),
+            new Criterion("Phòng", new int[] {}, new int[] {11}, new int[] {})
+        };
+        JPanel searchBar = searchBar(benhNhanSorter, benhNhanCriteria);
         benhNhanTable.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent event) {
                 if (event.getClickCount() == 2) showPatientDetail();
@@ -520,10 +539,10 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
         roomAndReceiveRow.add(tiepNhanButton, c2);
 
         // Đưa hàng chọn phòng/nút tiếp nhận lên trên ô tìm kiếm.
-        search.setAlignmentX(Component.LEFT_ALIGNMENT);
+        searchBar.setAlignmentX(Component.LEFT_ALIGNMENT);
         receptionHeader.add(roomAndReceiveRow);
         receptionHeader.add(Box.createVerticalStrut(10));
-        receptionHeader.add(search);
+        receptionHeader.add(searchBar);
         top.add(receptionHeader, BorderLayout.NORTH);
         panel.add(top, BorderLayout.NORTH);
         panel.add(scrollTable(benhNhanTable), BorderLayout.CENTER);
@@ -909,7 +928,12 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
 
     private void fillTable(DefaultTableModel model, List<Object[]> rows) {
         model.setRowCount(0);
-        for (Object[] values : rows) model.addRow(values);
+        int stt = 1;
+        for (Object[] values : rows) {
+            Object[] copy = values.clone();
+            copy[0] = stt++; // STT cố định theo thứ tự dữ liệu tải về.
+            model.addRow(copy);
+        }
     }
 
     private void setLoading(boolean value) {
@@ -1001,12 +1025,12 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
         return table;
     }
 
-    /** STT tính theo thứ tự đang xem, nên lọc và sắp xếp vẫn bắt đầu từ 1. */
+    /** STT là số cố định của dòng (lưu trong model), lọc hay sắp xếp đều không đánh số lại. */
     private static void setupStt(JTable table) {
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
             @Override public Component getTableCellRendererComponent(JTable t, Object value,
                     boolean selected, boolean focus, int row, int col) {
-                super.getTableCellRendererComponent(t, row + 1, selected, focus, row, col);
+                super.getTableCellRendererComponent(t, value, selected, focus, row, col);
                 setHorizontalAlignment(SwingConstants.CENTER);
                 if (!selected) setForeground(MUTED);
                 return this;
@@ -1117,10 +1141,165 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
         return new SearchField(prompt);
     }
 
-    private static void filter(TableRowSorter<DefaultTableModel> sorter, String text) {
+    /** Một tiêu chí lọc: tên hiển thị trong ô chọn và các cột (theo chỉ số model) được xét. */
+    private static final class Criterion {
+        final String label;
+        final int[] ids;     // cột mã: khớp chính xác
+        final int[] texts;   // cột văn bản: tìm chứa, không phân biệt hoa thường/dấu
+        final int[] phones;  // cột SĐT: chỉ xét khi nhập từ 6 số (chế độ Tất cả)
+
+        Criterion(String label, int[] ids, int[] texts, int[] phones) {
+            this.label = label;
+            this.ids = ids;
+            this.texts = texts;
+            this.phones = phones;
+        }
+
+        @Override public String toString() { return label; }
+    }
+
+    /** Nút lọc nhỏ: biểu tượng phễu, sáng lên khi đang lọc theo một trường cụ thể. */
+    private static final class FilterButton extends JButton {
+        private boolean active;
+
+        FilterButton() {
+            Dimension size = new Dimension(32, 32);
+            setPreferredSize(size);
+            setMinimumSize(size);
+            setMaximumSize(size);
+            setFocusPainted(false);
+            setBorderPainted(false);
+            setContentAreaFilled(false);
+            setOpaque(false);
+            setRolloverEnabled(true);
+            setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        }
+
+        void setActive(boolean value) {
+            active = value;
+            repaint();
+        }
+
+        @Override protected void paintComponent(Graphics graphics) {
+            Graphics2D g2 = (Graphics2D) graphics.create();
+            khuRangCua(g2);
+            int w = getWidth();
+            int h = getHeight();
+            boolean hover = getModel().isRollover() || getModel().isPressed();
+            g2.setColor(active ? PRIMARY_LIGHT : hover ? new Color(0xF1F5F9) : ROW_ALT);
+            g2.fillRoundRect(0, 0, w - 1, h - 1, 10, 10);
+            g2.setColor(active ? PRIMARY : hover ? new Color(0xCBD5E1) : BORDER);
+            g2.drawRoundRect(0, 0, w - 1, h - 1, 10, 10);
+
+            float cx = w / 2f;
+            float cy = h / 2f;
+            java.awt.geom.Path2D funnel = new java.awt.geom.Path2D.Float();
+            funnel.moveTo(cx - 6.5f, cy - 5.5f);
+            funnel.lineTo(cx + 6.5f, cy - 5.5f);
+            funnel.lineTo(cx + 2f, cy);
+            funnel.lineTo(cx + 2f, cy + 5.5f);
+            funnel.lineTo(cx - 2f, cy + 3.5f);
+            funnel.lineTo(cx - 2f, cy);
+            funnel.closePath();
+            g2.setColor(active ? PRIMARY : MUTED);
+            g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.draw(funnel);
+            g2.dispose();
+        }
+    }
+
+    /** Thanh tìm kiếm: nút lọc (biểu tượng phễu) bên trái, ô nhập từ khóa bên phải. */
+    private static JPanel searchBar(TableRowSorter<DefaultTableModel> sorter, Criterion[] criteria) {
+        SearchField field = new SearchField("Tìm trong tất cả các trường...");
+        FilterButton filterButton = new FilterButton();
+        filterButton.setToolTipText("Lọc theo: " + criteria[0].label);
+        Criterion[] chosen = {criteria[0]};
+
+        Runnable apply = () -> filter(sorter, field.getText(),
+                chosen[0].ids, chosen[0].texts, chosen[0].phones);
+        field.getDocument().addDocumentListener(new SearchListener(apply));
+
+        JPopupMenu menu = new JPopupMenu();
+        ButtonGroup group = new ButtonGroup();
+        for (int i = 0; i < criteria.length; i++) {
+            Criterion criterion = criteria[i];
+            JRadioButtonMenuItem item = new JRadioButtonMenuItem(criterion.label, i == 0);
+            item.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            item.addActionListener(event -> {
+                chosen[0] = criterion;
+                boolean all = criterion == criteria[0];
+                filterButton.setActive(!all);
+                filterButton.setToolTipText("Lọc theo: " + criterion.label);
+                field.setPrompt(all ? "Tìm trong tất cả các trường..."
+                        : "Nhập " + criterion.label + " cần lọc...");
+                apply.run();
+            });
+            group.add(item);
+            menu.add(item);
+            if (i == 0) menu.addSeparator();
+        }
+        filterButton.addActionListener(event ->
+                menu.show(filterButton, 0, filterButton.getHeight() + 4));
+
+        JPanel bar = new JPanel(new BorderLayout(8, 0));
+        bar.setOpaque(false);
+        bar.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        // Bọc trong GridBagLayout để nút nhỏ nằm giữa theo chiều dọc, không bị kéo cao bằng ô tìm kiếm.
+        JPanel holder = new JPanel(new GridBagLayout());
+        holder.setOpaque(false);
+        holder.add(filterButton);
+        bar.add(holder, BorderLayout.WEST);
+        bar.add(field, BorderLayout.CENTER);
+        return bar;
+    }
+
+    /**
+     * Lọc nhanh có kiểm soát từng cột:
+     * - Nhập toàn chữ số: khớp CHÍNH XÁC cột mã (mã phiếu, mã BN); cột SĐT chỉ xét khi nhập từ 6 số.
+     * - Nhập chữ: tìm chứa (không phân biệt hoa thường và dấu) trong các cột văn bản được chỉ định.
+     * Không còn quét toàn bộ cột nên "6" không khớp nhầm mã NV, ngày khám hay STT.
+     */
+    private static void filter(TableRowSorter<DefaultTableModel> sorter, String text,
+            int[] idColumns, int[] textColumns, int[] phoneColumns) {
         String query = text == null ? "" : text.trim();
-        sorter.setRowFilter(query.isEmpty() ? null
-                : RowFilter.regexFilter("(?iu)" + Pattern.quote(query)));
+        if (query.isEmpty()) {
+            sorter.setRowFilter(null);
+            return;
+        }
+        final boolean digits = query.chars().allMatch(Character::isDigit);
+        final String id = query.replaceFirst("^0+(?!$)", "");
+        final String folded = fold(query);
+        sorter.setRowFilter(new RowFilter<DefaultTableModel, Integer>() {
+            @Override public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> entry) {
+                if (digits) {
+                    for (int column : idColumns) {
+                        if (String.valueOf(entry.getValue(column)).trim().equals(id)) return true;
+                    }
+                    if (query.length() >= 6) {
+                        for (int column : phoneColumns) {
+                            String phone = String.valueOf(entry.getValue(column)).replaceAll("\\D", "");
+                            if (phone.contains(query)) return true;
+                        }
+                    }
+                    for (int column : textColumns) {
+                        if (fold(String.valueOf(entry.getValue(column))).contains(folded)) return true;
+                    }
+                    return false;
+                }
+                for (int column : textColumns) {
+                    if (fold(String.valueOf(entry.getValue(column))).contains(folded)) return true;
+                }
+                return false;
+            }
+        });
+    }
+
+    /** Bỏ dấu tiếng Việt và hạ chữ thường để tìm kiếm không phụ thuộc dấu. */
+    private static String fold(String value) {
+        String plain = Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .replace('đ', 'd').replace('Đ', 'D');
+        return plain.toLowerCase(Locale.ROOT);
     }
 
     private static final class SearchListener implements javax.swing.event.DocumentListener {
@@ -1364,7 +1543,13 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
 
     /** Ô tìm kiếm bo tròn có nền xám nhạt, biểu tượng kính lúp và chữ gợi ý. */
     private static final class SearchField extends JTextField {
-        private final String prompt;
+        private String prompt;
+
+        void setPrompt(String value) {
+            prompt = value;
+            setToolTipText(value);
+            repaint();
+        }
 
         SearchField(String prompt) {
             this.prompt = prompt;
