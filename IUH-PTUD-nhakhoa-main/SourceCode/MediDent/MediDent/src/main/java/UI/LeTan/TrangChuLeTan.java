@@ -88,6 +88,8 @@ import javax.swing.table.TableRowSorter;
  * - Mã phiếu, Mã BN, Mã NV (cả tiêu đề cột và dữ liệu) căn giữa.
  * - Trang luôn vừa khít khung nhìn (implements Scrollable), không cuộn cả trang;
  *   chỉ từng bảng có thanh cuộn riêng.
+ * - Hàng "Phòng khám" (trái) + nút "Tiếp nhận / Cấp số" (phải) dùng GridBagLayout,
+ *   cùng một hàng và căn giữa theo chiều dọc.
  */
 public final class TrangChuLeTan extends JPanel implements Scrollable {
 
@@ -424,14 +426,18 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
         panel.setMinimumSize(new Dimension(330, 320));
         JPanel top = new JPanel(new BorderLayout(0, 12));
         top.setOpaque(false);
-        top.add(sectionTitle("Tiếp nhận bệnh nhân", "Chọn bệnh nhân, cấp số và phân phòng khám",
-                benhNhanCount), BorderLayout.NORTH);
+        JPanel receptionHeader = new JPanel();
+        receptionHeader.setOpaque(false);
+        receptionHeader.setLayout(new BoxLayout(receptionHeader, BoxLayout.Y_AXIS));
+        JPanel receptionTitle = sectionTitle("Tiếp nhận bệnh nhân", "Chọn bệnh nhân, cấp số và phân phòng khám",
+                benhNhanCount);
+        receptionTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        receptionHeader.add(receptionTitle);
+        receptionHeader.add(Box.createVerticalStrut(10));
+
         JTextField search = search("Tìm họ tên, mã bệnh nhân, số điện thoại...");
         search.getDocument().addDocumentListener(new SearchListener(() ->
                 filter(benhNhanSorter, search.getText())));
-        top.add(search, BorderLayout.SOUTH);
-        panel.add(top, BorderLayout.NORTH);
-        panel.add(scrollTable(benhNhanTable), BorderLayout.CENTER);
         benhNhanTable.addMouseListener(new MouseAdapter() {
             @Override public void mouseClicked(MouseEvent event) {
                 if (event.getClickCount() == 2) showPatientDetail();
@@ -461,23 +467,68 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
         info.add(chonBenhNhan, BorderLayout.CENTER);
         info.setAlignmentX(Component.LEFT_ALIGNMENT);
         info.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
-        controls.add(info);
-        controls.add(Box.createVerticalStrut(10));
 
+        // ----- Hàng: Phòng khám (trái) | Tiếp nhận / Cấp số (phải) -----
         phongChon.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         phongChon.setBackground(Color.WHITE);
-        phongChon.setPreferredSize(new Dimension(122, 36));
-        JPanel roomBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
-        roomBox.setOpaque(false);
-        roomBox.add(label("Phòng khám", 12, true));
-        roomBox.add(phongChon);
-        JPanel actionRow = new JPanel(new BorderLayout(10, 0));
-        actionRow.setOpaque(false);
-        actionRow.add(roomBox, BorderLayout.WEST);
-        actionRow.add(tiepNhanButton, BorderLayout.EAST);
-        actionRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        actionRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        controls.add(actionRow);
+        Dimension comboSize = new Dimension(122, 36);
+        phongChon.setPreferredSize(comboSize);
+        phongChon.setMinimumSize(comboSize);
+        phongChon.setMaximumSize(comboSize);
+
+        Dimension buttonSize = new Dimension(150, 36);
+        tiepNhanButton.setPreferredSize(buttonSize);
+        tiepNhanButton.setMinimumSize(buttonSize);
+        tiepNhanButton.setMaximumSize(buttonSize);
+
+        // Bên trái: nhãn + ô chọn phòng.
+        JPanel roomGroup = new JPanel();
+        roomGroup.setOpaque(false);
+        roomGroup.setLayout(new BoxLayout(roomGroup, BoxLayout.X_AXIS));
+        roomGroup.add(label("Phòng khám", 12, true));
+        roomGroup.add(Box.createHorizontalStrut(8));
+        roomGroup.add(phongChon);
+
+        // Một hàng: trái = phòng khám, phải = nút tiếp nhận, cùng căn giữa theo chiều dọc.
+        JPanel roomAndReceiveRow = new JPanel(new GridBagLayout());
+        roomAndReceiveRow.setOpaque(false);
+        roomAndReceiveRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        roomAndReceiveRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+
+        // Cột 0: Phòng khám, sát mép trái, không giãn.
+        GridBagConstraints c0 = new GridBagConstraints();
+        c0.gridx = 0;
+        c0.gridy = 0;
+        c0.weightx = 0;
+        c0.anchor = GridBagConstraints.WEST;
+        roomAndReceiveRow.add(roomGroup, c0);
+
+        // Cột 1: khoảng trống co giãn, đẩy nút sang phải.
+        GridBagConstraints c1 = new GridBagConstraints();
+        c1.gridx = 1;
+        c1.gridy = 0;
+        c1.weightx = 1;
+        c1.fill = GridBagConstraints.HORIZONTAL;
+        roomAndReceiveRow.add(Box.createHorizontalGlue(), c1);
+
+        // Cột 2: nút Tiếp nhận / Cấp số, sát mép phải, không giãn.
+        GridBagConstraints c2 = new GridBagConstraints();
+        c2.gridx = 2;
+        c2.gridy = 0;
+        c2.weightx = 0;
+        c2.anchor = GridBagConstraints.EAST;
+        roomAndReceiveRow.add(tiepNhanButton, c2);
+
+        // Đưa hàng chọn phòng/nút tiếp nhận lên trên ô tìm kiếm.
+        search.setAlignmentX(Component.LEFT_ALIGNMENT);
+        receptionHeader.add(roomAndReceiveRow);
+        receptionHeader.add(Box.createVerticalStrut(10));
+        receptionHeader.add(search);
+        top.add(receptionHeader, BorderLayout.NORTH);
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(scrollTable(benhNhanTable), BorderLayout.CENTER);
+
+        controls.add(info);
         controls.add(Box.createVerticalStrut(9));
         trangThai.setAlignmentX(Component.LEFT_ALIGNMENT);
         controls.add(trangThai);
@@ -604,6 +655,23 @@ public final class TrangChuLeTan extends JPanel implements Scrollable {
                 if (previouslyAssigned != null) {
                     throw new SQLException("Bệnh nhân đã được tiếp nhận hôm nay, số khám: "
                             + String.format("%03d", previouslyAssigned));
+                }
+
+                // Giới hạn tối đa 20 bệnh nhân được tiếp nhận vào mỗi phòng trong ngày.
+                try (PreparedStatement statement = connection.prepareStatement(
+                        "SELECT COUNT(*) FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
+                        + "WHERE ngayHen=? AND phongKham=? AND soThuTuKham IS NOT NULL "
+                        + "AND trangThai NOT IN (N'Đã hủy')")) {
+                    statement.setDate(1, today);
+                    statement.setString(2, room);
+                    try (ResultSet result = statement.executeQuery()) {
+                        result.next();
+                        int roomPatientCount = result.getInt(1);
+                        if (roomPatientCount >= 20) {
+                            throw new SQLException("Phòng " + room
+                                    + " đã đủ 20 bệnh nhân trong hôm nay. Vui lòng chọn phòng khác.");
+                        }
+                    }
                 }
 
                 int queue = 1;
