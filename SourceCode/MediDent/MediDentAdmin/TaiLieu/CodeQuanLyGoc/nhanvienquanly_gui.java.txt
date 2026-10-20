@@ -1,0 +1,17 @@
+package UI.QuanLy;
+
+import java.awt.BorderLayout;
+
+import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+
+import Class.TaiKhoan;
+import DAO.KhoDuLieu;
+
+public class nhanvienquanly_gui extends JPanel{
+    private nhanvienquanly_gui() { }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(BenhNhanGUI::new);
+    }
+    
+}
