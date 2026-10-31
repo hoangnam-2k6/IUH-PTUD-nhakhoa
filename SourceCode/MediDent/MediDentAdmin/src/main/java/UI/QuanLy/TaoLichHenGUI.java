@@ -35,12 +35,15 @@ public final class TaoLichHenGUI {
                 start.getTime(), null, null, Calendar.MINUTE));
         gio.setEditor(new JSpinner.DateEditor(gio, "HH:mm"));
         ((JSpinner.DefaultEditor)gio.getEditor()).getTextField().setEditable(false);
+        JSpinner thoiLuong = new JSpinner(new SpinnerNumberModel(
+                QuanLyDAO.THOI_LUONG_LICH_MAC_DINH_PHUT, 15, 240, 15));
         JComboBox<String> phong=BieuMau.trangThai("Phòng 01","Phòng 02","Phòng 03");
         JTextField lyDo=BieuMau.text("");
         BieuMau.them(f,"Bệnh nhân *",benhNhan);
         BieuMau.them(f,"Nhân viên/bác sĩ phụ trách *",nhanVien);
         BieuMau.them(f,"Ngày hẹn (tự điền, chọn qua lịch) *",ngay);
         BieuMau.them(f,"Giờ hẹn (tự điền, chọn giờ) *",gio);
+        BieuMau.them(f,"Thời lượng (phút) *",thoiLuong);
         BieuMau.them(f,"Phòng",phong);
         BieuMau.them(f,"Lý do khám",lyDo);
         // Nếu chọn thời gian bị lỗi, giữ nguyên mọi ô đã nhập để sửa tiếp.
@@ -58,7 +61,7 @@ public final class TaoLichHenGUI {
                 if (date == null || date.isBefore(LocalDate.now())
                         || (date.equals(LocalDate.now()) && !time.isAfter(LocalTime.now())))
                     throw new IllegalArgumentException("Ngày và giờ hẹn phải ở tương lai.");
-                dao.taoLichHen(b.id, n.id, date, time,
+                dao.taoLichHen(b.id, n.id, date, time, (Integer) thoiLuong.getValue(),
                         (String) phong.getSelectedItem(), lyDo.getText(), actor);
                 JOptionPane.showMessageDialog(parent, "Đã tạo lịch hẹn trên SQL Server.");
                 taiLai.run();
