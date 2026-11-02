@@ -1,0 +1,49 @@
+MEDIDENT | DANH MỤC CODE VÀ PHÂN QUYỀN
+
+MÃ NGUỒN: Java 17 + Maven + SQL Server 2012+
+Nguồn làm việc: bản MEDIDENT 3 vai trò gần nhất, giữ thư mục Class/DAO/ConnectDB/UI.
+
+1. QUẢN TRỊ VIÊN (đăng nhập và xác thực từ SQL)
+UI/DangNhap/DangNhap.java        Ảnh phòng khám trái / form bên phải, quên mật khẩu.
+UI/QuanTriVien/TrangChuQuanTriVien.java     KPI tổng quan.
+UI/QuanTriVien/QuanLyTaiKhoan.java        Thêm, sửa, tạm khóa, xóa an toàn và reset.
+UI/QuanTriVien/QuanLyPhanQuyen.java      Chỉnh quyền theo vai trò.
+UI/QuanTriVien/QuanTriHeThong.java       Đọc/lưu cấu hình hệ thống.
+UI/QuanTriVien/DuyetHuyPhieuThu.java    Duyệt/từ chối yêu cầu hủy.
+UI/QuanTriVien/BaoCaoHeThongAdmin.java   Báo cáo và xuất CSV.
+UI/Chung/HoTroPage.java                 Phản hồi/tiếp nhận yêu cầu hỗ trợ.
+
+2. QUẢN LÝ PHÒNG KHÁM
+UI/QuanLy/*                    Nghiệp vụ bệnh nhân, nhân viên, dịch vụ, lịch, hóa đơn,
+                               báo cáo; quyền được lọc theo tài khoản ở DAO và SQL.
+
+3. LỄ TÂN
+UI/LeTan/TrangChuLeTan.java    Tra cứu, tiếp nhận, cấp số khám; kiểm tra quyền tại SQL.
+
+4. TẦNG DỮ LIỆU VÀ KIỂM TRA
+Class/ThucThe/*.java             27 Java entity tương ứng 27 bảng SQL, kiểu DATE/TIME chuẩn.
+DAO/ThucThe/*DAO.java            27 DAO chỉ đọc theo entity, bắt buộc truyền mã tài khoản
+                                 và xác thực quyền SQL. KHÔNG tự cung cấp API ghi bỏ qua nghiệp vụ.
+DAO/KhoDuLieu.java               Giao dịch, tài khoản, phân quyền, cấu hình, xác thực.
+DAO/QuanLyDAO.java               Ghi bệnh nhân, nhân viên, lịch... có transaction và kiểm tra quyền.
+TienIch/EmailHopLe.java          Kiểm tra email theo các domain đã cho phép.
+TienIch/SoDienThoaiHopLe.java    Số di động VN, quy đổi +84 về 0.
+TienIch/MatKhauHopLe.java        Chính sách >= 10 ký tự, tối đa 72, phải có chữ hoa và số.
+UI/Chung/NgayChon.java           Ngày sinh: không tương lai, tối đa 100 năm.
+UI/Chung/NgayHenChon.java        Chọn ngày hẹn bằng lịch tháng, không chọn ngày quá khứ.
+UI/Chung/GiaoDien.java           Single Color Theme dùng chung.
+
+5. NGUYÊN TẮC
+- Hàm mới đặt tên tiếng Việt không dấu theo camelCase, ví dụ layDanhSach, timTheoMa.
+- Hàm cũ giữ tên và chữ ký cần thiết để không làm hỏng lời gọi đang tồn tại.
+- Chỉ Admin được truy cập menu quản trị; không cấp quyền tạo bệnh nhân trực tiếp trên menu Admin.
+- Không để nhật ký chứa mật khẩu thô; BCrypt dùng cho mật khẩu lưu tại DB.
+- Để riêng Entity và DAO chỉ đọc; ghi dữ liệu bắt buộc qua DAO nghiệp vụ.
+- SĐT/email/ngày kiểm tra ở UI và DAO, constraint mới ở SQL để giảm bỏ lọt.
+- Mật khẩu reset cấp ngẫu nhiên, hiển thị đúng một lần và buộc thay đổi sau đăng nhập.
+
+6. GIỚI HẠN KIỂM THỬ
+Đã biên dịch tất cả mã Java để kiểm tra cú pháp Java 17.
+Đã chạy kiểm thử nhập liệu độc lập với SQL.
+CHƯA kết nối được cơ sở dữ liệu SQL Server thật và chưa kiểm thử E2E trên Windows/Eclipse.
+Trước khi đưa vào sử dụng, sao lưu DB, kiểm thử đăng nhập 3 vai trò và các nghiệp vụ ghi/đọc.

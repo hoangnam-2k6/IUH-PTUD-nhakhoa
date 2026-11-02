@@ -1,4 +1,4 @@
-package UI.QuanLy;
+ package UI.QuanLy;
 
 import DAO.QuanLyDAO;
 import UI.Chung.BieuTuong;
@@ -48,8 +48,13 @@ abstract class VanHanhPage extends JPanel {
         JPanel page = GiaoDien.trang(title, description);
         add(GiaoDien.cuon(page), BorderLayout.CENTER);
 
-        JPanel toolbar = GiaoDien.card(new BorderLayout(10, 0));
+        // Thanh công cụ chia thành hai hàng để ô tìm kiếm không tranh chiều rộng
+        // với nhóm nút. Trước đây WEST/EAST + FlowLayout có thể làm FlowLayout
+        // tự xuống hàng nhưng toolbar vẫn giữ chiều cao một hàng, khiến nút cuối
+        // bị cắt ở các cửa sổ hẹp.
+        JPanel toolbar = GiaoDien.card(new BorderLayout(0, 10));
         toolbar.setAlignmentX(LEFT_ALIGNMENT);
+
         JTextField search = GiaoDien.text("");
         search.setToolTipText("Tìm trong các cột của bảng");
         search.setPreferredSize(new Dimension(250, 38));
@@ -57,11 +62,26 @@ abstract class VanHanhPage extends JPanel {
         searchPanel.setOpaque(false);
         searchPanel.add(GiaoDien.label("Tìm nhanh", 11, true), BorderLayout.NORTH);
         searchPanel.add(search, BorderLayout.CENTER);
-        toolbar.add(searchPanel, BorderLayout.WEST);
+        searchPanel.setPreferredSize(new Dimension(280, 58));
+        toolbar.add(searchPanel, BorderLayout.NORTH);
 
-        nut = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        // Giữ các nút trên một hàng. Khi chiều rộng cửa sổ không đủ,
+        // người dùng cuộn ngang thay vì để nút rơi xuống hàng rồi bị che.
+        nut = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         nut.setOpaque(false);
-        toolbar.add(nut, BorderLayout.EAST);
+        JScrollPane actionScroll = new JScrollPane(
+                nut,
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER,
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        );
+        actionScroll.setBorder(BorderFactory.createEmptyBorder());
+        actionScroll.setOpaque(false);
+        actionScroll.getViewport().setOpaque(false);
+        actionScroll.getHorizontalScrollBar().setUnitIncrement(24);
+        actionScroll.setPreferredSize(new Dimension(760, 58));
+        actionScroll.setMinimumSize(new Dimension(100, 58));
+        toolbar.add(actionScroll, BorderLayout.CENTER);
+
         page.add(toolbar);
         page.add(Box.createVerticalStrut(14));
 
@@ -132,6 +152,7 @@ abstract class VanHanhPage extends JPanel {
         nutChucNang.add(button);
         nut.add(button);
         nut.revalidate();
+        nut.repaint();
     }
 
     /**

@@ -1,0 +1,25 @@
+MEDIDENTADMIN – BÁO CÁO KIỂM TRA BẢN HỢP NHẤT
+Ngày tạo: 02/11/2026
+
+Kết quả:
+- 104 tệp .java trong src/main/java và src/test/java.
+- Biên dịch ngoại tuyến bằng javac --release 17: PASS.
+- Số tệp .class sinh ra: 167.
+- ZIP kiểm tra cấu trúc: sẽ được kiểm tra sau khi đóng gói.
+
+Lưu ý kiểm thử:
+- Biên dịch sử dụng BCrypt stub để xác nhận cú pháp/kiểu và phụ thuộc giữa class; không kiểm thử hash BCrypt thật.
+- Không có Maven trong môi trường, vì vậy chưa chạy mvn clean package.
+- Chưa kết nối SQL Server thực tế; các migration 13/14/15 chưa được thực thi trên database của người dùng.
+- SQL 15 là script chỉ đọc; không dùng thay cho migration.
+
+Các phần giữ lại từ source hiện có:
+- VanHanhPage: toolbar hai hàng + cuộn ngang các nút, đồng thời nhận các cải tiến chọn dòng theo khóa chính/tự tải lại/bangVuaKhung từ source mới.
+- TrangChuQuanLy: tải Dashboard nền bằng SwingWorker; DAO có DuLieuDashboard/duLieuDashboard tương thích.
+- SQLData/01_MediDent.sql: trangThaiHoSo, thoiLuongPhut, ngayThanhToan nullable.
+- db.properties: giữ cấu hình hiện có, người dùng cần kiểm tra theo máy.
+
+Các phần lấy từ source mới:
+- QuanLyDAO: dời lịch, phân công/đổi bác sĩ, kiểm tra khoảng giờ/phòng, thanh toán bằng khóa UPDLOCK/HOLDLOCK, rowversion, lịch sử giá và danh mục phòng.
+- UI cập nhật: LichHenGUI, TaoLichHenGUI, NhanVienGUI, DichVuGUI, TrangChuLeTan, QuanTriHeThong, GiaoDien và BaoCaoDuLieuDAO.
+- SQL migrations: 13_DanhMucPhong..., 14_DongBo..., 15_KiemTra...

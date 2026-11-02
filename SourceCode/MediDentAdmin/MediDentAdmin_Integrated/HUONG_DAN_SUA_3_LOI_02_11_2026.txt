@@ -1,0 +1,52 @@
+MEDIDENT - SUA 3 LOI: DOI LICH, PHAN CONG BAC SI, TAO THANH TOAN
+=============================================================
+
+1. FILE DA SUA
+   src/main/java/DAO/QuanLyDAO.java
+   Cac phan con lai trong du an giu nguyen.
+
+2. LOI DOI LICH VA PHAN CONG BAC SI
+   Truoc day: SQL so sanh gioBatDau/gioKetThuc voi tham so TIME,
+   co the bao: The data types time and datetime are incompatible...
+   Moi: CAST ro ve TIME o hai ve so sanh (tuong thich TIME va DATETIME).
+   Dong thoi so sanh lich trung gio dua tren gio TIME chuan hoa.
+   KHONG bo kiem tra ca bac si, trang thai lich, lich trung gio.
+
+   LUU Y: neu nguoi dung chon lich ngay 01/11/2026 trong khi ngay hien tai
+   da la 02/11/2026, khong the chon NGAY MOI trong qua khu. Can chon
+   lich/ca tuong lai va bac si dang lam viec co ca DA XEP LICH.
+
+3. LOI TAO THANH TOAN
+   Truoc day: sp_getapplock tra ve ma loi, UI bao khong khoa duoc phieu.
+   Moi: SELECT PhieuKham WITH (UPDLOCK,HOLDLOCK) trong transaction,
+   ngan hai quay tao cung luc cho cung maPK. Khi chua co PhieuKham:
+   bao loi ro thay vi loi khoa.
+   Khi giao dich CHUYEN KHOAN/THE, khong chen NULL vao ngayThanhToan
+   (CSDL hien tai bat buoc NOT NULL). Van de trang thai 'Cho xu ly';
+   xac nhan thuc thu sau khi doi soat moi chuyen sang 'Da thanh toan'.
+
+4. CACH THAY VA CHAY
+   - Sao luu du an + CSDL.
+   - Giai nen du an .zip, import Existing Maven Projects trong Eclipse.
+   - Dung Java 17 va cau hinh db.properties theo may.
+   - Project > Clean; Maven > Update Project; chay lai.
+   - Khong can ALTER TABLE cho 3 thay doi Java nay neu da chay SQL 14.
+   - Neu can xem du lieu thuc: chay SQLData/15_KiemTra_Lich_ThanhToan_CHI_DOC_SQL2012.sql.
+     SQL 15 chi SELECT, KHONG update, khong xoa CSDL.
+
+5. KIEM THU
+   A. Doi lich: Chon lich CHO XAC NHAN/DA XAC NHAN cua ngay tuong lai,
+      chon ngay/gio moi nam trong ca bac si, khong trung -> tai lai danh sach.
+   B. Phan cong: Chon lich 'Cho phan cong', bac si co ca tuong ung,
+      bam Phan cong -> maNV duoc luu dung trong SQL.
+   C. Thanh toan: Chon phieu kham co ChiTietDieuTri thanhTien > 0.
+      Bam Tao thanh toan 1 lan -> chi 1 dong ThanhToan va 1 dong HoaDon.
+      Chuyen khoan phai o 'Cho xu ly/Cho thanh toan' den khi xac nhan tien.
+   D. Kiem tra phieu da thanh toan: tao lai phai bao 'da co khoan thanh toan'
+      va KHONG tao phieu trung.
+
+6. PHAM VI DA KIEM CHUNG
+   - Java 17: da bien dich cu phap thanh cong voi stub BCrypt ngoai du an.
+   - SQL Server that: CHUA chay tren DB cua nguoi dung.
+   - Neu van co loi, can gui full SQL error + ket qua script SQL 15
+     de xac minh kieu cot va du lieu ca truc/chi tiet dieu tri.

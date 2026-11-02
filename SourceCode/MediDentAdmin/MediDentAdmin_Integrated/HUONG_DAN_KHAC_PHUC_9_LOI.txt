@@ -1,0 +1,58 @@
+MEDIDENT - HUONG DAN SUA 9 LOI NGAY 02/11/2026
+==================================================
+
+PHAM VI: chi sua code Java / SQL, khong them vai tro dang nhap moi.
+* Vai tro Quản lý phòng khám VAN GIU (mot trong 3 role dang nhap).
+* Menu Phòng khám / Quản lý phòng khám duoc bo. Bang PhongKham trong SQL
+  van GIU vi tao lich va tiep nhan can danh muc phong chung.
+
+CAI DAT TREN MAY CUA BAN
+1) Sao luu file du an cu va BACKUP database MediDent tren SQL Server.
+2) Dung ban ZIP du an da sua; Eclipse: Import > Existing Maven Projects.
+3) Kiem tra src/main/resources/db.properties: dia chi SQL, username, password.
+4) Trong SSMS chon database MediDent, mo va chay:
+   SQLData/14_DongBo_CSDL_LoiNhapLieu_SQL2012.sql
+   Script nay bo sung cac cot con thieu; KHONG XOA benh nhan / lich / hoa don.
+   Nhan F5 va kiem tra ket qua tat ca cot co TrangThai = Co.
+5) Chay Project > Clean va Maven > Update Project, sau do khoi dong lai app.
+   KHONG chay lai DataAll.sql tren database dang co du lieu.
+
+CAC LOI DA SUA
+01 - Bo menu Phong kham bo sung; giu role Quản lý.
+02 - Bang Dich vu nha khoa trai het chieu ngang khung, co auto resize.
+03 - Luu dich vu: SQL14 tao thoiDiemApDung, giu lich su gia.
+04 - Chon dong STT: theo maPK (maDV, maBN, maNV, maLichHen, maHD),
+     khong theo thu tu dong; an toan sau sort / filter.
+05 - BenhNhan.trangThaiHoSo: SQL14 bo sung cot và mac dinh Hoat dong.
+06 - Doi trang thai lich hen: chi hien cac trang thai tien tiep hop le.
+07 - Doi lich: SQL14 bo sung LichHen.thoiLuongPhut (mac dinh 60 phut).
+08 - Phan cong / doi bac si: giu dung trang thai lich tuong lai,
+     chi cho chon bac si co ca lam viec hop le, bao loi ro rang.
+09 - Tao lich: SQL14 dong bo PhongKham, thoiLuongPhut, kiem tra thoi
+     gian theo KHOANG va suc chua phong thay vi chan moi lich chung phong.
+
+BAT BUOC TRUOC KHI TAO LICH
+A) Mo menu Nhan vien: co nhan vien chucVu='Bác sĩ', trangThai='Đang làm việc'.
+   Bác sĩ la CHUC VU NHAN SU, KHONG PHAI VAI TRO DANG NHAP.
+B) Mo menu Lich lam viec: them ca cho bac si va NGAY HEN se chon.
+   Vi du hen 09:00-10:00 -> ca 08:00-12:00, trangThai='Đã xếp lịch'.
+C) Chon ngay tuong lai, gio thuoc ca, thoi luong 15-240 phut,
+   phong hoat dong va con suc chua; khong trung khoang voi bac si/BN.
+D) Neu khong co bac si/ca phu hop, he thong tu choi (dung nghiep vu),
+   khong duoc tu tao ca gia de dat lich cho thanh cong.
+
+KIEM TRA LAI TREN SQL THUC TE
+- Sort cot Ten dich vu, chon dong dau -> Ngung ap dung, doi chieu maDV.
+- Sort bang Benh nhan, chon dong dau -> Ngung ho so, doi chieu maBN.
+- Them/sua dich vu -> du lieu dbo.DichVu + dbo.BangGiaDichVu.
+- Mo benh nhan -> khong con Invalid column name 'trangThaiHoSo'.
+- Tao lich, doi trang thai, doi lich, doi bac si: kiem tra dbo.LichHen
+  maLichHen, maBN, maNV, thoiLuongPhut, phongKham, trangThai truoc/sau.
+- Khi bi bao loi, chup anh va copy noi dung SQL/exception de truy vet.
+
+GIOI HAN KIEM TRA
+- Da compile javac --release 17 offline; BCrypt stub de compile CHI NAM
+  O NGOAI file ban giao, KHONG DUNG KHI CHAY APP.
+- Da thu chon dong sau sap xep: chon Alpha ma SQL 7 dung.
+- Chua the ket noi SQL Server tren may ban nen chua khang dinh 9/9
+  nghiep vu da PASS tren database thuc te.
