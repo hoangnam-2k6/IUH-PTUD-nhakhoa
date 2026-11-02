@@ -1,0 +1,6 @@
+# Copy thanh db.properties o thu muc goc project MediDent.
+# Ket noi SQL Server local tu ky (chi dung cho lab):
+db.url=jdbc:sqlserver://localhost:1433;databaseName=MediDent;encrypt=true;trustServerCertificate=true;loginTimeout=8
+db.user=CHANGE_ME
+db.password=CHANGE_ME
+# Moi truong production: chung chi server hop le; trustServerCertificate=false
