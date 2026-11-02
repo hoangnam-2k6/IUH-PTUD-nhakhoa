@@ -15,6 +15,7 @@ public final class ThanhToanGUI extends VanHanhPage {
                 "Phương thức", "Trạng thái", "Mã thanh toán");
         actor=user.id;
         themNut("Tạo thanh toán",true,BieuTuong.Loai.THEM,()->tao());
+        themNut("Xác nhận thực thu",false,BieuTuong.Loai.SUA,()->xacNhanThucThu());
         themNut("Yêu cầu hủy",false,BieuTuong.Loai.HUY,()->huy());
         nap(dao::hoaDon);
     }
@@ -29,9 +30,39 @@ public final class ThanhToanGUI extends VanHanhPage {
         if(item==null)throw new IllegalArgumentException("Chưa có phiếu khám trong CSDL.");
         BigDecimal value=dao.soTienPhieuKham(item.id);
         if(value.signum()<=0)throw new IllegalArgumentException("Phiếu khám chưa có chi tiết điều trị có tiền.");
-        if(JOptionPane.showConfirmDialog(this,"Xác nhận thu "+value.toPlainString()+" đ?",
+        String method = (String) pt.getSelectedItem();
+        String confirmText = "Tiền mặt".equals(method)
+                ? "Xác nhận đã nhận đủ " + value.toPlainString() + " đ tiền mặt?"
+                : "Tạo khoản chờ xác minh " + value.toPlainString() + " đ bằng " + method + "?";
+        if(JOptionPane.showConfirmDialog(this,confirmText,
                 "Xác nhận",JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION)return;
-        dao.taoThanhToan(item.id,(String)pt.getSelectedItem(),actor);
+        dao.taoThanhToan(item.id,method,actor);
+        taiLai();
+    }
+
+    /** Xác nhận khoản chuyển khoản/thẻ sau khi đối chiếu tiền thực nhận. */
+    private void xacNhanThucThu() throws Exception {
+        QuanLyDAO.Hang invoice = daChon();
+        if (invoice == null) return;
+        String maTT = invoice.cot[6];
+        if (!"Chờ thanh toán".equalsIgnoreCase(invoice.cot[5])) {
+            JOptionPane.showMessageDialog(this,
+                    "Chỉ xác nhận thực thu cho hóa đơn đang Chờ thanh toán.");
+            return;
+        }
+        String reference = JOptionPane.showInputDialog(this,
+                "Nhập mã giao dịch hoặc mã xác nhận thực nhận cho thanh toán #" + maTT + ":",
+                "Xác nhận thực thu", JOptionPane.QUESTION_MESSAGE);
+        if (reference == null) return;
+        if (reference.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this,"Phải nhập mã giao dịch để đối soát.");
+            return;
+        }
+        if (JOptionPane.showConfirmDialog(this,
+                "Bạn đã đối chiếu và xác nhận đã thực nhận khoản tiền này?",
+                "Xác nhận thực thu",JOptionPane.YES_NO_OPTION,JOptionPane.WARNING_MESSAGE)
+                != JOptionPane.YES_OPTION) return;
+        dao.xacNhanThucThu(Integer.parseInt(maTT), reference, actor);
         taiLai();
     }
     /**

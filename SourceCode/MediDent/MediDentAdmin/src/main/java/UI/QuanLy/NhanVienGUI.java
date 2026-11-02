@@ -15,11 +15,11 @@ public final class NhanVienGUI extends VanHanhPage {
         actor=user.id;
         themNut("Thêm nhân viên",true,BieuTuong.Loai.THEM,()->form(0,null));
         themNut("Sửa",false,BieuTuong.Loai.SUA,()->{QuanLyDAO.Hang r=daChon();if(r!=null)form(r.id,r.cot);});
-        themNut("Xóa",false,BieuTuong.Loai.XOA,()->{
+        themNut("Cho nghỉ việc",false,BieuTuong.Loai.HUY,()->{
             QuanLyDAO.Hang r=daChon();if(r==null)return;
-            if(JOptionPane.showConfirmDialog(this,"Xóa nhân viên #"+r.id
-                    +"? Nếu có dữ liệu liên quan SQL sẽ từ chối.",
-                    "Xác nhận",JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION)return;
+            if(JOptionPane.showConfirmDialog(this,"Cho nhân viên #"+r.id+" nghỉ việc? "
+                    +"Bạn cần chuyển các lịch hẹn và xử lý ca tương lai trước.",
+                    "Xác nhận nghỉ việc",JOptionPane.YES_NO_OPTION)!=JOptionPane.YES_OPTION)return;
             dao.xoaNhanVien(r.id,actor);
             taiLai();
         });

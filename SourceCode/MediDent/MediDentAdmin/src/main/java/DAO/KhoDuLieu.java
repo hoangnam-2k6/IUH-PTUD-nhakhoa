@@ -351,7 +351,9 @@ public class KhoDuLieu {
                             "INSERT INTO dbo.NhanVien(hoTen,email,chucVu,trangThai,maTK,ngaySinh) VALUES(?,?,?,?,?,?)",
                             Statement.RETURN_GENERATED_KEYS)) {
                         s.setString(1,name);s.setString(2,email);s.setString(3,tenVaiTro);
-                        s.setString(4,"Hoạt động".equals(status)?"Đang làm việc":"Ngừng làm việc");
+                        // Trạng thái tài khoản đăng nhập và tình trạng nhân sự là hai khái niệm độc lập.
+                        // Tài khoản có thể tạm khóa nhưng nhân viên vẫn đang làm việc.
+                        s.setString(4,"Đang làm việc");
                         s.setInt(5,accountId);
                         if (ngaySinh == null) s.setNull(6,Types.DATE);
                         else s.setDate(6,java.sql.Date.valueOf(ngaySinh));
@@ -363,12 +365,11 @@ public class KhoDuLieu {
                     }
                 } else {
                     try(PreparedStatement s=c.prepareStatement(
-                            "UPDATE dbo.NhanVien SET hoTen=?,email=?,chucVu=?,trangThai=?,ngaySinh=COALESCE(?,ngaySinh) WHERE maNV=?")) {
+                            "UPDATE dbo.NhanVien SET hoTen=?,email=?,chucVu=?,ngaySinh=COALESCE(?,ngaySinh) WHERE maNV=?")) {
                         s.setString(1,name);s.setString(2,email);s.setString(3,tenVaiTro);
-                        s.setString(4,"Hoạt động".equals(status)?"Đang làm việc":"Ngừng làm việc");
-                        if (ngaySinh == null) s.setNull(5,Types.DATE);
-                        else s.setDate(5,java.sql.Date.valueOf(ngaySinh));
-                        s.setInt(6,staffId);s.executeUpdate();
+                        if (ngaySinh == null) s.setNull(4,Types.DATE);
+                        else s.setDate(4,java.sql.Date.valueOf(ngaySinh));
+                        s.setInt(5,staffId);s.executeUpdate();
                     }
                 }
                 dongBoPhanLoai(c,staffId,tenVaiTro);

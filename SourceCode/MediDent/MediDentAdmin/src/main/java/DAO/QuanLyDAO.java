@@ -11,9 +11,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
+import java.sql.Types;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.DayOfWeek;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -22,6 +26,11 @@ import java.util.List;
  * Mọi thao tác ghi đều kiểm tra quyền tài khoản từ CSDL, không tin vào nút UI.
  */
 public final class QuanLyDAO {
+
+    /** Thời lượng mặc định cho form cũ chưa có trường chọn thời lượng. Có thể đổi qua overload. */
+    public static final int THOI_LUONG_LICH_MAC_DINH_PHUT = 60;
+    private static final int THOI_LUONG_LICH_TOI_THIEU_PHUT = 15;
+    private static final int THOI_LUONG_LICH_TOI_DA_PHUT = 240;
 
     /** ID SQL được giữ tách biệt khỏi STT hiển thị trên JTable. */
     public static final class Hang {
@@ -36,6 +45,36 @@ public final class QuanLyDAO {
         public final String ten;
         public LuaChon(int id, String ten) { this.id = id; this.ten = ten; }
         @Override public String toString() { return ten; }
+    }
+
+    /** Dữ liệu đầy đủ của một lịch hẹn để mở form dời lịch mà không dựa vào text JTable. */
+    public static final class ThongTinLichHen {
+        public final int maBN;
+        public final Integer maNV;
+        public final LocalDate ngay;
+        public final LocalTime gio;
+        public final int thoiLuongPhut;
+        public final String phong, lyDo, trangThai;
+        public ThongTinLichHen(int maBN, Integer maNV, LocalDate ngay, LocalTime gio,
+                int thoiLuongPhut, String phong, String lyDo, String trangThai) {
+            this.maBN = maBN; this.maNV = maNV; this.ngay = ngay; this.gio = gio;
+            this.thoiLuongPhut = thoiLuongPhut; this.phong = phong;
+            this.lyDo = lyDo; this.trangThai = trangThai;
+        }
+    }
+
+    /** Dữ liệu đầy đủ của một ca làm việc để mở form sửa. */
+    public static final class ThongTinLichLamViec {
+        public final int maNV;
+        public final LocalDate ngay;
+        public final String ca, trangThai;
+        public final LocalTime gioBatDau, gioKetThuc;
+        public ThongTinLichLamViec(int maNV, LocalDate ngay, String ca,
+                LocalTime gioBatDau, LocalTime gioKetThuc, String trangThai) {
+            this.maNV = maNV; this.ngay = ngay; this.ca = ca;
+            this.gioBatDau = gioBatDau; this.gioKetThuc = gioKetThuc;
+            this.trangThai = trangThai;
+        }
     }
 
     private interface DocHang { Hang doc(ResultSet rs) throws SQLException; }
@@ -68,6 +107,167 @@ public final class QuanLyDAO {
 
     private static void batBuoc(String value, String message) throws SQLException {
         if (value == null || value.trim().isEmpty()) throw new SQLException(message);
+    }
+
+    private static int kiemTraThoiLuong(int phut) throws SQLException {
+        if (phut < THOI_LUONG_LICH_TOI_THIEU_PHUT
+                || phut > THOI_LUONG_LICH_TOI_DA_PHUT) {
+            throw new SQLException("Thời lượng lịch hẹn phải từ 15 đến 240 phút.");
+        }
+        return phut;
+    }
+
+    private static LocalDateTime ketThucLich(LocalDate ngay, LocalTime gio, int phut)
+            throws SQLException {
+        LocalDateTime batDau = LocalDateTime.of(ngay, gio);
+        LocalDateTime ketThuc = batDau.plusMinutes(kiemTraThoiLuong(phut));
+        if (!ketThuc.toLocalDate().equals(ngay)) {
+            throw new SQLException("Lịch hẹn không được kéo dài sang ngày hôm sau.");
+        }
+        return ketThuc;
+    }
+
+    /** Lấy khóa ứng dụng theo ngày/nguồn lực để tuần tự hóa các lượt đặt cùng bác sĩ, BN hoặc phòng. */
+    private static void khoaNguonLucLich(Connection c, LocalDate ngay, Integer maNV,
+            int maBN, String phong) throws SQLException {
+        List<String> resources = new ArrayList<>();
+        String dateKey = ngay.toString();
+        if (maNV != null) resources.add("MEDIDENT_LICH_NV_" + dateKey + "_" + maNV);
+        resources.add("MEDIDENT_LICH_BN_" + dateKey + "_" + maBN);
+        if (phong != null && !phong.trim().isEmpty()) {
+            resources.add("MEDIDENT_LICH_PHONG_" + dateKey + "_" + phong.trim().toUpperCase());
+        }
+        Collections.sort(resources);
+        for (String resource : resources) {
+            try (PreparedStatement ps = c.prepareStatement(
+                    "DECLARE @r INT; EXEC @r=sys.sp_getapplock "
+                  + "@Resource=?,@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000; "
+                  + "SELECT @r")) {
+                ps.setString(1, resource);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (!rs.next() || rs.getInt(1) < 0) {
+                        throw new SQLException("Không khóa được lịch hẹn đồng thời. Hãy tải lại và thử lại.");
+                    }
+                }
+            }
+        }
+    }
+
+    private static void kiemTraBenhNhanHoatDong(Connection c, int maBN) throws SQLException {
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT ISNULL(trangThaiHoSo,N'Hoạt động') FROM dbo.BenhNhan WITH (UPDLOCK,HOLDLOCK) WHERE maBN=?")) {
+            ps.setInt(1, maBN);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new SQLException("Không tìm thấy bệnh nhân #" + maBN + ".");
+                if ("Ngừng hồ sơ".equalsIgnoreCase(rs.getString(1))) {
+                    throw new SQLException("Hồ sơ bệnh nhân đã ngừng, không thể tạo hoặc dời lịch.");
+                }
+            }
+        }
+    }
+
+    /** Bác sĩ phải đang làm việc và có ca bao trọn toàn bộ khoảng hẹn. */
+    private static void kiemTraBacSiTrongCa(Connection c, int maNV, LocalDate ngay,
+            LocalTime gio, int thoiLuongPhut) throws SQLException {
+        LocalDateTime end = ketThucLich(ngay, gio, thoiLuongPhut);
+        String sql = "SELECT TOP 1 n.maNV FROM dbo.NhanVien n WITH (UPDLOCK,HOLDLOCK) "
+                + "JOIN dbo.LichLamViec l WITH (UPDLOCK,HOLDLOCK) ON l.maNV=n.maNV "
+                + "WHERE n.maNV=? AND n.chucVu=N'Bác sĩ' AND n.trangThai=N'Đang làm việc' "
+                + "AND l.ngayLamViec=? AND l.gioBatDau<=? AND l.gioKetThuc>=? "
+                + "AND l.trangThai=N'Đã xếp lịch'";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, maNV);
+            ps.setDate(2, Date.valueOf(ngay));
+            ps.setTime(3, Time.valueOf(gio));
+            ps.setTime(4, Time.valueOf(end.toLocalTime()));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Bác sĩ không có ca làm việc phù hợp hoặc đã ngừng làm việc.");
+                }
+            }
+        }
+    }
+
+    /** Phát hiện giao nhau theo khoảng thời gian, không chỉ so giờ bắt đầu. */
+    private static void kiemTraKhongChongLich(Connection c, int maLichHen, int maBN,
+            Integer maNV, String phong, LocalDate ngay, LocalTime gio, int thoiLuongPhut)
+            throws SQLException {
+        ketThucLich(ngay, gio, thoiLuongPhut);
+        String sql = "DECLARE @start DATETIME = DATEADD(SECOND, "
+                + "DATEDIFF(SECOND,CAST('00:00:00' AS time),CAST(? AS time)),CAST(? AS datetime)); "
+                + "DECLARE @finish DATETIME = DATEADD(MINUTE,?,@start); "
+                + "SELECT TOP 1 l.maLichHen, l.maNV, l.maBN, ISNULL(l.phongKham,N'') AS phongKham "
+                + "FROM dbo.LichHen l WITH (UPDLOCK,HOLDLOCK) "
+                + "WHERE ISNULL(l.trangThai,N'') NOT IN (N'Đã hủy',N'Hoàn tất') "
+                + "AND (?=0 OR l.maLichHen<>?) "
+                + "AND @start < DATEADD(MINUTE,ISNULL(l.thoiLuongPhut,60),"
+                + "DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),l.gioHen),CAST(l.ngayHen AS datetime))) "
+                + "AND @finish > DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),l.gioHen),CAST(l.ngayHen AS datetime)) "
+                + "AND (l.maBN=? OR (? IS NOT NULL AND l.maNV=?) "
+                + "OR (NULLIF(LTRIM(RTRIM(?)),N'') IS NOT NULL "
+                + "AND UPPER(LTRIM(RTRIM(ISNULL(l.phongKham,N''))))=UPPER(LTRIM(RTRIM(?)))))";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setTime(1, Time.valueOf(gio));
+            ps.setDate(2, Date.valueOf(ngay));
+            ps.setInt(3, thoiLuongPhut);
+            ps.setInt(4, maLichHen);
+            ps.setInt(5, maLichHen);
+            ps.setInt(6, maBN);
+            if (maNV == null) {
+                ps.setNull(7, Types.INTEGER);
+                ps.setNull(8, Types.INTEGER);
+            } else {
+                ps.setInt(7, maNV);
+                ps.setInt(8, maNV);
+            }
+            ps.setString(9, phong == null ? "" : phong.trim());
+            ps.setString(10, phong == null ? "" : phong.trim());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    throw new SQLException("Lịch bị chồng với lịch #" + rs.getInt("maLichHen")
+                            + " của cùng bệnh nhân, bác sĩ hoặc phòng. Hãy chọn khung giờ khác.");
+                }
+            }
+        }
+    }
+
+    private static String thuTrongTuan(LocalDate ngay) {
+        DayOfWeek day = ngay.getDayOfWeek();
+        switch (day) {
+            case MONDAY: return "Thứ 2";
+            case TUESDAY: return "Thứ 3";
+            case WEDNESDAY: return "Thứ 4";
+            case THURSDAY: return "Thứ 5";
+            case FRIDAY: return "Thứ 6";
+            case SATURDAY: return "Thứ 7";
+            default: return "Chủ nhật";
+        }
+    }
+
+    private static void kiemTraNhanVienKhongConLichTuongLai(Connection c, int maNV)
+            throws SQLException {
+        // Lịch chưa ở trạng thái kết thúc phải được chuyển giao/giải quyết,
+        // kể cả khi giờ hẹn đã qua nhưng trạng thái vẫn còn mở.
+        String sql = "SELECT TOP 1 maLichHen FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
+                + "WHERE maNV=? AND ISNULL(trangThai,N'') NOT IN (N'Đã hủy',N'Hoàn tất')";
+        try (PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) throw new SQLException("Nhân viên còn lịch hẹn chưa kết thúc #"
+                        + rs.getInt(1) + ". Hãy chuyển lịch trước khi cho nghỉ việc.");
+            }
+        }
+        try (PreparedStatement ps = c.prepareStatement(
+                "SELECT TOP 1 maLichLV FROM dbo.LichLamViec WITH (UPDLOCK,HOLDLOCK) "
+              + "WHERE maNV=? AND ISNULL(trangThai,N'') NOT IN (N'Đã hủy',N'Ngừng xếp lịch') "
+              + "AND (ngayLamViec>CONVERT(date,GETDATE()) OR "
+              + "(ngayLamViec=CONVERT(date,GETDATE()) AND gioKetThuc>CONVERT(time,GETDATE())))")) {
+            ps.setInt(1, maNV);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) throw new SQLException("Nhân viên còn ca làm việc chưa kết thúc #"
+                        + rs.getInt(1) + ". Hãy hủy hoặc chuyển ca trước khi cho nghỉ việc.");
+            }
+        }
     }
 
     /** Đọc quyền hiện hành từ VaiTroQuyen mỗi lần trước khi ghi. */
@@ -113,7 +313,9 @@ public final class QuanLyDAO {
     public List<Hang> benhNhan() throws SQLException {
         return truyVan("SELECT maBN,hoTen,ISNULL(sdt,'') AS sdt,ISNULL(gioiTinh,'') AS gioiTinh, "
                 + "CONVERT(varchar(10),ngaySinh,103) AS ngaySinh,ISNULL(email,'') AS email, "
-                + "ISNULL(trangThai,'') AS trangThai FROM dbo.BenhNhan ORDER BY maBN DESC",
+                + "CASE WHEN ISNULL(trangThaiHoSo,N'Hoạt động')=N'Ngừng hồ sơ' "
+                + "THEN N'Ngừng hồ sơ' ELSE ISNULL(trangThai,'') END AS trangThai "
+                + "FROM dbo.BenhNhan ORDER BY maBN DESC",
                 r -> new Hang(r.getInt("maBN"), chuoi(r,"hoTen"), chuoi(r,"sdt"),
                         chuoi(r,"gioiTinh"), chuoi(r,"ngaySinh"), chuoi(r,"email"),
                         chuoi(r,"trangThai")));
@@ -131,17 +333,56 @@ public final class QuanLyDAO {
             throw new SQLException("Ngày sinh bệnh nhân không được ở tương lai hoặc quá 100 năm.");
         if (email != null && !email.trim().isEmpty() && !EmailHopLe.kiemTra(email))
             throw new SQLException(EmailHopLe.huongDan());
+        if (!java.util.Arrays.asList("Mới", "Đang điều trị", "Hoàn tất").contains(trangThai)) {
+            throw new SQLException("Trạng thái bệnh nhân không hợp lệ.");
+        }
         try (Connection c = KetNoi.mo()) {
             canQuyen(c, actor, "BENHNHAN");
-            String sql = id == 0
-                ? "INSERT dbo.BenhNhan(hoTen,sdt,ngaySinh,gioiTinh,email,diaChi,tienSuBenh,trangThai) VALUES(?,?,?,?,?,?,?,?)"
-                : "UPDATE dbo.BenhNhan SET hoTen=?,sdt=?,ngaySinh=?,gioiTinh=?,email=?,diaChi=?,tienSuBenh=?,trangThai=? WHERE maBN=?";
             c.setAutoCommit(false);
-            try (PreparedStatement ps = c.prepareStatement(sql)) {
-                datThamSo(ps, hoTen.trim(), sdt.trim(), ngaySinh, gioiTinh, email, diaChi, tienSu, trangThai);
-                if (ngaySinh == null) ps.setNull(3, java.sql.Types.DATE);
-                if (id != 0) ps.setInt(9, id);
-                if (ps.executeUpdate() != 1) throw new SQLException("Không thể lưu bệnh nhân.");
+            try {
+                if (id != 0) {
+                    try (PreparedStatement check = c.prepareStatement(
+                            "SELECT trangThaiHoSo FROM dbo.BenhNhan WITH (UPDLOCK,HOLDLOCK) WHERE maBN=?")) {
+                        check.setInt(1, id);
+                        try (ResultSet rs = check.executeQuery()) {
+                            if (!rs.next()) throw new SQLException("Không tìm thấy bệnh nhân.");
+                            if ("Ngừng hồ sơ".equalsIgnoreCase(rs.getString(1))) {
+                                throw new SQLException("Hồ sơ đã ngừng. Hãy dùng chức năng khôi phục riêng.");
+                            }
+                        }
+                    }
+                }
+                // Chỉ chặn bản ghi trùng hoàn toàn; không UNIQUE số điện thoại vì gia đình có thể dùng chung.
+                String duplicateSql = "SELECT TOP 1 maBN FROM dbo.BenhNhan WITH (UPDLOCK,HOLDLOCK) "
+                        + "WHERE LOWER(LTRIM(RTRIM(hoTen)))=LOWER(?) AND sdt=? "
+                        + "AND ((ngaySinh=?) OR (ngaySinh IS NULL AND ? IS NULL)) "
+                        + "AND maBN<>? AND ISNULL(trangThaiHoSo,N'Hoạt động')=N'Hoạt động'";
+                try (PreparedStatement ps = c.prepareStatement(duplicateSql)) {
+                    ps.setString(1, hoTen.trim());
+                    ps.setString(2, sdt.trim());
+                    if (ngaySinh == null) {
+                        ps.setNull(3, Types.DATE);
+                        ps.setNull(4, Types.DATE);
+                    } else {
+                        ps.setDate(3, Date.valueOf(ngaySinh));
+                        ps.setDate(4, Date.valueOf(ngaySinh));
+                    }
+                    ps.setInt(5, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) throw new SQLException("Có hồ sơ bệnh nhân trùng thông tin (mã #"
+                                + rs.getInt(1) + "). Hãy kiểm tra trước khi lưu.");
+                    }
+                }
+                String sql = id == 0
+                    ? "INSERT dbo.BenhNhan(hoTen,sdt,ngaySinh,gioiTinh,email,diaChi,tienSuBenh,trangThai,trangThaiHoSo) "
+                        + "VALUES(?,?,?,?,?,?,?,?,N'Hoạt động')"
+                    : "UPDATE dbo.BenhNhan SET hoTen=?,sdt=?,ngaySinh=?,gioiTinh=?,email=?,diaChi=?,tienSuBenh=?,trangThai=? WHERE maBN=?";
+                try (PreparedStatement ps = c.prepareStatement(sql)) {
+                    datThamSo(ps, hoTen.trim(), sdt.trim(), ngaySinh, gioiTinh, email, diaChi, tienSu, trangThai);
+                    if (ngaySinh == null) ps.setNull(3, Types.DATE);
+                    if (id != 0) ps.setInt(9, id);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Không thể lưu bệnh nhân.");
+                }
                 ghi(c, actor, id == 0 ? "Thêm bệnh nhân" : "Sửa bệnh nhân", "BenhNhan", hoTen);
                 c.commit();
             } catch (SQLException ex) { c.rollback(); throw ex; }
@@ -155,7 +396,9 @@ public final class QuanLyDAO {
                 "SELECT ISNULL(hoTen,'') AS hoTen,ISNULL(sdt,'') AS sdt,"
               + "ISNULL(gioiTinh,'') AS gioiTinh,CONVERT(varchar(10),ngaySinh,103) AS ngaySinh,"
               + "ISNULL(email,'') AS email,ISNULL(diaChi,'') AS diaChi,"
-              + "ISNULL(tienSuBenh,'') AS tienSuBenh,ISNULL(trangThai,'') AS trangThai "
+              + "ISNULL(tienSuBenh,'') AS tienSuBenh,"
+              + "CASE WHEN ISNULL(trangThaiHoSo,N'Hoạt động')=N'Ngừng hồ sơ' "
+              + "THEN N'Ngừng hồ sơ' ELSE ISNULL(trangThai,'') END AS trangThai "
               + "FROM dbo.BenhNhan WHERE maBN=?")) {
             ps.setInt(1,maBN);
             try(ResultSet r=ps.executeQuery()) {
@@ -167,9 +410,58 @@ public final class QuanLyDAO {
         }
     }
 
-    /** Xóa hồ sơ chỉ khi không có ràng buộc nghiệp vụ liên quan. */
+    /** Ngừng hồ sơ mềm; giữ nguyên toàn bộ lịch sử khám, điều trị và hóa đơn. */
     public void xoaBenhNhan(int id, int actor) throws SQLException {
-        xoaAnToan("BENHNHAN", "dbo.BenhNhan", "maBN", id, actor, "Bệnh nhân");
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "BENHNHAN");
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT trangThaiHoSo FROM dbo.BenhNhan WITH (UPDLOCK,HOLDLOCK) WHERE maBN=?")) {
+                    ps.setInt(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Không tìm thấy bệnh nhân.");
+                        if ("Ngừng hồ sơ".equalsIgnoreCase(rs.getString(1))) {
+                            throw new SQLException("Hồ sơ bệnh nhân đã được ngừng trước đó.");
+                        }
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT TOP 1 maLichHen FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
+                      + "WHERE maBN=? AND ISNULL(trangThai,N'') NOT IN (N'Đã hủy',N'Hoàn tất')")) {
+                    ps.setInt(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) throw new SQLException("Bệnh nhân còn lịch hẹn chưa kết thúc (#"
+                                + rs.getInt(1) + "). Hãy xử lý lịch trước khi ngừng hồ sơ.");
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.BenhNhan SET trangThaiHoSo=N'Ngừng hồ sơ' WHERE maBN=?")) {
+                    ps.setInt(1, id);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Không thể ngừng hồ sơ bệnh nhân.");
+                }
+                ghi(c, actor, "Ngừng hồ sơ bệnh nhân", "BenhNhan", "maBN=" + id);
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
+    }
+
+    /** Khôi phục hồ sơ mềm; không tự khôi phục các lịch đã hủy hoặc trạng thái điều trị. */
+    public void khoiPhucBenhNhan(int id, int actor) throws SQLException {
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "BENHNHAN");
+            c.setAutoCommit(false);
+            try (PreparedStatement ps = c.prepareStatement(
+                    "UPDATE dbo.BenhNhan SET trangThaiHoSo=N'Hoạt động' "
+                  + "WHERE maBN=? AND trangThaiHoSo=N'Ngừng hồ sơ'")) {
+                ps.setInt(1, id);
+                if (ps.executeUpdate() != 1) throw new SQLException("Hồ sơ không tồn tại hoặc chưa bị ngừng.");
+                ghi(c, actor, "Khôi phục hồ sơ bệnh nhân", "BenhNhan", "maBN=" + id);
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
     }
 
     public List<Hang> nhanVien() throws SQLException {
@@ -196,6 +488,13 @@ public final class QuanLyDAO {
         catch (IllegalArgumentException ex) { throw new SQLException(ex.getMessage(), ex); }
         if (!EmailHopLe.kiemTra(emailChuan))
             throw new SQLException(EmailHopLe.huongDan());
+        if (!java.util.Arrays.asList("Quản lý phòng khám", "Bác sĩ", "Lễ tân", "Kế toán", "Nhân viên")
+                .contains(chucVu)) {
+            throw new SQLException("Chức vụ nhân viên không hợp lệ.");
+        }
+        if (!java.util.Arrays.asList("Đang làm việc", "Tạm nghỉ", "Nghỉ việc").contains(trangThai)) {
+            throw new SQLException("Trạng thái nhân viên không hợp lệ.");
+        }
 
         try (Connection c = KetNoi.mo()) {
             canQuyen(c, actor, "NHANVIEN");
@@ -209,6 +508,10 @@ public final class QuanLyDAO {
                     try (ResultSet rs = ps.executeQuery()) {
                         if (rs.next()) throw new SQLException("Số điện thoại đã tồn tại ở nhân viên khác.");
                     }
+                }
+                if (id != 0 && (!"Đang làm việc".equalsIgnoreCase(trangThai)
+                        || !"Bác sĩ".equalsIgnoreCase(chucVu))) {
+                    kiemTraNhanVienKhongConLichTuongLai(c, id);
                 }
                 if (id != 0) {
                     String check = "SELECT v.tenVaiTro FROM dbo.NhanVien n "
@@ -237,9 +540,24 @@ public final class QuanLyDAO {
         }
     }
 
-    /** Nhân viên đã có tài khoản/lịch khám có thể bị FK ngăn xóa. */
+    /** Nghỉ việc mềm; không xóa hồ sơ nhân viên hay các liên kết lịch sử. */
     public void xoaNhanVien(int id, int actor) throws SQLException {
-        xoaAnToan("NHANVIEN", "dbo.NhanVien", "maNV", id, actor, "Nhân viên");
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "NHANVIEN");
+            c.setAutoCommit(false);
+            try {
+                kiemTraNhanVienKhongConLichTuongLai(c, id);
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.NhanVien SET trangThai=N'Nghỉ việc' "
+                      + "WHERE maNV=? AND trangThai<>N'Nghỉ việc'")) {
+                    ps.setInt(1, id);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Nhân viên không tồn tại hoặc đã nghỉ việc.");
+                }
+                ghi(c, actor, "Cho nhân viên nghỉ việc", "NhanVien", "maNV=" + id);
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
     }
 
     public List<Hang> dichVu() throws SQLException {
@@ -250,72 +568,83 @@ public final class QuanLyDAO {
                         chuoi(r,"donGia"), chuoi(r,"trangThai"), chuoi(r,"moTa")));
     }
 
-    /** Thay đổi giá sẽ ghi thêm lịch sử BangGiaDichVu trong cùng transaction. */
+    /** Chỉ ghi thêm lịch sử giá khi đơn giá thực sự thay đổi; lịch sử cũ không bị ghi đè. */
     public void luuDichVu(int id, String ten, BigDecimal gia, String trangThai,
             String moTa, int actor) throws SQLException {
         batBuoc(ten, "Thiếu tên dịch vụ.");
-        if(gia==null || gia.signum()<0)throw new SQLException("Giá dịch vụ không hợp lệ.");
-        try(Connection c=KetNoi.mo()) {
-            canQuyen(c,actor,"DICHVU");
+        if (gia == null || gia.signum() < 0 || gia.scale() > 2 || gia.precision() > 18) {
+            throw new SQLException("Giá dịch vụ phải từ 0 trở lên và tối đa 2 chữ số thập phân.");
+        }
+        batBuoc(trangThai, "Thiếu trạng thái dịch vụ.");
+        if (!java.util.Arrays.asList("Đang áp dụng", "Ngừng áp dụng").contains(trangThai)) {
+            throw new SQLException("Trạng thái dịch vụ không hợp lệ.");
+        }
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "DICHVU");
             c.setAutoCommit(false);
             try {
-                int maDV=id;
-                if(id==0) {
-                    try(PreparedStatement ps=c.prepareStatement(
+                int maDV = id;
+                boolean canGhiLichSuGia = id == 0;
+                if (id == 0) {
+                    try (PreparedStatement ps = c.prepareStatement(
                             "INSERT dbo.DichVu(tenDV,donGia,trangThai,moTa) VALUES(?,?,?,?)",
                             Statement.RETURN_GENERATED_KEYS)) {
-                        datThamSo(ps,ten,gia,trangThai,moTa);
-                        ps.executeUpdate();
-                        try(ResultSet keys=ps.getGeneratedKeys()) {
-                            if(!keys.next())throw new SQLException("Không có mã dịch vụ mới.");
-                            maDV=keys.getInt(1);
+                        datThamSo(ps, ten.trim(), gia, trangThai, moTa);
+                        if (ps.executeUpdate() != 1) throw new SQLException("Không thể tạo dịch vụ.");
+                        try (ResultSet keys = ps.getGeneratedKeys()) {
+                            if (!keys.next()) throw new SQLException("Không lấy được mã dịch vụ mới.");
+                            maDV = keys.getInt(1);
                         }
                     }
                 } else {
-                    try(PreparedStatement ps=c.prepareStatement(
+                    BigDecimal giaCu;
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "SELECT donGia FROM dbo.DichVu WITH (UPDLOCK,HOLDLOCK) WHERE maDV=?")) {
+                        ps.setInt(1, id);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (!rs.next()) throw new SQLException("Không tìm thấy dịch vụ.");
+                            giaCu = rs.getBigDecimal(1);
+                        }
+                    }
+                    canGhiLichSuGia = giaCu == null || giaCu.compareTo(gia) != 0;
+                    try (PreparedStatement ps = c.prepareStatement(
                             "UPDATE dbo.DichVu SET tenDV=?,donGia=?,trangThai=?,moTa=? WHERE maDV=?")) {
-                        datThamSo(ps,ten,gia,trangThai,moTa,id);
-                        if(ps.executeUpdate()!=1)throw new SQLException("Không tìm thấy dịch vụ.");
+                        datThamSo(ps, ten.trim(), gia, trangThai, moTa, id);
+                        if (ps.executeUpdate() != 1) throw new SQLException("Không thể cập nhật dịch vụ.");
                     }
                 }
-                // Mỗi lần đổi giá lưu lịch sử áp dụng để không mất số liệu cũ.
-                try(PreparedStatement ps=c.prepareStatement(
-                        "INSERT dbo.BangGiaDichVu(maDV,ngayApDung,donGia,trangThai) "
-                        + "VALUES(?,CAST(GETDATE() AS date),?,?)")) {
-                    datThamSo(ps,maDV,gia,trangThai);
-                    ps.executeUpdate();
+                if (canGhiLichSuGia) {
+                    // BangGiaDichVu chỉ có DATE; vẫn giữ từng lần đổi bằng maBG tăng dần.
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "INSERT dbo.BangGiaDichVu(maDV,ngayApDung,donGia,trangThai) "
+                          + "VALUES(?,CAST(GETDATE() AS date),?,?)")) {
+                        datThamSo(ps, maDV, gia, trangThai);
+                        ps.executeUpdate();
+                    }
                 }
-                ghi(c,actor,id==0?"Thêm dịch vụ":"Sửa dịch vụ","DichVu",ten);
+                ghi(c, actor, id == 0 ? "Thêm dịch vụ" : "Sửa dịch vụ", "DichVu",
+                        "maDV=" + maDV + ", ten=" + ten.trim() + ", gia=" + gia.toPlainString()
+                        + (canGhiLichSuGia ? ", đã ghi lịch sử giá" : ", không thay đổi giá"));
                 c.commit();
-            }catch(SQLException ex){c.rollback();throw ex;}
-            finally{c.setAutoCommit(true);}
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
         }
     }
 
+    /** Ngừng áp dụng dịch vụ thay vì DELETE để giữ liên kết lịch sử. */
     public void xoaDichVu(int id, int actor) throws SQLException {
-        xoaAnToan("DICHVU", "dbo.DichVu", "maDV", id, actor, "Dịch vụ");
-    }
-
-    /** Các tên bảng/cột được cố định ở code, không ghép dữ liệu người dùng vào SQL. */
-    private void xoaAnToan(String quyen, String bang, String cot, int id,
-                           int actor, String doiTuong) throws SQLException {
-        try(Connection c=KetNoi.mo()) {
-            canQuyen(c,actor,quyen);
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "DICHVU");
             c.setAutoCommit(false);
-            try {
-                try(PreparedStatement ps=c.prepareStatement(
-                        "DELETE FROM " + bang + " WHERE " + cot + "=?")) {
-                    ps.setInt(1,id);
-                    if(ps.executeUpdate()!=1)throw new SQLException("Bản ghi không tồn tại.");
-                }
-                ghi(c,actor,"Xóa "+doiTuong,bang,cot+"="+id);
+            try (PreparedStatement ps = c.prepareStatement(
+                    "UPDATE dbo.DichVu SET trangThai=N'Ngừng áp dụng' "
+                  + "WHERE maDV=? AND ISNULL(trangThai,N'')<>N'Ngừng áp dụng'")) {
+                ps.setInt(1, id);
+                if (ps.executeUpdate() != 1) throw new SQLException("Dịch vụ không tồn tại hoặc đã ngừng áp dụng.");
+                ghi(c, actor, "Ngừng áp dụng dịch vụ", "DichVu", "maDV=" + id);
                 c.commit();
-            }catch(SQLException ex) {
-                c.rollback();
-                if(ex.getErrorCode()==547)
-                    throw new SQLException("Đã có dữ liệu liên quan. Không xóa để tránh mất lịch sử; hãy cập nhật trạng thái.",ex);
-                throw ex;
-            }finally{c.setAutoCommit(true);}
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
         }
     }
 
@@ -323,7 +652,7 @@ public final class QuanLyDAO {
         // Toàn bộ tên bảng/cột đến từ whitelist; dữ liệu người dùng chỉ là lựa chọn ID.
         String sql;
         switch (bang) {
-            case "BenhNhan": sql = "SELECT maBN,hoTen FROM dbo.BenhNhan ORDER BY hoTen"; break;
+            case "BenhNhan": sql = "SELECT maBN,hoTen FROM dbo.BenhNhan WHERE ISNULL(trangThaiHoSo,N'Hoạt động')=N'Hoạt động' ORDER BY hoTen"; break;
             case "NhanVien": sql = "SELECT maNV,hoTen FROM dbo.NhanVien "
                     + "WHERE trangThai=N'Đang làm việc' AND chucVu=N'Bác sĩ' ORDER BY hoTen"; break;
             case "DichVu": sql = "SELECT maDV,tenDV FROM dbo.DichVu WHERE trangThai<>N'Ngừng áp dụng' ORDER BY tenDV"; break;
@@ -353,6 +682,25 @@ public final class QuanLyDAO {
                         chuoi(r,"lyDo"),chuoi(r,"trangThai")));
     }
 
+    /** Đọc chi tiết lịch theo khóa chính, phục vụ form dời lịch. */
+    public ThongTinLichHen chiTietLichHen(int maLichHen) throws SQLException {
+        try (Connection c = KetNoi.mo(); PreparedStatement ps = c.prepareStatement(
+                "SELECT maBN,maNV,ngayHen,gioHen,ISNULL(thoiLuongPhut,60) AS thoiLuongPhut, "
+              + "ISNULL(phongKham,N'') AS phongKham,ISNULL(lyDo,N'') AS lyDo,trangThai "
+              + "FROM dbo.LichHen WHERE maLichHen=?")) {
+            ps.setInt(1, maLichHen);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new SQLException("Không tìm thấy lịch hẹn.");
+                int staff = rs.getInt("maNV");
+                Integer maNV = rs.wasNull() ? null : staff;
+                return new ThongTinLichHen(rs.getInt("maBN"), maNV,
+                        rs.getDate("ngayHen").toLocalDate(), rs.getTime("gioHen").toLocalTime(),
+                        rs.getInt("thoiLuongPhut"), rs.getString("phongKham"),
+                        rs.getString("lyDo"), rs.getString("trangThai"));
+            }
+        }
+    }
+
     /** 8 lịch gần đây cho Dashboard Quản lý, dữ liệu SQL thực. */
     public List<Hang> lichHenGanDay() throws SQLException {
         return truyVan("SELECT TOP 8 l.maLichHen,CONVERT(varchar(10),l.ngayHen,103) AS ngay, "
@@ -363,37 +711,391 @@ public final class QuanLyDAO {
                         r.getString(4),chuoi(r,"trangThai")));
     }
 
-    /** Chặn trùng bác sĩ cùng một ngày/giờ bằng khóa giao dịch. */
+    /** Tương thích form cũ: dùng thời lượng mặc định 60 phút đã ghi trong migration. */
     public void taoLichHen(int benhNhan, Integer nhanVien, LocalDate ngay, LocalTime gio,
             String phong, String lyDo, int actor) throws SQLException {
-        if (benhNhan <= 0 || ngay == null || gio == null) throw new SQLException("Thiếu thông tin lịch hẹn.");
+        taoLichHen(benhNhan, nhanVien, ngay, gio, THOI_LUONG_LICH_MAC_DINH_PHUT,
+                phong, lyDo, actor);
+    }
+
+    /** Tạo lịch có thời lượng; kiểm tra bệnh nhân, bác sĩ/ca, phòng và mọi khoảng thời gian giao nhau. */
+    public void taoLichHen(int benhNhan, Integer nhanVien, LocalDate ngay, LocalTime gio,
+            int thoiLuongPhut, String phong, String lyDo, int actor) throws SQLException {
+        if (benhNhan <= 0 || nhanVien == null || nhanVien <= 0 || ngay == null || gio == null) {
+            throw new SQLException("Phải chọn bệnh nhân, bác sĩ, ngày và giờ hẹn.");
+        }
+        batBuoc(phong, "Phải chọn phòng khám.");
+        if (lyDo != null && lyDo.trim().length() > 500) throw new SQLException("Lý do khám tối đa 500 ký tự.");
+        kiemTraThoiLuong(thoiLuongPhut);
+        LocalDateTime end = ketThucLich(ngay, gio, thoiLuongPhut);
         if (ngay.isBefore(LocalDate.now()) || (ngay.equals(LocalDate.now())
-                && !gio.isAfter(LocalTime.now())))
+                && !end.isAfter(LocalDateTime.now()))) {
             throw new SQLException("Ngày và giờ hẹn phải nằm trong tương lai.");
+        }
         try (Connection c = KetNoi.mo()) {
-            canQuyen(c,actor,"LICHHEN");
+            canQuyen(c, actor, "LICHHEN");
             c.setAutoCommit(false);
             try {
-                if (nhanVien != null) {
-                    try (PreparedStatement ps = c.prepareStatement("SELECT COUNT(*) FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
-                            + "WHERE maNV=? AND ngayHen=? AND gioHen=? AND trangThai NOT IN (N'Đã hủy',N'Hoàn tất')")) {
-                        datThamSo(ps,nhanVien,ngay,gio);
-                        try (ResultSet r = ps.executeQuery()) {
-                            if (r.next() && r.getInt(1) > 0) throw new SQLException("Bác sĩ đã có lịch ở giờ này.");
+                khoaNguonLucLich(c, ngay, nhanVien, benhNhan, phong);
+                kiemTraBenhNhanHoatDong(c, benhNhan);
+                kiemTraBacSiTrongCa(c, nhanVien, ngay, gio, thoiLuongPhut);
+                kiemTraKhongChongLich(c, 0, benhNhan, nhanVien, phong, ngay, gio, thoiLuongPhut);
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT dbo.LichHen(maBN,maNV,phongKham,ngayHen,gioHen,thoiLuongPhut,lyDo,trangThai) "
+                      + "VALUES(?,?,?,?,?,?,?,N'Chờ xác nhận')")) {
+                    ps.setInt(1, benhNhan);
+                    ps.setInt(2, nhanVien);
+                    ps.setString(3, phong.trim());
+                    ps.setDate(4, Date.valueOf(ngay));
+                    ps.setTime(5, Time.valueOf(gio));
+                    ps.setInt(6, thoiLuongPhut);
+                    ps.setString(7, lyDo == null ? "" : lyDo.trim());
+                    if (ps.executeUpdate() != 1) throw new SQLException("Không tạo được lịch hẹn.");
+                }
+                ghi(c, actor, "Tạo lịch hẹn", "LichHen", "maBN=" + benhNhan + ", maNV=" + nhanVien
+                        + ", ngay=" + ngay + ", gio=" + gio + ", thoiLuong=" + thoiLuongPhut
+                        + ", phong=" + phong.trim());
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
+    }
+
+    /** Danh sách ca làm của nhân viên; hiện chưa có màn hình UI gọi trực tiếp phương thức này. */
+    public List<Hang> lichLamViec() throws SQLException {
+        return truyVan("SELECT l.maLichLV,n.hoTen,CONVERT(varchar(10),l.ngayLamViec,103) AS ngay, "
+                + "ISNULL(l.caLamViec,'') AS ca,CONVERT(varchar(5),l.gioBatDau,108) AS batDau, "
+                + "CONVERT(varchar(5),l.gioKetThuc,108) AS ketThuc,ISNULL(l.trangThai,'') AS trangThai "
+                + "FROM dbo.LichLamViec l JOIN dbo.NhanVien n ON n.maNV=l.maNV "
+                + "ORDER BY l.ngayLamViec DESC,l.gioBatDau", r -> new Hang(r.getInt("maLichLV"),
+                chuoi(r,"hoTen"),chuoi(r,"ngay"),chuoi(r,"ca"),chuoi(r,"batDau"),
+                chuoi(r,"ketThuc"),chuoi(r,"trangThai")));
+    }
+
+    /** Đọc chi tiết ca làm việc theo khóa chính để mở form sửa. */
+    public ThongTinLichLamViec chiTietLichLamViec(int maLichLV) throws SQLException {
+        try (Connection c = KetNoi.mo(); PreparedStatement ps = c.prepareStatement(
+                "SELECT maNV,ngayLamViec,ISNULL(caLamViec,N'') AS caLamViec, "
+              + "gioBatDau,gioKetThuc,ISNULL(trangThai,N'') AS trangThai "
+              + "FROM dbo.LichLamViec WHERE maLichLV=?")) {
+            ps.setInt(1, maLichLV);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new SQLException("Không tìm thấy ca làm việc.");
+                java.sql.Time start = rs.getTime("gioBatDau");
+                java.sql.Time end = rs.getTime("gioKetThuc");
+                java.sql.Date workDate = rs.getDate("ngayLamViec");
+                if (workDate == null) {
+                    throw new SQLException("Ca làm việc chưa có ngày làm việc hợp lệ.");
+                }
+                return new ThongTinLichLamViec(rs.getInt("maNV"),
+                        workDate.toLocalDate(), rs.getString("caLamViec"),
+                        start == null ? null : start.toLocalTime(),
+                        end == null ? null : end.toLocalTime(),
+                        rs.getString("trangThai"));
+            }
+        }
+    }
+
+    /** CRUD ca làm việc dùng quyền NHANVIEN; chống trùng ca và kiểm tra lịch đã đặt. */
+    public void luuLichLamViec(int id, int maNV, LocalDate ngay, String ca,
+            LocalTime gioBatDau, LocalTime gioKetThuc, String trangThai, int actor)
+            throws SQLException {
+        if (maNV <= 0 || ngay == null || gioBatDau == null || gioKetThuc == null
+                || !gioBatDau.isBefore(gioKetThuc)) {
+            throw new SQLException("Thông tin ca làm việc không hợp lệ.");
+        }
+        if (ngay.isBefore(LocalDate.now())) throw new SQLException("Không thể xếp ca trong quá khứ.");
+        batBuoc(ca, "Thiếu tên ca làm việc.");
+        if (!java.util.Arrays.asList("Đã xếp lịch", "Ngừng xếp lịch", "Đã hủy").contains(trangThai)) {
+            throw new SQLException("Trạng thái ca làm việc không hợp lệ.");
+        }
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "NHANVIEN");
+            c.setAutoCommit(false);
+            try {
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT 1 FROM dbo.NhanVien WITH (UPDLOCK,HOLDLOCK) "
+                      + "WHERE maNV=? AND chucVu=N'Bác sĩ' AND trangThai=N'Đang làm việc'")) {
+                    ps.setInt(1, maNV);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Chỉ được xếp ca cho bác sĩ đang làm việc.");
+                    }
+                }
+                // Nếu sửa ca hiện có, không cho thu hẹp/di chuyển ca khiến lịch đã đặt nằm ngoài ca.
+                if (id != 0) {
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "SELECT TOP 1 l.maLichHen FROM dbo.LichHen l WITH (UPDLOCK,HOLDLOCK) "
+                          + "WHERE l.maNV=? AND l.ngayHen=? "
+                          + "AND ISNULL(l.trangThai,N'') NOT IN (N'Đã hủy',N'Hoàn tất') "
+                          + "AND NOT (l.ngayHen=? AND "
+                          + "DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),l.gioHen),CAST(l.ngayHen AS datetime)) >= "
+                          + "DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),CAST(? AS time)),CAST(? AS datetime)) "
+                          + "AND DATEADD(MINUTE,ISNULL(l.thoiLuongPhut,60),"
+                          + "DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),l.gioHen),CAST(l.ngayHen AS datetime))) <= "
+                          + "DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),CAST(? AS time)),CAST(? AS datetime)))")) {
+                        // Chỉ cần kiểm tra ca cũ khi đang sửa; dữ liệu maNV/ngay cũ được khóa riêng bên dưới.
+                        int oldStaff = maNV;
+                        LocalDate oldDate = ngay;
+                        try (PreparedStatement old = c.prepareStatement(
+                                "SELECT maNV,ngayLamViec FROM dbo.LichLamViec WITH (UPDLOCK,HOLDLOCK) WHERE maLichLV=?")) {
+                            old.setInt(1, id);
+                            try (ResultSet rs = old.executeQuery()) {
+                                if (!rs.next()) throw new SQLException("Không tìm thấy ca làm việc.");
+                                oldStaff = rs.getInt(1);
+                                oldDate = rs.getDate(2).toLocalDate();
+                            }
+                        }
+                        ps.setInt(1, oldStaff);
+                        ps.setDate(2, Date.valueOf(oldDate));
+                        ps.setDate(3, Date.valueOf(ngay));
+                        ps.setTime(4, Time.valueOf(gioBatDau));
+                        ps.setDate(5, Date.valueOf(ngay));
+                        ps.setTime(6, Time.valueOf(gioKetThuc));
+                        ps.setDate(7, Date.valueOf(ngay));
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) throw new SQLException("Ca đang có lịch hẹn #" + rs.getInt(1)
+                                    + ". Hãy chuyển lịch trước khi thay đổi ca.");
                         }
                     }
                 }
-                try (PreparedStatement ps = c.prepareStatement("INSERT dbo.LichHen(" 
-                        + "maBN,maNV,phongKham,ngayHen,gioHen,lyDo,trangThai) VALUES(?,?,?,?,?,?,N'Chờ xác nhận')")) {
-                    ps.setInt(1,benhNhan);
-                    if (nhanVien == null) ps.setNull(2,java.sql.Types.INTEGER);
-                    else ps.setInt(2,nhanVien);
-                    datThamSoTail(ps,3,phong,ngay,gio,lyDo);
+                if ("Đã xếp lịch".equals(trangThai)) {
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "SELECT TOP 1 maLichLV FROM dbo.LichLamViec WITH (UPDLOCK,HOLDLOCK) "
+                          + "WHERE maNV=? AND ngayLamViec=? AND maLichLV<>? "
+                          + "AND ISNULL(trangThai,N'') NOT IN (N'Đã hủy',N'Ngừng xếp lịch') "
+                          + "AND gioBatDau<? AND gioKetThuc>?")) {
+                        ps.setInt(1, maNV);
+                        ps.setDate(2, Date.valueOf(ngay));
+                        ps.setInt(3, id);
+                        ps.setTime(4, Time.valueOf(gioKetThuc));
+                        ps.setTime(5, Time.valueOf(gioBatDau));
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next()) throw new SQLException("Ca làm việc bị chồng với ca #" + rs.getInt(1) + ".");
+                        }
+                    }
+                }
+                if (id == 0) {
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "INSERT dbo.LichLamViec(maNV,thu,ngayLamViec,caLamViec,gioBatDau,gioKetThuc,trangThai) "
+                          + "VALUES(?,?,?,?,?,?,?)")) {
+                        datThamSo(ps, maNV, thuTrongTuan(ngay), ngay, ca.trim(), gioBatDau, gioKetThuc, trangThai);
+                        ps.executeUpdate();
+                    }
+                } else {
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "UPDATE dbo.LichLamViec SET maNV=?,thu=?,ngayLamViec=?,caLamViec=?, "
+                          + "gioBatDau=?,gioKetThuc=?,trangThai=? WHERE maLichLV=?")) {
+                        datThamSo(ps, maNV, thuTrongTuan(ngay), ngay, ca.trim(), gioBatDau,
+                                gioKetThuc, trangThai, id);
+                        if (ps.executeUpdate() != 1) throw new SQLException("Không tìm thấy ca làm việc.");
+                    }
+                }
+                ghi(c, actor, id == 0 ? "Thêm ca làm việc" : "Sửa ca làm việc", "LichLamViec",
+                        "maNV=" + maNV + ", ngay=" + ngay + ", ca=" + ca.trim());
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
+    }
+
+    /** Hủy ca mềm; không được hủy nếu còn lịch hẹn chưa kết thúc của bác sĩ trong ca đó. */
+    public void xoaLichLamViec(int id, int actor) throws SQLException {
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "NHANVIEN");
+            c.setAutoCommit(false);
+            try {
+                int maNV;
+                LocalDate ngay;
+                LocalTime start;
+                LocalTime end;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT maNV,ngayLamViec,gioBatDau,gioKetThuc FROM dbo.LichLamViec WITH (UPDLOCK,HOLDLOCK) "
+                      + "WHERE maLichLV=? AND ISNULL(trangThai,N'') NOT IN (N'Đã hủy',N'Ngừng xếp lịch')")) {
+                    ps.setInt(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Không tìm thấy ca đang xếp.");
+                        maNV = rs.getInt(1);
+                        ngay = rs.getDate(2).toLocalDate();
+                        start = rs.getTime(3).toLocalTime();
+                        end = rs.getTime(4).toLocalTime();
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "DECLARE @shiftStart DATETIME = DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),CAST(? AS time)),CAST(? AS datetime)); "
+                      + "DECLARE @shiftEnd DATETIME = DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),CAST(? AS time)),CAST(? AS datetime)); "
+                      + "SELECT TOP 1 l.maLichHen FROM dbo.LichHen l WITH (UPDLOCK,HOLDLOCK) "
+                      + "WHERE l.maNV=? AND l.ngayHen=? AND ISNULL(l.trangThai,N'') NOT IN (N'Đã hủy',N'Hoàn tất') "
+                      + "AND @shiftStart < DATEADD(MINUTE,ISNULL(l.thoiLuongPhut,60),"
+                      + "DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),l.gioHen),CAST(l.ngayHen AS datetime))) "
+                      + "AND @shiftEnd > DATEADD(SECOND,DATEDIFF(SECOND,CAST('00:00:00' AS time),l.gioHen),CAST(l.ngayHen AS datetime))")) {
+                    ps.setTime(1, Time.valueOf(start));
+                    ps.setDate(2, Date.valueOf(ngay));
+                    ps.setTime(3, Time.valueOf(end));
+                    ps.setDate(4, Date.valueOf(ngay));
+                    ps.setInt(5, maNV);
+                    ps.setDate(6, Date.valueOf(ngay));
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) throw new SQLException("Ca đang có lịch hẹn #" + rs.getInt(1)
+                                + ". Hãy chuyển lịch trước khi hủy ca.");
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.LichLamViec SET trangThai=N'Ngừng xếp lịch' WHERE maLichLV=?")) {
+                    ps.setInt(1, id);
                     ps.executeUpdate();
                 }
-                ghi(c,actor,"Tạo lịch hẹn","LichHen","maBN="+benhNhan);
+                ghi(c, actor, "Hủy ca làm việc", "LichLamViec", "maLichLV=" + id);
                 c.commit();
-            } catch(SQLException ex) { c.rollback(); throw ex; }
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
+    }
+
+    /** Dời lịch: cập nhật ngày/giờ/bác sĩ/phòng/thời lượng trong một transaction. */
+    public void doiLichHen(int id, int benhNhan, Integer nhanVien, LocalDate ngay,
+            LocalTime gio, int thoiLuongPhut, String phong, String lyDo, int actor)
+            throws SQLException {
+        if (id <= 0 || benhNhan <= 0 || nhanVien == null || nhanVien <= 0 || ngay == null || gio == null) {
+            throw new SQLException("Thiếu thông tin để dời lịch.");
+        }
+        batBuoc(phong, "Phải chọn phòng khám.");
+        if (lyDo != null && lyDo.trim().length() > 500) throw new SQLException("Lý do khám tối đa 500 ký tự.");
+        LocalDateTime end = ketThucLich(ngay, gio, thoiLuongPhut);
+        if (ngay.isBefore(LocalDate.now()) || (ngay.equals(LocalDate.now()) && !end.isAfter(LocalDateTime.now()))) {
+            throw new SQLException("Ngày và giờ mới phải nằm trong tương lai.");
+        }
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "LICHHEN");
+            c.setAutoCommit(false);
+            try {
+                String currentStatus;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT trangThai FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) WHERE maLichHen=?")) {
+                    ps.setInt(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Không tìm thấy lịch hẹn.");
+                        currentStatus = rs.getString(1);
+                    }
+                }
+                if (!java.util.Arrays.asList("Chờ xác nhận", "Đã xác nhận", "Đã đến", "Chờ khám")
+                        .contains(currentStatus)) {
+                    throw new SQLException("Chỉ được dời lịch chưa bắt đầu khám và chưa kết thúc/hủy.");
+                }
+                khoaNguonLucLich(c, ngay, nhanVien, benhNhan, phong);
+                kiemTraBenhNhanHoatDong(c, benhNhan);
+                kiemTraBacSiTrongCa(c, nhanVien, ngay, gio, thoiLuongPhut);
+                kiemTraKhongChongLich(c, id, benhNhan, nhanVien, phong, ngay, gio, thoiLuongPhut);
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.LichHen SET maBN=?,maNV=?,ngayHen=?,gioHen=?,thoiLuongPhut=?, "
+                      + "phongKham=?,lyDo=? WHERE maLichHen=? AND trangThai=?")) {
+                    datThamSo(ps, benhNhan, nhanVien, ngay, gio, thoiLuongPhut,
+                            phong.trim(), lyDo == null ? "" : lyDo.trim(), id, currentStatus);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Lịch vừa được thay đổi. Hãy tải lại.");
+                }
+                ghi(c, actor, "Dời lịch hẹn", "LichHen", "maLichHen=" + id + ", ngày=" + ngay
+                        + ", giờ=" + gio + ", bác sĩ=" + nhanVien + ", phòng=" + phong.trim());
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
+    }
+
+    /** Gán bác sĩ cho lịch do Lễ tân tiếp nhận trực tiếp (maNV ban đầu có thể NULL). */
+    public void phanCongBacSi(int maLichHen, int maNV, int actor) throws SQLException {
+        if (maLichHen <= 0 || maNV <= 0) throw new SQLException("Thiếu lịch hẹn hoặc bác sĩ.");
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "LICHHEN");
+            c.setAutoCommit(false);
+            try {
+                int maBN;
+                String phong;
+                LocalDate ngay;
+                LocalTime gio;
+                int duration;
+                String status;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT maBN,ISNULL(phongKham,N'') AS phongKham,ngayHen,gioHen, "
+                      + "ISNULL(thoiLuongPhut,60) AS thoiLuongPhut,trangThai "
+                      + "FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) WHERE maLichHen=?")) {
+                    ps.setInt(1, maLichHen);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Không tìm thấy lịch hẹn.");
+                        maBN = rs.getInt("maBN");
+                        phong = rs.getString("phongKham");
+                        ngay = rs.getDate("ngayHen").toLocalDate();
+                        gio = rs.getTime("gioHen").toLocalTime();
+                        duration = rs.getInt("thoiLuongPhut");
+                        status = rs.getString("trangThai");
+                    }
+                }
+                if (!java.util.Arrays.asList("Đã xác nhận", "Đã đến", "Chờ khám").contains(status)) {
+                    throw new SQLException("Chỉ phân công bác sĩ cho lịch đã đến bước tiếp nhận.");
+                }
+                khoaNguonLucLich(c, ngay, maNV, maBN, phong);
+                kiemTraBenhNhanHoatDong(c, maBN);
+                kiemTraBacSiTrongCa(c, maNV, ngay, gio, duration);
+                kiemTraKhongChongLich(c, maLichHen, maBN, maNV, phong, ngay, gio, duration);
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.LichHen SET maNV=?,trangThai=CASE WHEN trangThai=N'Đã xác nhận' "
+                      + "THEN N'Chờ khám' ELSE trangThai END WHERE maLichHen=?")) {
+                    ps.setInt(1, maNV);
+                    ps.setInt(2, maLichHen);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Không thể phân công bác sĩ.");
+                }
+                ghi(c, actor, "Phân công bác sĩ", "LichHen", "maLichHen=" + maLichHen + ", maNV=" + maNV);
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
+    }
+
+    /** State machine cho lịch hẹn; chống chuyển lùi/bỏ qua bước và gói cập nhật + audit trong transaction. */
+    public void trangThaiLichHen(int id, String status, int actor) throws SQLException {
+        List<String> allowed = java.util.Arrays.asList(
+                "Chờ xác nhận", "Đã xác nhận", "Đã đến", "Chờ khám", "Đang khám", "Hoàn tất", "Đã hủy");
+        if (!allowed.contains(status)) throw new SQLException("Trạng thái lịch hẹn không hợp lệ.");
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "LICHHEN");
+            c.setAutoCommit(false);
+            try {
+                String current;
+                Integer maNV;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT trangThai,maNV FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) WHERE maLichHen=?")) {
+                    ps.setInt(1, id);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Không tìm thấy lịch hẹn.");
+                        current = rs.getString("trangThai");
+                        int staffId = rs.getInt("maNV");
+                        maNV = rs.wasNull() ? null : staffId;
+                    }
+                }
+                if (status.equals(current)) throw new SQLException("Lịch hẹn đang ở trạng thái này.");
+                boolean valid = false;
+                if ("Chờ xác nhận".equals(current)) valid = "Đã xác nhận".equals(status) || "Đã hủy".equals(status);
+                else if ("Đã xác nhận".equals(current)) valid = java.util.Arrays.asList("Đã đến", "Đã hủy").contains(status);
+                else if ("Đã đến".equals(current)) valid = java.util.Arrays.asList("Chờ khám", "Đã hủy").contains(status);
+                else if ("Chờ khám".equals(current)) valid = "Đang khám".equals(status) || "Đã hủy".equals(status);
+                else if ("Đang khám".equals(current)) valid = "Hoàn tất".equals(status);
+                if (!valid) throw new SQLException("Không được chuyển lịch từ '" + current + "' sang '" + status + "'.");
+                if ("Đang khám".equals(status)) {
+                    if (maNV == null) throw new SQLException("Lịch chưa được phân công bác sĩ.");
+                    try (PreparedStatement ps = c.prepareStatement(
+                            "SELECT 1 FROM dbo.NhanVien WHERE maNV=? AND chucVu=N'Bác sĩ' AND trangThai=N'Đang làm việc'")) {
+                        ps.setInt(1, maNV);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (!rs.next()) throw new SQLException("Bác sĩ đã ngừng làm việc hoặc không còn hợp lệ.");
+                        }
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.LichHen SET trangThai=? WHERE maLichHen=? AND trangThai=?")) {
+                    datThamSo(ps, status, id, current);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Lịch vừa được cập nhật ở nơi khác. Hãy tải lại.");
+                }
+                ghi(c, actor, "Cập nhật lịch hẹn", "LichHen", "maLichHen=" + id + ": " + current + " -> " + status);
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
             finally { c.setAutoCommit(true); }
         }
     }
@@ -404,19 +1106,6 @@ public final class QuanLyDAO {
             if (arg instanceof LocalDate) ps.setDate(i+from,Date.valueOf((LocalDate)arg));
             else if(arg instanceof LocalTime) ps.setTime(i+from,Time.valueOf((LocalTime)arg));
             else ps.setObject(i+from,arg);
-        }
-    }
-
-    public void trangThaiLichHen(int id, String status, int actor) throws SQLException {
-        if (!java.util.Arrays.asList("Chờ xác nhận","Đã xác nhận","Đang khám","Hoàn tất","Đã hủy").contains(status))
-            throw new SQLException("Trạng thái lịch hẹn không hợp lệ.");
-        try (Connection c = KetNoi.mo()) {
-            canQuyen(c,actor,"LICHHEN");
-            try (PreparedStatement ps = c.prepareStatement("UPDATE dbo.LichHen SET trangThai=? WHERE maLichHen=?")) {
-                datThamSo(ps,status,id);
-                if (ps.executeUpdate() != 1) throw new SQLException("Không tìm thấy lịch hẹn.");
-            }
-            ghi(c,actor,"Cập nhật lịch hẹn","LichHen","maLichHen="+id+" -> "+status);
         }
     }
 
@@ -455,14 +1144,16 @@ public final class QuanLyDAO {
             try {
                 canQuyen(c, actor, "THANHTOAN");
                 int maTT;
+                String invoiceStatus;
                 try (PreparedStatement ps = c.prepareStatement(
                         "SELECT h.maTT, h.trangThai FROM dbo.HoaDon h WITH (UPDLOCK, HOLDLOCK) "
                       + "WHERE h.maHD=?")) {
                     ps.setInt(1, maHD);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) throw new SQLException("Không tìm thấy hóa đơn #" + maHD);
-                        if ("Đã hủy".equalsIgnoreCase(rs.getString("trangThai"))) {
-                            throw new SQLException("Hóa đơn #" + maHD + " đã hủy.");
+                        invoiceStatus = rs.getString("trangThai");
+                        if (!"Chờ thanh toán".equalsIgnoreCase(invoiceStatus)) {
+                            throw new SQLException("Chỉ gửi yêu cầu hủy hóa đơn chưa thực thu đang Chờ thanh toán.");
                         }
                         maTT = rs.getInt("maTT");
                     }
@@ -501,35 +1192,140 @@ public final class QuanLyDAO {
         }
     }
 
+    /** Tiền mặt chỉ được ghi nhận sau xác nhận thu; chuyển khoản/thẻ ở trạng thái chờ xác minh. */
     public void taoThanhToan(int maPK, String phuongThuc, int actor) throws SQLException {
+        batBuoc(phuongThuc, "Chọn phương thức thanh toán.");
+        if (!java.util.Arrays.asList("Tiền mặt", "Chuyển khoản", "Thẻ ngân hàng").contains(phuongThuc)) {
+            throw new SQLException("Phương thức thanh toán không hợp lệ.");
+        }
+        boolean tienMat = "Tiền mặt".equals(phuongThuc);
+        String trangThaiTT = tienMat ? "Đã thanh toán" : "Chờ xử lý";
+        String trangThaiHD = tienMat ? "Đã thanh toán" : "Chờ thanh toán";
         try (Connection c = KetNoi.mo()) {
-            canQuyen(c,actor,"THANHTOAN");
+            canQuyen(c, actor, "THANHTOAN");
             c.setAutoCommit(false);
             try {
-                BigDecimal soTien;
-                try (PreparedStatement ps=c.prepareStatement("SELECT COALESCE(SUM(thanhTien),0) FROM dbo.ChiTietDieuTri WHERE maPK=?")) {
-                    ps.setInt(1,maPK);
-                    try(ResultSet rs=ps.executeQuery()) { if(!rs.next()) throw new SQLException("Không có phiếu khám."); soTien=rs.getBigDecimal(1); }
+                // App lock bảo đảm hai quầy không cùng tạo khoản thu cho một phiếu khám.
+                try (PreparedStatement lock = c.prepareStatement(
+                        "DECLARE @r INT; EXEC @r=sys.sp_getapplock @Resource=?, "
+                      + "@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000; SELECT @r")) {
+                    lock.setString(1, "MEDIDENT_THANHTOAN_PK_" + maPK);
+                    try (ResultSet rs = lock.executeQuery()) {
+                        if (!rs.next() || rs.getInt(1) < 0) throw new SQLException("Không khóa được phiếu thanh toán. Hãy thử lại.");
+                    }
                 }
-                if(soTien.signum()<=0) throw new SQLException("Phiếu khám chưa có chi tiết điều trị hoặc số tiền bằng 0.");
-                try (PreparedStatement ps=c.prepareStatement("SELECT COUNT(*) FROM dbo.ThanhToan WITH(UPDLOCK,HOLDLOCK) WHERE maPK=? AND trangThai IN(N'Thành công',N'Đã thanh toán')")) {
-                    ps.setInt(1,maPK);
-                    try(ResultSet rs=ps.executeQuery()) { if(rs.next()&&rs.getInt(1)>0) throw new SQLException("Phiếu khám đã được thanh toán."); }
+                BigDecimal soTien;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT COALESCE(SUM(thanhTien),0) FROM dbo.ChiTietDieuTri WITH (UPDLOCK,HOLDLOCK) WHERE maPK=?")) {
+                    ps.setInt(1, maPK);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Không tìm thấy phiếu khám.");
+                        soTien = rs.getBigDecimal(1);
+                    }
+                }
+                if (soTien == null || soTien.signum() <= 0) {
+                    throw new SQLException("Phiếu khám chưa có chi tiết điều trị hoặc số tiền bằng 0.");
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT TOP 1 maTT,trangThai FROM dbo.ThanhToan WITH (UPDLOCK,HOLDLOCK) "
+                      + "WHERE maPK=? AND trangThai NOT IN (N'Đã hủy',N'Hoàn tiền',N'Thất bại') ORDER BY maTT DESC")) {
+                    ps.setInt(1, maPK);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            throw new SQLException("Phiếu khám đã có khoản thanh toán #" + rs.getInt("maTT")
+                                    + " ở trạng thái '" + rs.getString("trangThai") + "'. Không tạo khoản trùng.");
+                        }
+                    }
                 }
                 int maTT;
-                try (PreparedStatement ps=c.prepareStatement("INSERT dbo.ThanhToan(maPK,soTien,phuongThuc,trangThai) "
-                        + "VALUES(?,?,?,N'Đã thanh toán')",Statement.RETURN_GENERATED_KEYS)) {
-                    datThamSo(ps,maPK,soTien,phuongThuc);
+                String insertPayment = tienMat
+                        ? "INSERT dbo.ThanhToan(maPK,ngayThanhToan,soTien,phuongThuc,trangThai) VALUES(?,SYSDATETIME(),?,?,?)"
+                        : "INSERT dbo.ThanhToan(maPK,ngayThanhToan,soTien,phuongThuc,trangThai) VALUES(?,NULL,?,?,?)";
+                try (PreparedStatement ps = c.prepareStatement(insertPayment, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setInt(1, maPK);
+                    ps.setBigDecimal(2, soTien);
+                    ps.setString(3, phuongThuc);
+                    ps.setString(4, trangThaiTT);
                     ps.executeUpdate();
-                    try(ResultSet k=ps.getGeneratedKeys()) { if(!k.next())throw new SQLException("Không lấy được mã thanh toán.");maTT=k.getInt(1); }
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        if (!keys.next()) throw new SQLException("Không lấy được mã thanh toán.");
+                        maTT = keys.getInt(1);
+                    }
                 }
-                try (PreparedStatement ps=c.prepareStatement("INSERT dbo.HoaDon(maTT,maPK,tongTien,trangThai) VALUES(?,?,?,N'Đã thanh toán')")) {
-                    datThamSo(ps,maTT,maPK,soTien);
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT dbo.HoaDon(maTT,maPK,tongTien,trangThai) VALUES(?,?,?,?)")) {
+                    datThamSo(ps, maTT, maPK, soTien, trangThaiHD);
                     ps.executeUpdate();
                 }
-                ghi(c,actor,"Thanh toán","ThanhToan","maPK="+maPK+", maTT="+maTT);
+                ghi(c, actor, tienMat ? "Thu tiền mặt" : "Tạo khoản chờ xác minh",
+                        "ThanhToan", "maPK=" + maPK + ", maTT=" + maTT + ", soTien=" + soTien
+                        + ", phuongThuc=" + phuongThuc + ", trangThai=" + trangThaiTT);
                 c.commit();
-            } catch(SQLException ex) { c.rollback(); throw ex; }
+            } catch (SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
+        }
+    }
+
+    /** Xác nhận tiền chuyển khoản/thẻ đã thực nhận; bắt buộc mã giao dịch để đối soát. */
+    public void xacNhanThucThu(int maTT, String maGiaoDich, int actor) throws SQLException {
+        if (maTT <= 0) throw new SQLException("Mã thanh toán không hợp lệ.");
+        batBuoc(maGiaoDich, "Phải nhập mã giao dịch/xác nhận thực nhận.");
+        if (maGiaoDich.trim().length() > 100) throw new SQLException("Mã giao dịch tối đa 100 ký tự.");
+        try (Connection c = KetNoi.mo()) {
+            canQuyen(c, actor, "THANHTOAN");
+            c.setAutoCommit(false);
+            try {
+                // Khóa theo mã giao dịch để hai người không thể đồng thời gán cùng một reference.
+                try (PreparedStatement lock = c.prepareStatement(
+                        "DECLARE @r INT; EXEC @r=sys.sp_getapplock @Resource=?, "
+                      + "@LockMode='Exclusive',@LockOwner='Transaction',@LockTimeout=10000; SELECT @r")) {
+                    lock.setString(1, "MEDIDENT_GIAODICH_" + maGiaoDich.trim().toUpperCase(java.util.Locale.ROOT));
+                    try (ResultSet rs = lock.executeQuery()) {
+                        if (!rs.next() || rs.getInt(1) < 0) {
+                            throw new SQLException("Không khóa được mã giao dịch để đối soát. Hãy thử lại.");
+                        }
+                    }
+                }
+                int maPK;
+                String status;
+                String method;
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT maPK,trangThai,phuongThuc FROM dbo.ThanhToan WITH (UPDLOCK,HOLDLOCK) WHERE maTT=?")) {
+                    ps.setInt(1, maTT);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Không tìm thấy thanh toán #" + maTT + ".");
+                        maPK = rs.getInt("maPK");
+                        status = rs.getString("trangThai");
+                        method = rs.getString("phuongThuc");
+                    }
+                }
+                if (!"Chờ xử lý".equals(status)) {
+                    throw new SQLException("Chỉ xác nhận khoản đang Chờ xử lý; trạng thái hiện tại: " + status);
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "SELECT 1 FROM dbo.ThanhToan WITH (UPDLOCK,HOLDLOCK) WHERE maGiaoDich=? AND maTT<>?")) {
+                    ps.setString(1, maGiaoDich.trim());
+                    ps.setInt(2, maTT);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) throw new SQLException("Mã giao dịch đã được ghi nhận cho khoản thanh toán khác.");
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.ThanhToan SET trangThai=N'Đã thanh toán',ngayThanhToan=SYSDATETIME(),maGiaoDich=? "
+                      + "WHERE maTT=? AND trangThai=N'Chờ xử lý'")) {
+                    ps.setString(1, maGiaoDich.trim());
+                    ps.setInt(2, maTT);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Khoản thanh toán vừa thay đổi. Hãy tải lại.");
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "UPDATE dbo.HoaDon SET trangThai=N'Đã thanh toán' WHERE maTT=? AND trangThai=N'Chờ thanh toán'")) {
+                    ps.setInt(1, maTT);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Không tìm thấy hóa đơn chờ thanh toán tương ứng.");
+                }
+                ghi(c, actor, "Xác nhận thực thu", "ThanhToan", "maTT=" + maTT + ", maPK=" + maPK
+                        + ", phuongThuc=" + method + ", maGiaoDich=" + maGiaoDich.trim());
+                c.commit();
+            } catch (SQLException ex) { c.rollback(); throw ex; }
             finally { c.setAutoCommit(true); }
         }
     }
@@ -583,8 +1379,13 @@ public final class QuanLyDAO {
             ps.setInt(1, maTT);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) throw new SQLException("Không tìm thấy thanh toán #" + maTT);
-                if ("Đã hủy".equalsIgnoreCase(rs.getString(1))) {
-                    throw new SQLException("Thanh toán đã hủy, không thể gửi lại yêu cầu.");
+                String paymentStatus = rs.getString(1);
+                if ("Đã thanh toán".equalsIgnoreCase(paymentStatus)
+                        || "Thành công".equalsIgnoreCase(paymentStatus)) {
+                    throw new SQLException("Khoản thanh toán đã thực thu. Hủy hóa đơn phải đi kèm quy trình hoàn tiền riêng.");
+                }
+                if (!"Chờ xử lý".equalsIgnoreCase(paymentStatus)) {
+                    throw new SQLException("Chỉ có thể gửi yêu cầu hủy cho khoản thanh toán đang Chờ xử lý.");
                 }
             }
         }
@@ -688,16 +1489,28 @@ public final class QuanLyDAO {
             c.setAutoCommit(false);
             try {
                 int maTT;
+                String trangThaiThanhToan;
                 try (PreparedStatement ps = c.prepareStatement(
-                        "SELECT maTT FROM dbo.YeuCauHuyPhieuThu WITH (UPDLOCK, HOLDLOCK) "
-                      + "WHERE maYC=? AND trangThai=N'Chờ duyệt'")) {
+                        "SELECT y.maTT,t.trangThai AS trangThaiThanhToan "
+                      + "FROM dbo.YeuCauHuyPhieuThu y WITH (UPDLOCK,HOLDLOCK) "
+                      + "JOIN dbo.ThanhToan t WITH (UPDLOCK,HOLDLOCK) ON t.maTT=y.maTT "
+                      + "WHERE y.maYC=? AND y.trangThai=N'Chờ duyệt'")) {
                     ps.setInt(1, maYC);
                     try (ResultSet rs = ps.executeQuery()) {
                         if (!rs.next()) {
                             throw new SQLException("Yêu cầu không còn ở trạng thái Chờ duyệt.");
                         }
-                        maTT = rs.getInt(1);
+                        maTT = rs.getInt("maTT");
+                        trangThaiThanhToan = rs.getString("trangThaiThanhToan");
                     }
+                }
+                // Hủy chứng từ không đồng nghĩa hoàn tiền. Chỉ cho duyệt hủy khoản chưa thực thu.
+                if (chapThuan && ("Đã thanh toán".equalsIgnoreCase(trangThaiThanhToan)
+                        || "Thành công".equalsIgnoreCase(trangThaiThanhToan))) {
+                    throw new SQLException("Thanh toán đã thực thu. Không được hủy trực tiếp; cần quy trình hoàn tiền và đối soát riêng.");
+                }
+                if (chapThuan && !"Chờ xử lý".equalsIgnoreCase(trangThaiThanhToan)) {
+                    throw new SQLException("Chỉ được duyệt hủy khoản thanh toán đang Chờ xử lý.");
                 }
                 // Không duyệt tự động nếu một thanh toán có nhiều hóa đơn liên kết.
                 if (chapThuan) {
@@ -717,7 +1530,7 @@ public final class QuanLyDAO {
                         "UPDATE dbo.YeuCauHuyPhieuThu SET trangThai=? WHERE maYC=?")) {
                     ps.setString(1, chapThuan ? "Đã duyệt" : "Từ chối");
                     ps.setInt(2, maYC);
-                    ps.executeUpdate();
+                    if (ps.executeUpdate() != 1) throw new SQLException("Yêu cầu vừa được xử lý ở nơi khác.");
                 }
                 try (PreparedStatement ps = c.prepareStatement(
                         "INSERT dbo.PhieuDuyetHuyPhieuThu(maYC,ngayPheDuyet,lyDoPheDuyet) "
@@ -728,16 +1541,18 @@ public final class QuanLyDAO {
                 }
                 if (chapThuan) {
                     try (PreparedStatement ps = c.prepareStatement(
-                            "UPDATE dbo.ThanhToan SET trangThai=N'Đã hủy' WHERE maTT=?")) {
+                            "UPDATE dbo.ThanhToan SET trangThai=N'Đã hủy' WHERE maTT=? AND trangThai=N'Chờ xử lý'")) {
                         ps.setInt(1, maTT);
                         if (ps.executeUpdate() != 1) {
                             throw new SQLException("Thanh toán không tồn tại, không thể duyệt.");
                         }
                     }
                     try (PreparedStatement ps = c.prepareStatement(
-                            "UPDATE dbo.HoaDon SET trangThai=N'Đã hủy' WHERE maTT=?")) {
+                            "UPDATE dbo.HoaDon SET trangThai=N'Đã hủy' WHERE maTT=? AND trangThai=N'Chờ thanh toán'")) {
                         ps.setInt(1, maTT);
-                        ps.executeUpdate();
+                        if (ps.executeUpdate() != 1) {
+                            throw new SQLException("Hóa đơn không ở trạng thái Chờ thanh toán; cần đối chiếu trước khi duyệt.");
+                        }
                     }
                 }
                 ghi(c, actor, chapThuan ? "Duyệt hủy hóa đơn" : "Từ chối hủy hóa đơn",
@@ -763,17 +1578,23 @@ public final class QuanLyDAO {
     public void guiHoTro(int actor,String tieuDe,String noiDung) throws SQLException {
         batBuoc(tieuDe,"Nhập tiêu đề yêu cầu."); batBuoc(noiDung,"Nhập nội dung cần hỗ trợ.");
         try(Connection c=KetNoi.mo()) {
-            try(PreparedStatement valid=c.prepareStatement(
-                    "SELECT 1 FROM dbo.TaiKhoan WHERE maTK=? AND trangThai=N'Hoạt động'")) {
-                valid.setInt(1,actor);
-                try(ResultSet r=valid.executeQuery()) {
-                    if(!r.next()) throw new SQLException("Tài khoản đã bị khóa hoặc đăng xuất.");
+            c.setAutoCommit(false);
+            try {
+                try(PreparedStatement valid=c.prepareStatement(
+                        "SELECT 1 FROM dbo.TaiKhoan WITH (UPDLOCK,HOLDLOCK) WHERE maTK=? AND trangThai=N'Hoạt động'")) {
+                    valid.setInt(1,actor);
+                    try(ResultSet r=valid.executeQuery()) {
+                        if(!r.next()) throw new SQLException("Tài khoản đã bị khóa hoặc đăng xuất.");
+                    }
                 }
-            }
-            try(PreparedStatement ps=c.prepareStatement("INSERT dbo.YeuCauHoTro(maTK,tieuDe,noiDung) VALUES(?,?,?)")) {
-                datThamSo(ps,actor,tieuDe,noiDung);ps.executeUpdate();
-            }
-            ghi(c,actor,"Gửi yêu cầu hỗ trợ","YeuCauHoTro",tieuDe);
+                try(PreparedStatement ps=c.prepareStatement("INSERT dbo.YeuCauHoTro(maTK,tieuDe,noiDung) VALUES(?,?,?)")) {
+                    datThamSo(ps,actor,tieuDe.trim(),noiDung.trim());
+                    if(ps.executeUpdate()!=1) throw new SQLException("Không gửi được yêu cầu hỗ trợ.");
+                }
+                ghi(c,actor,"Gửi yêu cầu hỗ trợ","YeuCauHoTro",tieuDe.trim());
+                c.commit();
+            } catch(SQLException ex) { c.rollback(); throw ex; }
+            finally { c.setAutoCommit(true); }
         }
     }
 
