@@ -1,0 +1,4 @@
+# Copy this file to db.properties beside the JAR and fill in your SQL Server details.
+db.url=jdbc:sqlserver://localhost:1433;databaseName=MediDent;encrypt=true;trustServerCertificate=true
+db.user=CHANGE_ME
+db.password=CHANGE_ME
