@@ -144,15 +144,21 @@ public final class DuyetHuyPhieuThu extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui lòng chọn một yêu cầu.");
             return null;
         }
-        return duLieu.get(bang.convertRowIndexToModel(viewIndex));
+        int modelRow = bang.convertRowIndexToModel(viewIndex);
+        int id = ((Number) model.getValueAt(modelRow, 1)).intValue();
+        for (QuanLyDAO.Hang hang : duLieu) {
+            if (hang.id == id) return hang;
+        }
+        JOptionPane.showMessageDialog(this, "Dữ liệu đã thay đổi, hãy tải lại danh sách.");
+        return null;
     }
 
     private void capNhatNut() {
         int viewIndex = bang.getSelectedRow();
         boolean choDuyet = false;
         if (viewIndex >= 0 && viewIndex < bang.getRowCount()) {
-            QuanLyDAO.Hang h = duLieu.get(bang.convertRowIndexToModel(viewIndex));
-            choDuyet = "Chờ duyệt".equals(h.cot[6]);
+            QuanLyDAO.Hang h = daChon();
+            choDuyet = h != null && "Chờ duyệt".equals(h.cot[6]);
         }
         duyet.setEnabled(adminDuocDuyet && choDuyet);
         tuChoi.setEnabled(adminDuocDuyet && choDuyet);

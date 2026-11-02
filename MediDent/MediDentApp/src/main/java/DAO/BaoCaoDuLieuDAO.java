@@ -76,14 +76,25 @@ public class BaoCaoDuLieuDAO {
         ketQua.denNgay = denNgay;
 
         try (Connection ketNoi = KetNoi.mo()) {
+<<<<<<< Updated upstream:MediDent/MediDentApp/src/main/java/DAO/BaoCaoDuLieuDAO.java
             layTongDoanhThu(ketNoi, ketQua);
             layThongKeLuotKham(ketNoi, ketQua);
             layTheoThang(ketNoi, ketQua);
             layTheoDichVu(ketNoi, ketQua);
 
+=======
+>>>>>>> Stashed changes:SourceCode/MediDent/MediDentAdmin/src/main/java/DAO/BaoCaoDuLieuDAO.java
             if (quanTriVien) {
+                // Admin chỉ được tải nhật ký/tài khoản, KHÔNG đọc doanh thu.
                 layPhanBoVaiTro(ketNoi, ketQua);
                 layNhatKy(ketNoi, ketQua);
+            } else {
+                // Số liệu vận hành/tài chính chỉ dành cho báo cáo Quản lý.
+                layTongDoanhThu(ketNoi, ketQua);
+                layThongKeLuotKham(ketNoi, ketQua);
+                layTheoThang(ketNoi, ketQua);
+                layChiPhi(ketNoi, ketQua);
+                layTheoDichVu(ketNoi, ketQua);
             }
         }
         return ketQua;
@@ -181,6 +192,118 @@ public class BaoCaoDuLieuDAO {
         }
     }
 
+<<<<<<< Updated upstream:MediDent/MediDentApp/src/main/java/DAO/BaoCaoDuLieuDAO.java
+=======
+    /**
+     * Tổng chi phí và chi phí theo tháng. Không dùng số giả để suy ra lợi nhuận.
+     * Script 08 tạo bảng ChiPhiHoatDong; nếu chưa chạy, thông báo rõ nguyên nhân.
+     */
+    private void layChiPhi(Connection c, DuLieu dl) throws SQLException {
+        try (PreparedStatement check = c.prepareStatement(
+                "SELECT OBJECT_ID(N'dbo.ChiPhiHoatDong', N'U')" );
+             ResultSet r = check.executeQuery()) {
+            if (!r.next() || r.getObject(1) == null) {
+                throw new SQLException("Chưa có bảng chi phí. Hãy chạy SQLData/01_MediDent.sql trước.");
+            }
+        }
+        String sqlTong = "SELECT COUNT(*), COALESCE(SUM(soTien), 0) FROM dbo.ChiPhiHoatDong "
+                + "WHERE ngayChi >= ? AND ngayChi < ?";
+        try (PreparedStatement ps = c.prepareStatement(sqlTong)) {
+            datKhoangNgay(ps, dl.tuNgay, dl.denNgay);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    dl.soKhoanChi = rs.getInt(1);
+                    dl.chiPhi = rs.getBigDecimal(2);
+                }
+            }
+        }
+        String sqlThang = "SELECT YEAR(ngayChi), MONTH(ngayChi), COALESCE(SUM(soTien),0) "
+                + "FROM dbo.ChiPhiHoatDong WHERE ngayChi >= ? AND ngayChi < ? "
+                + "GROUP BY YEAR(ngayChi), MONTH(ngayChi)";
+        try (PreparedStatement ps = c.prepareStatement(sqlThang)) {
+            datKhoangNgay(ps, dl.tuNgay, dl.denNgay);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    YearMonth ky = YearMonth.of(rs.getInt(1), rs.getInt(2));
+                    for (int i = 0; i < dl.theoThang.size(); i++) {
+                        Thang current = dl.theoThang.get(i);
+                        if (current.thang.equals(ky)) {
+                            dl.theoThang.set(i, new Thang(current.thang,
+                                    current.doanhThu, current.luotKham, rs.getBigDecimal(3)));
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Ghi chi phí thực tế vào SQL. Chỉ Quản lý có quyền BAOCAO được phép ghi.
+     * Ngày mặc định trên form là hôm nay và không được vượt quá ngày hiện tại.
+     */
+    public void ghiChiPhi(LocalDate ngayChi, String loaiChi,
+                          String moTa, BigDecimal soTien, int maTaiKhoan) throws SQLException {
+        if (ngayChi == null || ngayChi.isAfter(LocalDate.now())
+                || ngayChi.isBefore(LocalDate.of(2000, 1, 1))) {
+            throw new SQLException("Ngày chi phí phải hợp lệ, không ở tương lai.");
+        }
+        if (loaiChi == null || !java.util.Arrays.asList(
+                "Vật tư", "Nhân sự", "Vận hành", "Thuê mặt bằng", "Khác").contains(loaiChi)) {
+            throw new SQLException("Nhóm chi phí không hợp lệ.");
+        }
+        if (soTien == null || soTien.signum() <= 0 || soTien.scale() > 2
+                || soTien.compareTo(new BigDecimal("9999999999999999.99")) > 0) {
+            throw new SQLException("Số tiền chi phải lớn hơn 0 và nằm trong giới hạn hợp lệ.");
+        }
+        if (moTa == null || moTa.trim().isEmpty() || moTa.trim().length() > 500) {
+            throw new SQLException("Mô tả chi phí bắt buộc (tối đa 500 ký tự).");
+        }
+        try (Connection c = KetNoi.mo()) {
+            c.setAutoCommit(false);
+            try {
+                String sqlQuyen = "SELECT 1 FROM dbo.TaiKhoan t "
+                        + "JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro "
+                        + "JOIN dbo.VaiTroQuyen q ON q.maVaiTro=t.maVaiTro "
+                        + "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' "
+                        + "AND v.tenVaiTro IN (N'Quản lý', N'Quản lý phòng khám') "
+                        + "AND q.maQuyen='BAOCAO'";
+                try (PreparedStatement ps = c.prepareStatement(sqlQuyen)) {
+                    ps.setInt(1, maTaiKhoan);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            throw new SQLException("Chỉ tài khoản Quản lý có quyền Báo cáo mới được ghi chi phí.");
+                        }
+                    }
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT dbo.ChiPhiHoatDong(ngayChi,loaiChi,moTa,soTien,maTKNguoiNhap) "
+                      + "VALUES(?,?,?,?,?)")) {
+                    ps.setDate(1, Date.valueOf(ngayChi));
+                    ps.setString(2, loaiChi);
+                    ps.setString(3, moTa.trim());
+                    ps.setBigDecimal(4, soTien);
+                    ps.setInt(5, maTaiKhoan);
+                    if (ps.executeUpdate() != 1) throw new SQLException("Không lưu được chi phí.");
+                }
+                try (PreparedStatement ps = c.prepareStatement(
+                        "INSERT dbo.NhatKyHeThong(hanhDong,doiTuong,moTa) VALUES(?,?,?)")) {
+                    ps.setString(1, "Ghi chi phí");
+                    ps.setString(2, "ChiPhiHoatDong");
+                    ps.setString(3, "maTK=" + maTaiKhoan + " | " + loaiChi + " | " + soTien);
+                    ps.executeUpdate();
+                }
+                c.commit();
+            } catch (SQLException ex) {
+                c.rollback();
+                throw ex;
+            } finally {
+                c.setAutoCommit(true);
+            }
+        }
+    }
+
+>>>>>>> Stashed changes:SourceCode/MediDent/MediDentAdmin/src/main/java/DAO/BaoCaoDuLieuDAO.java
     /** Lấy TOP 6 dịch vụ điều trị theo số lần thực hiện trong kỳ. */
     private void layTheoDichVu(Connection ketNoi, DuLieu dl) throws SQLException {
         String sql =

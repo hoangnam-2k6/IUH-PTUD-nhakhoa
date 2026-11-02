@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream:MediDent/MediDentApp/.gitignore
 # Eclipse auto-generated, do not commit old/corrupted project settings
 .classpath
 .project
@@ -11,3 +12,6 @@ bin/
 *.iml
 # never commit a personal DB config after setting credentials
 # keep db.properties template here; do not put real passwords in Git
+=======
+/target/
+>>>>>>> Stashed changes:SourceCode/MediDent/MediDentAdmin/.gitignore

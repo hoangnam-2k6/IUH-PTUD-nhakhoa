@@ -58,7 +58,7 @@ import javax.swing.table.TableRowSorter;
  * 2) Tiếp nhận: tìm bệnh nhân, cấp số thứ tự theo ngày và chỉ định phòng.
  *
  * Khung header / sidebar nằm ở UI.Chung.KhungChinh, không tạo JFrame mới.
- * Cần chạy SQLData/06_TiepNhanLeTan_SQL2012.sql MỘT LẦN trước khi dùng.
+ * Cần chạy SQLData/01_MediDent.sql MỘT LẦN trước khi dùng.
  *
  * Quyền:
  * - BENHNHAN: xem hồ sơ bệnh nhân và phiếu khám.
@@ -74,11 +74,7 @@ public final class TrangChuLeTan extends JPanel {
     private static final Color GREEN = new Color(0x10B981);
     private static final Color WARNING = new Color(0xF59E0B);
 
-    // Danh sách phòng cố định để người sử dụng không nhập sai ký tự.
-    private static final String[] ROOMS = {
-        "Phòng 01", "Phòng 02", "Phòng 03", "Phòng 04",
-        "Phòng 05", "Phòng 06", "Phòng 07", "Phòng 08"
-    };
+    // Phòng lấy từ bảng dbo.PhongKham để không lệch với màn đặt lịch.
 
     private final KhoDuLieu db;
     private final TaiKhoan user;
@@ -89,7 +85,7 @@ public final class TrangChuLeTan extends JPanel {
     private final TableRowSorter<DefaultTableModel> phieuSorter;
     private final TableRowSorter<DefaultTableModel> benhNhanSorter;
 
-    private final JComboBox<String> phongChon = new JComboBox<>(ROOMS);
+    private final JComboBox<String> phongChon = new JComboBox<>();
     private final JButton tiepNhanButton = button("Tiếp nhận / Cấp số", true);
     private final JButton refreshButton = button("Làm mới", false);
     private final JLabel chonBenhNhan = label("Chọn một bệnh nhân trong bảng", 12, false);
@@ -113,11 +109,10 @@ public final class TrangChuLeTan extends JPanel {
         // Các thuộc tính còn lại xem bằng cuộn ngang hoặc nhấp đúp để mở chi tiết.
         phieuModel = model(
                 "STT", "Mã phiếu", "Mã BN", "Bệnh nhân", "Mã NV", "Bác sĩ",
-                "Ngày khám", "Trạng thái", "Triệu chứng", "Chẩn đoán",
-                "Phương pháp điều trị", "Kết quả", "Ghi chú");
+                "Ngày khám", "Trạng thái");
         benhNhanModel = model(
                 "STT", "Mã BN", "Họ tên", "Ngày sinh", "Giới tính", "SĐT",
-                "Email", "Địa chỉ", "Tiền sử bệnh", "Trạng thái", "Số khám", "Phòng");
+                "Email", "Địa chỉ", "Trạng thái", "Số khám", "Phòng");
         phieuTable = table(phieuModel);
         benhNhanTable = table(benhNhanModel);
         phieuSorter = new TableRowSorter<>(phieuModel);
@@ -211,7 +206,7 @@ public final class TrangChuLeTan extends JPanel {
                 BorderLayout.NORTH);
         JTextField search = search("Tìm mã phiếu, bệnh nhân, bác sĩ...");
         search.getDocument().addDocumentListener(new SearchListener(() ->
-                filter(phieuSorter, search.getText())));
+                filter(phieuSorter, search.getText(), true)));
         top.add(search, BorderLayout.SOUTH);
         panel.add(top, BorderLayout.NORTH);
         panel.add(scrollTable(phieuTable), BorderLayout.CENTER);
@@ -233,8 +228,7 @@ public final class TrangChuLeTan extends JPanel {
         int row = phieuTable.convertRowIndexToModel(viewRow);
         String[] properties = {
             "Mã phiếu khám", "Mã bệnh nhân", "Họ tên bệnh nhân", "Mã nhân viên",
-            "Bác sĩ phụ trách", "Ngày khám", "Trạng thái", "Triệu chứng",
-            "Chẩn đoán", "Phương pháp điều trị", "Kết quả", "Ghi chú"
+            "Bác sĩ phụ trách", "Ngày khám", "Trạng thái"
         };
         showDetail(phieuModel, row, properties, "Chi tiết phiếu khám");
     }
@@ -247,7 +241,7 @@ public final class TrangChuLeTan extends JPanel {
         int row = benhNhanTable.convertRowIndexToModel(viewRow);
         String[] properties = {
             "Mã bệnh nhân", "Họ và tên", "Ngày sinh", "Giới tính", "Số điện thoại",
-            "Email", "Địa chỉ", "Tiền sử bệnh", "Trạng thái", "Số khám hôm nay",
+            "Email", "Địa chỉ", "Trạng thái", "Số khám hôm nay",
             "Phòng khám hôm nay"
         };
         showDetail(benhNhanModel, row, properties, "Chi tiết bệnh nhân");
@@ -285,7 +279,7 @@ public final class TrangChuLeTan extends JPanel {
                 BorderLayout.NORTH);
         JTextField search = search("Tìm họ tên, mã bệnh nhân, số điện thoại...");
         search.getDocument().addDocumentListener(new SearchListener(() ->
-                filter(benhNhanSorter, search.getText())));
+                filter(benhNhanSorter, search.getText(), false)));
         top.add(search, BorderLayout.SOUTH);
         panel.add(top, BorderLayout.NORTH);
         panel.add(scrollTable(benhNhanTable), BorderLayout.CENTER);
@@ -331,7 +325,8 @@ public final class TrangChuLeTan extends JPanel {
             chonBenhNhan.setText("Đã chọn: BN " + benhNhanModel.getValueAt(row, 1)
                     + " - " + benhNhanModel.getValueAt(row, 2));
         }
-        tiepNhanButton.setEnabled(!loading && canReceive && viewRow >= 0);
+        tiepNhanButton.setEnabled(!loading && canReceive
+                && phongChon.getItemCount() > 0 && viewRow >= 0);
     }
 
     /** Tạo tiếp nhận trong SQL ở luồng nền, tránh đứng giao diện. */
@@ -341,6 +336,10 @@ public final class TrangChuLeTan extends JPanel {
         int modelRow = benhNhanTable.convertRowIndexToModel(viewRow);
         int patientId = (Integer) benhNhanModel.getValueAt(modelRow, 1);
         String patientName = String.valueOf(benhNhanModel.getValueAt(modelRow, 2));
+        if (phongChon.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this, "Chưa chọn phòng khám đang hoạt động.");
+            return;
+        }
         String room = String.valueOf(phongChon.getSelectedItem());
 
         int confirm = JOptionPane.showConfirmDialog(this,
@@ -392,7 +391,7 @@ public final class TrangChuLeTan extends JPanel {
             try {
                 requirePermission(connection, "LICHHEN");
                 if (!columnExists(connection)) {
-                    throw new SQLException("Thiếu cột soThuTuKham. Hãy chạy SQLData/06_TiepNhanLeTan_SQL2012.sql.");
+                    throw new SQLException("Thiếu cột soThuTuKham. Hãy chạy SQLData/01_MediDent.sql.");
                 }
 
                 Date today;
@@ -415,10 +414,24 @@ public final class TrangChuLeTan extends JPanel {
                     }
                 }
 
+                // Không nhận hồ sơ đã ngừng. Khóa bản ghi để kiểm tra cùng transaction.
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "SELECT ISNULL(trangThaiHoSo,N'Hoạt động') FROM dbo.BenhNhan "
+                      + "WITH (UPDLOCK,HOLDLOCK) WHERE maBN=?")) {
+                    ps.setInt(1, patientId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Không tìm thấy bệnh nhân.");
+                        if (!"Hoạt động".equalsIgnoreCase(rs.getString(1)))
+                            throw new SQLException("Hồ sơ đã ngừng, không thể tiếp nhận.");
+                    }
+                }
+
                 int appointmentId = -1;
                 Integer previouslyAssigned = null;
+                Integer doctorId = null;
+                String appointmentStatus = null;
                 try (PreparedStatement statement = connection.prepareStatement(
-                        "SELECT TOP 1 maLichHen,soThuTuKham FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
+                        "SELECT TOP 1 maLichHen,soThuTuKham,maNV,trangThai FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
                         + "WHERE maBN=? AND ngayHen=? AND trangThai NOT IN (N'Đã hủy',N'Hoàn tất') "
                         + "ORDER BY CASE WHEN soThuTuKham IS NULL THEN 1 ELSE 0 END, maLichHen")) {
                     statement.setInt(1, patientId);
@@ -428,12 +441,45 @@ public final class TrangChuLeTan extends JPanel {
                             appointmentId = result.getInt(1);
                             int value = result.getInt(2);
                             if (!result.wasNull()) previouslyAssigned = value;
+                            int assigned = result.getInt("maNV");
+                            doctorId = result.wasNull() ? null : assigned;
+                            appointmentStatus = result.getString("trangThai");
                         }
                     }
                 }
                 if (previouslyAssigned != null) {
                     throw new SQLException("Bệnh nhân đã được tiếp nhận hôm nay, số khám: "
                             + String.format("%03d", previouslyAssigned));
+                }
+
+                if (appointmentId > 0 && !java.util.Arrays.asList(
+                        "Chờ xác nhận", "Đã xác nhận", "Đã đến").contains(appointmentStatus)) {
+                    throw new SQLException("Lịch đang ở trạng thái '" + appointmentStatus
+                            + "', không thể tiếp nhận lại.");
+                }
+                // Kiểm tra sức chứa theo số bệnh nhân chưa hoàn tất trong phòng.
+                int capacity;
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "SELECT sucChua FROM dbo.PhongKham WITH (UPDLOCK,HOLDLOCK) "
+                      + "WHERE tenPhong=? AND trangThai=N'Hoạt động'")) {
+                    ps.setString(1, room);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) throw new SQLException("Phòng không tồn tại hoặc đã ngừng hoạt động.");
+                        capacity = rs.getInt(1);
+                    }
+                }
+                try (PreparedStatement ps = connection.prepareStatement(
+                        "SELECT COUNT(*) FROM dbo.LichHen WITH (UPDLOCK,HOLDLOCK) "
+                      + "WHERE ngayHen=? AND phongKham=? AND soThuTuKham IS NOT NULL "
+                      + "AND trangThai NOT IN (N'Đã hủy',N'Hoàn tất')")) {
+                    ps.setDate(1, today);
+                    ps.setString(2, room);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        rs.next();
+                        if (rs.getInt(1) >= capacity)
+                            throw new SQLException("Phòng đã đủ " + capacity
+                                    + " bệnh nhân chưa hoàn tất. Hãy chọn phòng khác.");
+                    }
                 }
 
                 int queue = 1;
@@ -449,10 +495,11 @@ public final class TrangChuLeTan extends JPanel {
                 if (appointmentId > 0) {
                     try (PreparedStatement statement = connection.prepareStatement(
                             "UPDATE dbo.LichHen SET soThuTuKham=?,phongKham=?, "
-                            + "trangThai=N'Đã xác nhận' WHERE maLichHen=? AND soThuTuKham IS NULL")) {
+                            + "trangThai=? WHERE maLichHen=? AND soThuTuKham IS NULL")) {
                         statement.setInt(1, queue);
                         statement.setString(2, room);
-                        statement.setInt(3, appointmentId);
+                        statement.setString(3, doctorId == null ? "Chờ phân công" : "Đã đến");
+                        statement.setInt(4, appointmentId);
                         if (statement.executeUpdate() != 1) {
                             throw new SQLException("Lịch hẹn vừa được thay đổi, hãy tải lại.");
                         }
@@ -461,7 +508,7 @@ public final class TrangChuLeTan extends JPanel {
                     try (PreparedStatement statement = connection.prepareStatement(
                             "INSERT dbo.LichHen (maBN,maNV,phongKham,ngayHen,gioHen,lyDo,trangThai,soThuTuKham) "
                             + "VALUES (?,NULL,?,CAST(GETDATE() AS date),CAST(GETDATE() AS time), "
-                            + "N'Tiếp nhận trực tiếp',N'Đã xác nhận',?)")) {
+                            + "N'Tiếp nhận trực tiếp',N'Chờ phân công',?)")) {
                         statement.setInt(1, patientId);
                         statement.setString(2, room);
                         statement.setInt(3, queue);
@@ -529,6 +576,12 @@ public final class TrangChuLeTan extends JPanel {
                     canReceive = data.receiveAllowed;
                     fillTable(phieuModel, data.examRows);
                     fillTable(benhNhanModel, data.patientRows);
+                    String selectedRoom = (String) phongChon.getSelectedItem();
+                    phongChon.removeAllItems();
+                    for (String room : data.rooms) phongChon.addItem(room);
+                    if (selectedRoom != null) phongChon.setSelectedItem(selectedRoom);
+                    if (phongChon.getSelectedIndex() < 0 && phongChon.getItemCount() > 0)
+                        phongChon.setSelectedIndex(0);
                     tongBenhNhan.setText(String.valueOf(data.totalPatients));
                     choTiepNhan.setText(String.valueOf(data.waitingToday));
                     daTiepNhan.setText(String.valueOf(data.receivedToday));
@@ -556,22 +609,23 @@ public final class TrangChuLeTan extends JPanel {
         if (!data.viewAllowed) return data;
 
         try (Connection connection = KetNoi.mo()) {
+            try (PreparedStatement ps = connection.prepareStatement(
+                    "SELECT tenPhong FROM dbo.PhongKham "
+                  + "WHERE trangThai=N'Hoạt động' ORDER BY tenPhong");
+                    ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) data.rooms.add(rs.getString(1));
+            }
             boolean queueInstalled = columnExists(connection);
             String queueField = queueInstalled ? "l.soThuTuKham" : "CAST(NULL AS INT)";
 
-            // Lấy toàn bộ thuộc tính của PhieuKham và cả hai mã khóa ngoại.
-            // LEFT JOIN giúp phiếu vẫn hiển thị nếu hồ sơ nhân viên không tra cứu được.
+            // Chỉ lấy thông tin phục vụ tiếp nhận; không đọc triệu chứng/chẩn đoán.
+            // LEFT JOIN giúp phiếu vẫn hiển thị khi không tra cứu được nhân viên.
             String examSql =
                     "SELECT p.maPK, p.maBN, p.maNV, "
                     + "ISNULL(b.hoTen,N'') AS benhNhan, "
                     + "ISNULL(n.hoTen,N'') AS bacSi, "
                     + "CONVERT(varchar(16), p.ngayKham, 120) AS ngayKham, "
-                    + "ISNULL(p.trangThai,N'Chưa cập nhật') AS trangThai, "
-                    + "ISNULL(p.trieuChung,N'') AS trieuChung, "
-                    + "ISNULL(p.chanDoan,N'') AS chanDoan, "
-                    + "ISNULL(p.phuongPhapDieuTri,N'') AS phuongPhapDieuTri, "
-                    + "ISNULL(p.ketQua,N'') AS ketQua, "
-                    + "ISNULL(p.ghiChu,N'') AS ghiChu "
+                    + "ISNULL(p.trangThai,N'Chưa cập nhật') AS trangThai "
                     + "FROM dbo.PhieuKham p "
                     + "LEFT JOIN dbo.BenhNhan b ON p.maBN=b.maBN "
                     + "LEFT JOIN dbo.NhanVien n ON p.maNV=n.maNV "
@@ -588,12 +642,7 @@ public final class TrangChuLeTan extends JPanel {
                         result.getInt("maNV"),
                         result.getString("bacSi"),
                         result.getString("ngayKham"),
-                        result.getString("trangThai"),
-                        result.getString("trieuChung"),
-                        result.getString("chanDoan"),
-                        result.getString("phuongPhapDieuTri"),
-                        result.getString("ketQua"),
-                        result.getString("ghiChu")
+                        result.getString("trangThai")
                     });
                 }
             }
@@ -606,7 +655,6 @@ public final class TrangChuLeTan extends JPanel {
                     + "ISNULL(b.gioiTinh,N'') AS gioiTinh, "
                     + "ISNULL(b.sdt,'') AS sdt, ISNULL(b.email,'') AS email, "
                     + "ISNULL(b.diaChi,N'') AS diaChi, "
-                    + "ISNULL(b.tienSuBenh,N'') AS tienSuBenh, "
                     + "ISNULL(b.trangThai,N'') AS trangThai, "
                     + queueField.replace("l.", "a.") + " AS soThuTuKham, "
                     + "ISNULL(a.phongKham,N'') AS phongKham "
@@ -632,7 +680,6 @@ public final class TrangChuLeTan extends JPanel {
                         result.getString("sdt"),
                         result.getString("email"),
                         result.getString("diaChi"),
-                        result.getString("tienSuBenh"),
                         result.getString("trangThai"),
                         number == null ? "—" : String.format("%03d", result.getInt("soThuTuKham")),
                         result.getString("phongKham")
@@ -673,8 +720,9 @@ public final class TrangChuLeTan extends JPanel {
     private void setLoading(boolean value) {
         loading = value;
         refreshButton.setEnabled(!value);
-        phongChon.setEnabled(!value);
-        tiepNhanButton.setEnabled(!value && canReceive && benhNhanTable.getSelectedRow() >= 0);
+        phongChon.setEnabled(!value && phongChon.getItemCount() > 0);
+        tiepNhanButton.setEnabled(!value && canReceive && phongChon.getItemCount() > 0
+                && benhNhanTable.getSelectedRow() >= 0);
     }
 
     private void showError(Throwable error) {
@@ -692,6 +740,7 @@ public final class TrangChuLeTan extends JPanel {
         int examsToday;
         final List<Object[]> examRows = new ArrayList<>();
         final List<Object[]> patientRows = new ArrayList<>();
+        final List<String> rooms = new ArrayList<>();
     }
 
     // ---------- 5. Các hàm dựng giao diện dùng chung ----------
@@ -711,6 +760,16 @@ public final class TrangChuLeTan extends JPanel {
         table.setForeground(TEXT);
         table.setBackground(Color.WHITE);
         table.setRowHeight(37);
+        table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        table.getTableHeader().setReorderingAllowed(false);
+        table.addMouseListener(new MouseAdapter() {
+            @Override public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isLeftMouseButton(e)) {
+                    int row = table.rowAtPoint(e.getPoint());
+                    if (row >= 0) table.setRowSelectionInterval(row, row);
+                }
+            }
+        });
         table.setSelectionBackground(new Color(0xE0F2FE));
         table.setSelectionForeground(TEXT);
         table.setGridColor(new Color(0xEEF2F7));
@@ -832,10 +891,45 @@ public final class TrangChuLeTan extends JPanel {
         return field;
     }
 
-    private static void filter(TableRowSorter<DefaultTableModel> sorter, String text) {
+    /**
+     * Lọc các cột dữ liệu, không tìm trên STT ẩn (giá trị của STT luôn là 0).
+     * Nhập BN101 hoặc BN 101 sẽ tìm đúng mã bệnh nhân 101.
+     * Nhập PK10 sẽ tìm đúng mã phiếu 10 ở bảng Khám & điều trị.
+     */
+    private static void filter(TableRowSorter<DefaultTableModel> sorter, String text,
+                               boolean bangPhieuKham) {
         String query = text == null ? "" : text.trim();
-        sorter.setRowFilter(query.isEmpty() ? null
-                : RowFilter.regexFilter("(?iu)" + Pattern.quote(query)));
+        if (query.isEmpty()) {
+            sorter.setRowFilter(null);
+            return;
+        }
+        java.util.regex.Matcher code = java.util.regex.Pattern
+                .compile("(?iu)^(BN|PK)\\s*#?\\s*(\\d+)$").matcher(query);
+        if (code.matches()) {
+            String kind = code.group(1).toUpperCase(java.util.Locale.ROOT);
+            String id = code.group(2).replaceFirst("^0+(?!$)", "");
+            final int col = kind.equals("PK") && bangPhieuKham ? 1
+                    : kind.equals("BN") ? (bangPhieuKham ? 2 : 1) : -1;
+            final String expectedId = id;
+            sorter.setRowFilter(new RowFilter<DefaultTableModel, Integer>() {
+                @Override public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> e) {
+                    return col > 0 && expectedId.equals(e.getStringValue(col));
+                }
+            });
+            return;
+        }
+        // Những từ tìm kiếm thường: tên, số điện thoại, ngày; không xét STT.
+        final java.util.regex.Pattern word = java.util.regex.Pattern.compile(
+                java.util.regex.Pattern.quote(query), java.util.regex.Pattern.CASE_INSENSITIVE
+                        | java.util.regex.Pattern.UNICODE_CASE);
+        sorter.setRowFilter(new RowFilter<DefaultTableModel, Integer>() {
+            @Override public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> e) {
+                for (int i = 1; i < e.getValueCount(); i++) {
+                    if (word.matcher(e.getStringValue(i)).find()) return true;
+                }
+                return false;
+            }
+        });
     }
 
     private static final class SearchListener implements javax.swing.event.DocumentListener {

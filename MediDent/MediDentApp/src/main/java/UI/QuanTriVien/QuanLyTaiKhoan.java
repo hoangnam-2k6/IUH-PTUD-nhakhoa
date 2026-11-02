@@ -220,8 +220,12 @@ public class QuanLyTaiKhoan extends JPanel {
             return null;
         }
         int modelRow = table.convertRowIndexToModel(viewRow);
-        return modelRow >= 0 && modelRow < visibleAccounts.size()
-                ? visibleAccounts.get(modelRow) : null;
+        String tenDangNhap = String.valueOf(model.getValueAt(modelRow, 1));
+        for (TaiKhoan account : visibleAccounts) {
+            if (tenDangNhap.equals(account.tenDangNhap)) return account;
+        }
+        JOptionPane.showMessageDialog(this, "Tài khoản đã thay đổi, hãy tải lại.");
+        return null;
     }
 
     /**

@@ -42,3 +42,18 @@ SELECT ISNULL(SUM(soTien),0) AS TongDoanhThu
 FROM dbo.ThanhToan
 WHERE trangThai IN(N'Thành công',N'Đã thanh toán');
 GO
+
+-- Kiem tra cac bang/cot can cho 3 vai tro (CHI DOC, khong sua database).
+SELECT 'BenhNhan.trangThaiHoSo' AS HangMuc,
+       CASE WHEN COL_LENGTH('dbo.BenhNhan','trangThaiHoSo') IS NULL THEN N'Thiếu' ELSE N'Có' END AS KetQua
+UNION ALL SELECT 'BenhNhan.phienBan', CASE WHEN COL_LENGTH('dbo.BenhNhan','phienBan') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'NhanVien.phienBan', CASE WHEN COL_LENGTH('dbo.NhanVien','phienBan') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'LichHen.thoiLuongPhut', CASE WHEN COL_LENGTH('dbo.LichHen','thoiLuongPhut') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'LichHen.soThuTuKham', CASE WHEN COL_LENGTH('dbo.LichHen','soThuTuKham') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'BangGiaDichVu.thoiDiemApDung', CASE WHEN COL_LENGTH('dbo.BangGiaDichVu','thoiDiemApDung') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'VaiTro.capBacHoTro', CASE WHEN COL_LENGTH('dbo.VaiTro','capBacHoTro') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'YeuCauHuyPhieuThu.maTKNguoiGui', CASE WHEN COL_LENGTH('dbo.YeuCauHuyPhieuThu','maTKNguoiGui') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'PhongKham', CASE WHEN OBJECT_ID('dbo.PhongKham','U') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'YeuCauHoTro', CASE WHEN OBJECT_ID('dbo.YeuCauHoTro','U') IS NULL THEN N'Thiếu' ELSE N'Có' END
+UNION ALL SELECT 'ChiPhiHoatDong', CASE WHEN OBJECT_ID('dbo.ChiPhiHoatDong','U') IS NULL THEN N'Thiếu' ELSE N'Có' END;
+GO

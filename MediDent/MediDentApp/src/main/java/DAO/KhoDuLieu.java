@@ -71,7 +71,7 @@ public class KhoDuLieu {
      * Yêu cầu được lưu trong YeuCauHoTro để Admin kiểm tra danh tính rồi chủ động
      * đặt lại tại Quản lý tài khoản. KHÔNG trả về tài khoản có tồn tại hay không.
      *
-     * Cần bảng YeuCauHoTro trong SQLData/04_NangCap_Quyen_HoTro_SQL2012.sql.
+     * Cần bảng YeuCauHoTro trong SQLData/01_MediDent.sql.
      */
     public void guiYeuCauQuenMatKhau(String tenDangNhap) throws SQLException {
         String username = tenDangNhap == null ? "" : tenDangNhap.trim();

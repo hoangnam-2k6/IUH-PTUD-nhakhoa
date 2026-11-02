@@ -1,3 +1,6 @@
+-- SQL 01: Tao va dong bo cau truc CSDL MediDent (khong xoa du lieu).
+-- SQL 02: CHI DOC de kiem tra sau SQL 01.
+-- SQL 03: Du lieu mau TUY CHON, chi dung tren CSDL thu nghiem.
 -- MEDIDENT - Tao database theo so do ERD nguoi dung cung cap.
 -- SQL Server 2012+; tao moi bang khi chua ton tai; KHONG xoa bang hay du lieu cu.
 -- ERD chi cho TEN COT / QUAN HE, khong cho kieu du lieu; cac kieu va NULL sau la gia dinh.
@@ -194,7 +197,7 @@ MERGE dbo.VaiTro AS t USING (VALUES
 GO
 INSERT INTO dbo.VaiTroQuyen(maVaiTro,maQuyen)
 SELECT v.maVaiTro,q.maQuyen FROM dbo.VaiTro v CROSS JOIN dbo.Quyen q
-WHERE v.tenVaiTro=N'Quản trị viên' AND NOT EXISTS
+WHERE v.tenVaiTro=N'Quản trị viên' AND q.maQuyen IN ('TAIKHOAN','HETHONG','BAOCAO','HOTRO') AND NOT EXISTS
  (SELECT 1 FROM dbo.VaiTroQuyen z WHERE z.maVaiTro=v.maVaiTro AND z.maQuyen=q.maQuyen);
 GO
 INSERT INTO dbo.VaiTroQuyen(maVaiTro,maQuyen)
@@ -208,8 +211,230 @@ GO
 MERGE dbo.CauHinh AS t USING (VALUES
  ('TenHeThong',N'Hệ thống Quản lý Nha khoa MediDent'),('MaDonVi',N'MEDIDENT-HCM-01'),
  ('EmailQuanTri',N'quantri@medident.vn'),('SoDienThoai',N''),('DiaChi',N''),
- ('Bat2FA',N'false'),('KhoaPhien',N'true'),('ThongBaoQuyen',N'false'),('SaoLuuTuDong',N'false')) s(Khoa,GiaTri)
+ ('Bat2FA',N'false'),('KhoaPhien',N'false'),('ThongBaoQuyen',N'false'),('SaoLuuTuDong',N'false')) s(Khoa,GiaTri)
  ON t.Khoa=s.Khoa WHEN NOT MATCHED THEN INSERT(Khoa,GiaTri) VALUES(s.Khoa,s.GiaTri);
 GO
 -- Tao tai khoan quan tri lan dau bang ConnectDB.KhoiTaoAdmin (mat khau BCrypt).
 -- Khong seed tai khoan hoac du lieu benh nhan gia.
+<<<<<<< Updated upstream:MediDent/MediDentApp/SQLData/01_MediDent.sql
+=======
+
+
+-- RANG BUOC EMAIL: chi chap nhan ten mien da duyet; khong tu cho phep @batky.com.
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_NhanVien_Email_TenMien' AND parent_object_id=OBJECT_ID(N'dbo.NhanVien'))
+BEGIN
+    -- Co du lieu cu khong hop le: ghi canh bao, khong tu sua/xoa ho so.
+    IF EXISTS(SELECT 1 FROM dbo.NhanVien WHERE email IS NOT NULL AND NOT (
+        email=LTRIM(RTRIM(email))
+        AND email NOT LIKE '% %' AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
+        AND CHARINDEX('@',email)>1
+        AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')
+    ))
+    BEGIN
+        PRINT N'Canh bao: dbo.NhanVien co email cu sai ten mien. CHECK moi duoc them WITH NOCHECK, can lam sach du lieu de tin cay.';
+        ALTER TABLE dbo.NhanVien WITH NOCHECK ADD CONSTRAINT CK_NhanVien_Email_TenMien CHECK (
+            email IS NULL OR (email=LTRIM(RTRIM(email)) AND email NOT LIKE '% %'
+            AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
+            AND CHARINDEX('@',email)>1
+            AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')));
+    END
+    ELSE
+    BEGIN
+        ALTER TABLE dbo.NhanVien WITH CHECK ADD CONSTRAINT CK_NhanVien_Email_TenMien CHECK (
+            email IS NULL OR (email=LTRIM(RTRIM(email)) AND email NOT LIKE '% %'
+            AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
+            AND CHARINDEX('@',email)>1
+            AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')));
+    END
+END;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_BenhNhan_Email_TenMien' AND parent_object_id=OBJECT_ID(N'dbo.BenhNhan'))
+BEGIN
+    -- Co du lieu cu khong hop le: ghi canh bao, khong tu sua/xoa ho so.
+    IF EXISTS(SELECT 1 FROM dbo.BenhNhan WHERE email IS NOT NULL AND NOT (
+        email=LTRIM(RTRIM(email))
+        AND email NOT LIKE '% %' AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
+        AND CHARINDEX('@',email)>1
+        AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')
+    ))
+    BEGIN
+        PRINT N'Canh bao: dbo.BenhNhan co email cu sai ten mien. CHECK moi duoc them WITH NOCHECK, can lam sach du lieu de tin cay.';
+        ALTER TABLE dbo.BenhNhan WITH NOCHECK ADD CONSTRAINT CK_BenhNhan_Email_TenMien CHECK (
+            email IS NULL OR (email=LTRIM(RTRIM(email)) AND email NOT LIKE '% %'
+            AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
+            AND CHARINDEX('@',email)>1
+            AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')));
+    END
+    ELSE
+    BEGIN
+        ALTER TABLE dbo.BenhNhan WITH CHECK ADD CONSTRAINT CK_BenhNhan_Email_TenMien CHECK (
+            email IS NULL OR (email=LTRIM(RTRIM(email)) AND email NOT LIKE '% %'
+            AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
+            AND CHARINDEX('@',email)>1
+            AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')));
+    END
+END;
+GO
+
+-- =====================================================================
+-- Cac truong / bang ma cac man hinh dang su dung (thay the cac script
+-- nang cap roi rac; chi chay file SQL 01, khong phai chay SQL 04-15).
+-- CAC LENH CHI THEM NEU THIEU; KHONG DROP BANG VA KHONG XOA BENH NHAN.
+-- Sao luu MediDent va chay tren database thu nghiem truoc.
+-- =====================================================================
+USE MediDent;
+GO
+-- Tai khoan, ho tro noi bo va quyen cho ba vai tro.
+IF COL_LENGTH(N'dbo.TaiKhoan', N'phaiDoiMatKhau') IS NULL
+    ALTER TABLE dbo.TaiKhoan ADD phaiDoiMatKhau BIT NOT NULL
+        CONSTRAINT DF_TaiKhoan_PhaiDoiMatKhau DEFAULT(0) WITH VALUES;
+GO
+IF COL_LENGTH(N'dbo.VaiTro', N'capBacHoTro') IS NULL
+    ALTER TABLE dbo.VaiTro ADD capBacHoTro INT NOT NULL
+        CONSTRAINT DF_VaiTro_CapBacHoTro DEFAULT(0) WITH VALUES;
+GO
+UPDATE dbo.VaiTro SET capBacHoTro=CASE
+    WHEN tenVaiTro=N'Quản trị viên' THEN 3
+    WHEN tenVaiTro=N'Quản lý phòng khám' THEN 2
+    WHEN tenVaiTro=N'Lễ tân' THEN 1 ELSE capBacHoTro END
+WHERE tenVaiTro IN(N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân');
+GO
+MERGE dbo.Quyen AS t USING (VALUES
+ ('NHANVIEN', N'Quản lý nhân viên'), ('DICHVU', N'Quản lý dịch vụ'),
+ ('HOTRO', N'Yêu cầu hỗ trợ nội bộ')
+) s(maQuyen,tenQuyen) ON t.maQuyen=s.maQuyen
+WHEN NOT MATCHED THEN INSERT(maQuyen,tenQuyen) VALUES(s.maQuyen,s.tenQuyen);
+GO
+IF OBJECT_ID(N'dbo.YeuCauHoTro', N'U') IS NULL
+    CREATE TABLE dbo.YeuCauHoTro (
+        maYC INT IDENTITY(1,1) PRIMARY KEY,
+        maTK INT NOT NULL REFERENCES dbo.TaiKhoan(maTK),
+        tieuDe NVARCHAR(160) NOT NULL,
+        noiDung NVARCHAR(1500) NOT NULL,
+        ngayTao DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+        trangThai NVARCHAR(30) NOT NULL DEFAULT N'Chờ xử lý',
+        phanHoi NVARCHAR(1500) NULL,
+        ngayXuLy DATETIME2 NULL
+    );
+GO
+-- Chi cap quyen dung cho cac vai tro, khong tao role bac si dang nhap.
+INSERT INTO dbo.VaiTroQuyen(maVaiTro,maQuyen)
+SELECT v.maVaiTro,q.maQuyen
+FROM dbo.VaiTro v CROSS JOIN dbo.Quyen q
+WHERE ((v.tenVaiTro=N'Quản trị viên' AND q.maQuyen IN('TAIKHOAN','HETHONG','BAOCAO','HOTRO'))
+    OR (v.tenVaiTro=N'Quản lý phòng khám' AND q.maQuyen IN('NHANVIEN','DICHVU')))
+ AND NOT EXISTS (SELECT 1 FROM dbo.VaiTroQuyen x
+                 WHERE x.maVaiTro=v.maVaiTro AND x.maQuyen=q.maQuyen);
+GO
+-- Don xin huy hoa don can giu lai nguoi tao yeu cau.
+IF COL_LENGTH(N'dbo.YeuCauHuyPhieuThu',N'maTKNguoiGui') IS NULL
+    ALTER TABLE dbo.YeuCauHuyPhieuThu ADD maTKNguoiGui INT NULL;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name=N'FK_YeuCauHuyPhieuThu_NguoiGui'
+               AND parent_object_id=OBJECT_ID(N'dbo.YeuCauHuyPhieuThu'))
+    ALTER TABLE dbo.YeuCauHuyPhieuThu WITH CHECK ADD
+        CONSTRAINT FK_YeuCauHuyPhieuThu_NguoiGui
+        FOREIGN KEY(maTKNguoiGui) REFERENCES dbo.TaiKhoan(maTK);
+GO
+IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'UX_YeuCauHuy_ChoDuyet_maTT'
+              AND object_id=OBJECT_ID(N'dbo.YeuCauHuyPhieuThu'))
+BEGIN
+    IF NOT EXISTS (SELECT maTT FROM dbo.YeuCauHuyPhieuThu WHERE trangThai=N'Chờ duyệt'
+                   GROUP BY maTT HAVING COUNT(*)>1)
+        CREATE UNIQUE INDEX UX_YeuCauHuy_ChoDuyet_maTT
+            ON dbo.YeuCauHuyPhieuThu(maTT) WHERE trangThai=N'Chờ duyệt';
+    ELSE PRINT N'Canh bao: co yeu cau huy cho duyet bi trung, can xu ly du lieu cu.';
+END;
+GO
+
+-- Chi phi, lich hen, benh nhan, nhan vien va lich su gia.
+IF OBJECT_ID(N'dbo.ChiPhiHoatDong',N'U') IS NULL
+    CREATE TABLE dbo.ChiPhiHoatDong (
+      maCP INT IDENTITY(1,1) PRIMARY KEY,
+      ngayChi DATE NOT NULL CONSTRAINT DF_ChiPhi_NgayChi DEFAULT(CONVERT(date,GETDATE())),
+      loaiChi NVARCHAR(80) NOT NULL,
+      moTa NVARCHAR(500) NOT NULL,
+      soTien DECIMAL(18,2) NOT NULL,
+      maTKNguoiNhap INT NOT NULL REFERENCES dbo.TaiKhoan(maTK),
+      ngayTao DATETIME2 NOT NULL CONSTRAINT DF_ChiPhi_NgayTao DEFAULT SYSDATETIME(),
+      CONSTRAINT CK_ChiPhi_SoTien CHECK (soTien>0),
+      CONSTRAINT CK_ChiPhi_LoaiChi CHECK(loaiChi IN
+          (N'Vật tư',N'Nhân sự',N'Vận hành',N'Thuê mặt bằng',N'Khác'))
+    );
+GO
+IF COL_LENGTH(N'dbo.BenhNhan',N'trangThaiHoSo') IS NULL
+    ALTER TABLE dbo.BenhNhan ADD trangThaiHoSo NVARCHAR(30) NOT NULL
+        CONSTRAINT DF_MediDent_BenhNhan_TrangThaiHoSo DEFAULT(N'Hoạt động') WITH VALUES;
+GO
+UPDATE dbo.BenhNhan SET trangThaiHoSo=N'Ngừng hồ sơ'
+WHERE trangThai=N'Ngừng hồ sơ' AND trangThaiHoSo<>N'Ngừng hồ sơ';
+GO
+IF COL_LENGTH(N'dbo.BenhNhan',N'phienBan') IS NULL
+    ALTER TABLE dbo.BenhNhan ADD phienBan ROWVERSION;
+GO
+IF COL_LENGTH(N'dbo.NhanVien',N'phienBan') IS NULL
+    ALTER TABLE dbo.NhanVien ADD phienBan ROWVERSION;
+GO
+IF COL_LENGTH(N'dbo.LichHen',N'thoiLuongPhut') IS NULL
+    ALTER TABLE dbo.LichHen ADD thoiLuongPhut INT NOT NULL
+        CONSTRAINT DF_MediDent_LichHen_ThoiLuong DEFAULT(60) WITH VALUES;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_MediDent_LichHen_ThoiLuong'
+               AND parent_object_id=OBJECT_ID(N'dbo.LichHen'))
+    IF NOT EXISTS (SELECT 1 FROM dbo.LichHen WHERE thoiLuongPhut<15 OR thoiLuongPhut>240)
+        ALTER TABLE dbo.LichHen WITH CHECK ADD CONSTRAINT CK_MediDent_LichHen_ThoiLuong
+           CHECK (thoiLuongPhut BETWEEN 15 AND 240);
+GO
+IF COL_LENGTH(N'dbo.LichHen',N'soThuTuKham') IS NULL
+    ALTER TABLE dbo.LichHen ADD soThuTuKham INT NULL;
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_LichHen_SoThuTuKham'
+               AND parent_object_id=OBJECT_ID(N'dbo.LichHen'))
+    ALTER TABLE dbo.LichHen WITH CHECK ADD CONSTRAINT CK_LichHen_SoThuTuKham
+        CHECK(soThuTuKham IS NULL OR soThuTuKham>0);
+GO
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_LichHen_Ngay_STT'
+               AND object_id=OBJECT_ID(N'dbo.LichHen'))
+BEGIN
+    IF NOT EXISTS (SELECT ngayHen,soThuTuKham FROM dbo.LichHen
+                  WHERE soThuTuKham IS NOT NULL
+                  GROUP BY ngayHen,soThuTuKham HAVING COUNT(*)>1)
+        CREATE UNIQUE NONCLUSTERED INDEX UX_LichHen_Ngay_STT
+            ON dbo.LichHen(ngayHen,soThuTuKham) WHERE soThuTuKham IS NOT NULL;
+    ELSE PRINT N'Canh bao: STT kham trung trong du lieu cu, chua tao unique index.';
+END;
+GO
+IF COL_LENGTH(N'dbo.BangGiaDichVu',N'thoiDiemApDung') IS NULL
+    ALTER TABLE dbo.BangGiaDichVu ADD thoiDiemApDung DATETIME2 NULL;
+GO
+-- Danh muc phong la du lieu chung, khong tao menu quan ly phong rieng.
+IF OBJECT_ID(N'dbo.PhongKham',N'U') IS NULL
+    CREATE TABLE dbo.PhongKham (
+        tenPhong NVARCHAR(80) NOT NULL PRIMARY KEY,
+        sucChua INT NOT NULL CONSTRAINT DF_MediDent_Phong_SucChua DEFAULT(2),
+        trangThai NVARCHAR(30) NOT NULL CONSTRAINT DF_MediDent_Phong_TrangThai DEFAULT(N'Hoạt động'),
+        CONSTRAINT CK_MediDent_Phong_SucChua CHECK(sucChua BETWEEN 1 AND 50),
+        CONSTRAINT CK_MediDent_Phong_TrangThai CHECK(trangThai IN(N'Hoạt động',N'Ngừng hoạt động'))
+    );
+GO
+INSERT INTO dbo.PhongKham(tenPhong,sucChua,trangThai)
+SELECT DISTINCT LTRIM(RTRIM(l.phongKham)),2,N'Hoạt động'
+FROM dbo.LichHen l
+WHERE NULLIF(LTRIM(RTRIM(l.phongKham)),N'') IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM dbo.PhongKham p
+                  WHERE p.tenPhong=LTRIM(RTRIM(l.phongKham)));
+GO
+-- Phong mac dinh de co the tao lich tren DB vua khoi tao; suc chua la gia dinh demo.
+INSERT INTO dbo.PhongKham(tenPhong,sucChua,trangThai)
+SELECT p.tenPhong,2,N'Hoạt động'
+FROM (VALUES(N'Phòng 01'),(N'Phòng 02'),(N'Phòng 03')) p(tenPhong)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.PhongKham x WHERE x.tenPhong=p.tenPhong);
+GO
+-- Gia chot cho mot lan dieu tri khong duoc am.
+IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_MediDent_ChiTietDieuTri_DonGia'
+               AND parent_object_id=OBJECT_ID(N'dbo.ChiTietDieuTri'))
+    IF NOT EXISTS(SELECT 1 FROM dbo.ChiTietDieuTri WHERE donGia<0)
+        ALTER TABLE dbo.ChiTietDieuTri WITH CHECK ADD
+            CONSTRAINT CK_MediDent_ChiTietDieuTri_DonGia CHECK(donGia>=0);
+GO
+>>>>>>> Stashed changes:SourceCode/MediDent/MediDentAdmin/SQLData/01_MediDent.sql

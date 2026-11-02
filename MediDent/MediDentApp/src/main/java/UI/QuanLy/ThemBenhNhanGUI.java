@@ -48,11 +48,51 @@ public final class ThemBenhNhanGUI {
         BieuMau.them(f,"Địa chỉ",diaChi);
         BieuMau.them(f,"Tiền sử bệnh",new JScrollPane(tienSu));
         BieuMau.them(f,"Trạng thái",trangThai);
+<<<<<<< Updated upstream:MediDent/MediDentApp/src/main/java/UI/QuanLy/ThemBenhNhanGUI.java
         if(!BieuMau.xacNhan(parent,maBN==0?"Thêm bệnh nhân":"Sửa bệnh nhân",f))return;
         LocalDate birthday=ngay.getNgay();
         dao.luuBenhNhan(maBN,ten.getText(),sdt.getText(),birthday,
                 (String)gioiTinh.getSelectedItem(),email.getText(),diaChi.getText(),
                 tienSu.getText(),(String)trangThai.getSelectedItem(),actor);
         taiLai.run();
+=======
+        while (true) {
+            if(!BieuMau.xacNhan(parent,maBN==0?"Thêm bệnh nhân":"Sửa bệnh nhân",f))return;
+            if (!email.getText().trim().isEmpty() && !EmailHopLe.kiemTra(email.getText())) {
+                JOptionPane.showMessageDialog(parent,EmailHopLe.huongDan(),
+                        "Email không hợp lệ",JOptionPane.WARNING_MESSAGE);
+                email.requestFocusInWindow();
+                continue;
+            }
+            // Giữ nguyên form khi nhập số điện thoại không đúng để người dùng sửa.
+            if (!SoDienThoaiHopLe.kiemTra(sdt.getText())) {
+                JOptionPane.showMessageDialog(parent, "Số điện thoại phải có 10 chữ số và đầu số Việt Nam hợp lệ.",
+                        "Số điện thoại không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                sdt.requestFocusInWindow();
+                continue;
+            }
+            LocalDate birthday=ngay.getNgay();
+            // Cho người dùng kiểm tra lại trước khi ghi SQL.
+            String xacNhan = "Họ tên: " + ten.getText().trim()
+                    + "\nSố điện thoại: " + sdt.getText().trim()
+                    + "\nNgày sinh: " + (birthday == null ? "Chưa cung cấp" : birthday)
+                    + "\nEmail: " + email.getText().trim();
+            if (JOptionPane.showConfirmDialog(parent, xacNhan,
+                    "Xác nhận thông tin bệnh nhân", JOptionPane.YES_NO_OPTION)
+                    != JOptionPane.YES_OPTION) continue;
+            try {
+                dao.luuBenhNhan(maBN,ten.getText(),sdt.getText(),birthday,
+                        (String)gioiTinh.getSelectedItem(),email.getText(),diaChi.getText(),
+                        tienSu.getText(),(String)trangThai.getSelectedItem(),
+                        old == null ? null : old[8], actor);
+                taiLai.run();
+                break;
+            } catch (java.sql.SQLException ex) {
+                JOptionPane.showMessageDialog(parent, ex.getMessage(),
+                        "Không thể lưu bệnh nhân", JOptionPane.WARNING_MESSAGE);
+                // Giữ form đang nhập để người dùng sửa, không tạo lại các ô.
+            }
+        }
+>>>>>>> Stashed changes:SourceCode/MediDent/MediDentAdmin/src/main/java/UI/QuanLy/ThemBenhNhanGUI.java
     }
 }

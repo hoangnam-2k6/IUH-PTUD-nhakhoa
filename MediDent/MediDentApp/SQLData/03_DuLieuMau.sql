@@ -1,6 +1,6 @@
 ﻿-- MEDIDENT - DU LIEU MAU CHO SQL SERVER 2012 (RTM / SP4)
 -- Chay SAU file SQLData/01_MediDent.sql tren DATABASE MEDIDENT THU NGHIEM.
--- Chi them du lieu neu chua co; KHONG DELETE, KHONG UPDATE du lieu cu.
+-- Chi them neu chua co; chi sua nhung SĐT 000... cua du lieu DEMO cu, khong sua du lieu that.
 -- Chi dung cho DEMO, khong chay tren he thong co du lieu benh nhan that.
 -- 10 tai khoan mau co MAT KHAU CHUNG: Demo@2026! (hash BCrypt $2a$).
 -- Sau demo nen doi mat khau / xoa cac tai khoan mau.
@@ -21,9 +21,10 @@ BEGIN TRY
     DECLARE @MatKhauHash VARCHAR(100) = '$2a$10$z9XT7sr/xPRfQfa8HdmQBuPw1QSlfUalVsXYNtfXB7FRVxxy5bPHW';
     DECLARE @TaiKhoanMau TABLE (
         tenDangNhap VARCHAR(60), hoTen NVARCHAR(120), email VARCHAR(150),
-        vaiTro NVARCHAR(100), trangThai NVARCHAR(20), thangTao INT
+        sdt VARCHAR(20), vaiTro NVARCHAR(100), trangThai NVARCHAR(20), thangTao INT
     );
     INSERT INTO @TaiKhoanMau VALUES
+<<<<<<< Updated upstream:MediDent/MediDentApp/SQLData/03_DuLieuMau.sql
       ('demo_admin', N'Nguyễn Tấn Dự', 'admin@example.com', N'Quản trị viên', N'Hoạt động', 1),
       ('demo_ql1', N'Trần Minh Trang', 'trang@example.com', N'Quản lý phòng khám', N'Hoạt động', 2),
       ('demo_ql2', N'Phạm Hoàng Khang', 'khang@example.com', N'Quản lý phòng khám', N'Hoạt động', 3),
@@ -34,6 +35,13 @@ BEGIN TRY
       ('demo_lt2', N'Phan Thảo Vy', 'thaovy@example.com', N'Lễ tân', N'Hoạt động', 8),
       ('demo_kt1', N'Đỗ Quang Anh', 'quanganh@example.com', N'Kế toán', N'Hoạt động', 9),
       ('demo_khac', N'Võ Hải Đăng', 'haidang@example.com', N'Khác', N'Tạm khóa', 10);
+=======
+      ('demo_admin', N'Nguyễn Tấn Dự', 'admin@gmail.com', '0987000001', N'Quản trị viên', N'Hoạt động', 1),
+      ('demo_ql1', N'Trần Minh Trang', 'trang@gmail.com', '0987000002', N'Quản lý phòng khám', N'Hoạt động', 2),
+      ('demo_ql2', N'Phạm Hoàng Khang', 'khang@gmail.com', '0987000003', N'Quản lý phòng khám', N'Hoạt động', 3),
+      ('demo_lt1', N'Lê Thu Hương', 'huong@gmail.com', '0987000004', N'Lễ tân', N'Hoạt động', 7),
+      ('demo_lt2', N'Phan Thảo Vy', 'thaovy@gmail.com', '0987000005', N'Lễ tân', N'Hoạt động', 8);
+>>>>>>> Stashed changes:SourceCode/MediDent/MediDentAdmin/SQLData/03_DuLieuMau_MediDent_SQL2012.sql
 
     INSERT INTO dbo.TaiKhoan(tenDangNhap, matKhau, trangThai, ngayTao, maVaiTro)
     SELECT m.tenDangNhap, @MatKhauHash, m.trangThai,
@@ -44,13 +52,19 @@ BEGIN TRY
     WHERE NOT EXISTS (SELECT 1 FROM dbo.TaiKhoan t WHERE t.tenDangNhap = m.tenDangNhap);
 
     -- NhanVien chua hoTen, email; TaiKhoan khong chua 2 cot do.
-    INSERT INTO dbo.NhanVien(hoTen, email, chucVu, trangThai, maTK)
-    SELECT m.hoTen, m.email, m.vaiTro,
+    INSERT INTO dbo.NhanVien(hoTen, email, sdt, chucVu, trangThai, maTK)
+    SELECT m.hoTen, m.email, m.sdt, m.vaiTro,
            CASE WHEN m.trangThai = N'Hoạt động' THEN N'Đang làm việc' ELSE N'Ngừng làm việc' END,
            t.maTK
     FROM @TaiKhoanMau m
     JOIN dbo.TaiKhoan t ON t.tenDangNhap = m.tenDangNhap
     WHERE NOT EXISTS (SELECT 1 FROM dbo.NhanVien n WHERE n.maTK = t.maTK);
+
+    -- Chi bo sung SDT con thieu cua chinh nhan vien DEMO da tao truoc day.
+    UPDATE n SET sdt=m.sdt FROM dbo.NhanVien n
+    JOIN dbo.TaiKhoan t ON t.maTK=n.maTK
+    JOIN @TaiKhoanMau m ON m.tenDangNhap=t.tenDangNhap
+    WHERE n.sdt IS NULL OR LTRIM(RTRIM(n.sdt))='';
 
     INSERT INTO dbo.QuanTriVien(maNV, capDoQuyen)
     SELECT n.maNV, N'Toàn quyền' FROM dbo.NhanVien n
@@ -69,18 +83,23 @@ BEGIN TRY
     DECLARE @BenhNhanMau TABLE (hoTen NVARCHAR(120), ngaySinh DATE,
                                 gioiTinh NVARCHAR(15), sdt VARCHAR(20), tienSu NVARCHAR(200));
     INSERT INTO @BenhNhanMau VALUES
-      (N'Nguyễn Minh Khoa','2001-03-12',N'Nam','0001000001',N'Không ghi nhận'),
-      (N'Trần Ngọc Hân','1999-11-23',N'Nữ','0001000002',N'Dị ứng thuốc tê (giả lập)'),
-      (N'Lê Hoàng Nam','1996-07-14',N'Nam','0001000003',N'Không ghi nhận'),
-      (N'Phạm Thu Hà','1988-09-05',N'Nữ','0001000004',N'Viêm lợi'),
-      (N'Võ Thanh Long','2004-02-20',N'Nam','0001000005',N'Không ghi nhận'),
-      (N'Đặng Bảo Anh','2012-08-06',N'Nữ','0001000006',N'Không ghi nhận'),
-      (N'Bùi Gia Huy','2014-12-11',N'Nam','0001000007',N'Không ghi nhận'),
-      (N'Ngô Minh Châu','1994-06-16',N'Nữ','0001000008',N'Ê buốt răng'),
-      (N'Đỗ Thuỳ Dương','2000-10-09',N'Nữ','0001000009',N'Không ghi nhận'),
-      (N'Hoàng Quốc Duy','1985-01-17',N'Nam','0001000010',N'Cao huyết áp (giả lập)'),
-      (N'Phan Nhật Minh','2003-04-27',N'Nam','0001000011',N'Không ghi nhận'),
-      (N'Mai Ngọc Linh','1992-05-02',N'Nữ','0001000012',N'Không ghi nhận');
+      (N'Nguyễn Minh Khoa','2001-03-12',N'Nam','0937000001',N'Không ghi nhận'),
+      (N'Trần Ngọc Hân','1999-11-23',N'Nữ','0937000002',N'Dị ứng thuốc tê (giả lập)'),
+      (N'Lê Hoàng Nam','1996-07-14',N'Nam','0937000003',N'Không ghi nhận'),
+      (N'Phạm Thu Hà','1988-09-05',N'Nữ','0937000004',N'Viêm lợi'),
+      (N'Võ Thanh Long','2004-02-20',N'Nam','0937000005',N'Không ghi nhận'),
+      (N'Đặng Bảo Anh','2012-08-06',N'Nữ','0937000006',N'Không ghi nhận'),
+      (N'Bùi Gia Huy','2014-12-11',N'Nam','0937000007',N'Không ghi nhận'),
+      (N'Ngô Minh Châu','1994-06-16',N'Nữ','0937000008',N'Ê buốt răng'),
+      (N'Đỗ Thuỳ Dương','2000-10-09',N'Nữ','0937000009',N'Không ghi nhận'),
+      (N'Hoàng Quốc Duy','1985-01-17',N'Nam','0937000010',N'Cao huyết áp (giả lập)'),
+      (N'Phan Nhật Minh','2003-04-27',N'Nam','0937000011',N'Không ghi nhận'),
+      (N'Mai Ngọc Linh','1992-05-02',N'Nữ','0937000012',N'Không ghi nhận');
+
+    -- Sua rieng so DEMO cu 0001... (neu da chay SQL 03 cu), khong can xoa/tai tao ho so.
+    UPDATE b SET sdt=m.sdt, email='benhnhan'+m.sdt+'@gmail.com'
+    FROM dbo.BenhNhan b JOIN @BenhNhanMau m
+      ON b.hoTen=m.hoTen AND b.sdt='0001'+RIGHT(m.sdt,6);
 
     INSERT INTO dbo.BenhNhan(hoTen, ngaySinh, gioiTinh, sdt, email, diaChi, tienSuBenh, trangThai)
     SELECT m.hoTen, m.ngaySinh, m.gioiTinh, m.sdt,
@@ -89,9 +108,12 @@ BEGIN TRY
     WHERE NOT EXISTS(SELECT 1 FROM dbo.BenhNhan b WHERE b.sdt=m.sdt);
 
     INSERT INTO dbo.NguoiGiamHo(maBN, hoTen, sdt, quanHe)
-    SELECT b.maBN, N'Người giám hộ (mẫu)', '0002000001', N'Cha/mẹ'
-    FROM dbo.BenhNhan b WHERE b.sdt IN('0001000006','0001000007')
+    SELECT b.maBN, N'Người giám hộ (mẫu)', '0938000001', N'Cha/mẹ'
+    FROM dbo.BenhNhan b WHERE b.sdt IN('0937000006','0937000007')
     AND NOT EXISTS(SELECT 1 FROM dbo.NguoiGiamHo g WHERE g.maBN=b.maBN);
+
+    UPDATE dbo.NguoiGiamHo SET sdt='0938000001'
+    WHERE sdt='0002000001' AND hoTen=N'Người giám hộ (mẫu)';
 
     -- 4. Danh muc dich vu va gia.
     DECLARE @DichVuMau TABLE(ten NVARCHAR(150), moTa NVARCHAR(200), gia DECIMAL(18,2));
@@ -118,16 +140,43 @@ BEGIN TRY
     WHERE d.ten IN(N'Cạo vôi răng',N'Trám răng',N'Nhổ răng',N'Điều trị tủy')
       AND NOT EXISTS(SELECT 1 FROM dbo.DichVuDieuTri t WHERE t.tenDDT=d.ten);
 
+<<<<<<< Updated upstream:MediDent/MediDentApp/SQLData/03_DuLieuMau.sql
     -- 5. Lich lam viec bac si: 3 nguoi x 4 buoi.
+=======
+    -- 5. Nhan su chuyen mon trong ho so kham (maTK=NULL): KHONG phai vai tro dang nhap.
+    DECLARE @NhanSuKham TABLE(hoTen NVARCHAR(120), email VARCHAR(150), sdt VARCHAR(20));
+    INSERT INTO @NhanSuKham VALUES
+        (N'Nguyễn Hoàng Việt','nvytviet@gmail.com','0976000001'),
+        (N'Đặng Minh Anh','nvytminhanh@gmail.com','0976000002'),
+        (N'Lê Quốc Bảo','nvytbao@gmail.com','0976000003');
+    INSERT INTO dbo.NhanVien(hoTen,email,sdt,chucVu,trangThai,maTK)
+    SELECT a.hoTen,a.email,a.sdt,N'Bác sĩ',N'Đang làm việc',NULL
+    FROM @NhanSuKham a
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.NhanVien n
+                      WHERE n.hoTen=a.hoTen AND n.chucVu=N'Bác sĩ');
+
+    UPDATE n SET sdt=a.sdt FROM dbo.NhanVien n
+    JOIN @NhanSuKham a ON a.hoTen=n.hoTen
+    WHERE n.chucVu=N'Bác sĩ' AND (n.sdt IS NULL OR LTRIM(RTRIM(n.sdt))='');
+
+    -- Lich lam viec cho nhan su y te (khong tai khoan).
+    
+>>>>>>> Stashed changes:SourceCode/MediDent/MediDentAdmin/SQLData/03_DuLieuMau_MediDent_SQL2012.sql
     INSERT INTO dbo.LichLamViec(maNV,thu,ngayLamViec,caLamViec,gioBatDau,gioKetThuc,trangThai)
     SELECT n.maNV, N'Theo lịch', DATEADD(DAY,x.ngay,CAST(GETDATE() AS DATE)),
            CASE WHEN x.ngay%2=0 THEN N'Ca sáng' ELSE N'Ca chiều' END,
            CASE WHEN x.ngay%2=0 THEN CAST('08:00' AS TIME) ELSE CAST('13:30' AS TIME) END,
            CASE WHEN x.ngay%2=0 THEN CAST('12:00' AS TIME) ELSE CAST('17:00' AS TIME) END,
            N'Đã xếp lịch'
+<<<<<<< Updated upstream:MediDent/MediDentApp/SQLData/03_DuLieuMau.sql
     FROM dbo.NhanVien n JOIN dbo.TaiKhoan t ON t.maTK=n.maTK
     CROSS JOIN (VALUES(0),(1),(2),(3)) x(ngay)
     WHERE t.tenDangNhap LIKE 'demo_bs%'
+=======
+    FROM dbo.NhanVien n JOIN @NhanSuKham a ON a.hoTen=n.hoTen
+    CROSS JOIN (VALUES(0),(1),(2),(3),(4),(5),(6),(7),(8),(9),(10),(11),(12),(13)) x(ngay)
+    WHERE n.chucVu=N'Bác sĩ'
+>>>>>>> Stashed changes:SourceCode/MediDent/MediDentAdmin/SQLData/03_DuLieuMau_MediDent_SQL2012.sql
       AND NOT EXISTS(SELECT 1 FROM dbo.LichLamViec l WHERE l.maNV=n.maNV
          AND l.ngayLamViec=DATEADD(DAY,x.ngay,CAST(GETDATE() AS DATE)));
 
@@ -153,10 +202,15 @@ BEGIN TRY
             INSERT INTO dbo.LichHen(maBN,maNV,phongKham,ngayHen,gioHen,lyDo,trangThai,ghiChu)
             VALUES(@bn,@bs,N'Phòng 0'+CAST((@i%3)+1 AS NVARCHAR(2)),@hen,@gio,
                    N'Khám nha khoa định kỳ (dữ liệu mẫu)',
-                   CASE WHEN @i%5=0 THEN N'Chờ xác nhận' ELSE N'Đã khám' END,
+                   CASE WHEN @hen<CONVERT(date,GETDATE()) THEN N'Hoàn tất' ELSE N'Chờ xác nhận' END,
                    N'MEDIDENT DEMO - lịch hẹn');
         SET @i=@i+1;
     END;
+
+    -- Chinh trang thai lich mau cu ve dung nhom trang thai Java dang su dung.
+    UPDATE dbo.LichHen SET trangThai=
+        CASE WHEN ngayHen<CONVERT(date,GETDATE()) THEN N'Hoàn tất' ELSE N'Chờ xác nhận' END
+    WHERE ghiChu=N'MEDIDENT DEMO - lịch hẹn' AND trangThai=N'Đã khám';
 
     SET @i=1;
     WHILE @i<=30
@@ -248,7 +302,6 @@ BEGIN TRY
     DECLARE @NhatKyMau TABLE(hanhDong NVARCHAR(200),doiTuong NVARCHAR(150),moTa NVARCHAR(1000));
     INSERT INTO @NhatKyMau VALUES
       (N'Cập nhật quyền truy cập', N'VaiTro', N'[DEMO] Phân quyền Quản lý phòng khám'),
-      (N'Sao lưu dữ liệu', N'CauHinh', N'[DEMO] Sao lưu hoàn tất'),
       (N'Thêm tài khoản', N'TaiKhoan', N'[DEMO] Tạo nhân viên mẫu'),
       (N'Đăng nhập thất bại', N'TaiKhoan', N'[DEMO] Cảnh báo đăng nhập #1'),
       (N'Đăng nhập thất bại', N'TaiKhoan', N'[DEMO] Cảnh báo đăng nhập #2'),

@@ -91,6 +91,11 @@ public class QuanTriHeThong extends JPanel {
         JCheckBox box = new JCheckBox("Bật", Boolean.parseBoolean(
                 config.getOrDefault(key, "false")));
         box.setBackground(Color.WHITE);
+        // Những lựa chọn này mới có chỗ lưu cấu hình, chưa có xử lý thực tế.
+        box.setEnabled(false);
+        box.setSelected(false); // Không hiển thị 'đang bật' khi tính năng chưa hoạt động.
+        box.setText("Chưa hỗ trợ");
+        box.setToolTipText("Chưa triển khai: tùy chọn này chưa có xử lý thật.");
         controls.put(key, box);
         panel.add(box);
     }
@@ -102,7 +107,8 @@ public class QuanTriHeThong extends JPanel {
             for (Map.Entry<String, JComponent> entry : controls.entrySet()) {
                 String current = values.getOrDefault(entry.getKey(), "");
                 if (entry.getValue() instanceof JCheckBox) {
-                    ((JCheckBox) entry.getValue()).setSelected(Boolean.parseBoolean(current));
+                    // Các checkbox chưa được triển khai phải luôn ở chế độ tắt.
+                    ((JCheckBox) entry.getValue()).setSelected(false);
                 } else if (entry.getValue() instanceof JTextField) {
                     ((JTextField) entry.getValue()).setText(current);
                 }
@@ -117,6 +123,7 @@ public class QuanTriHeThong extends JPanel {
         Map<String, String> values = new LinkedHashMap<>();
         for (Map.Entry<String, JComponent> entry : controls.entrySet()) {
             JComponent field = entry.getValue();
+            if (!field.isEnabled()) continue; // Không lưu checkbox chưa có chức năng.
             String value = field instanceof JCheckBox
                     ? String.valueOf(((JCheckBox) field).isSelected())
                     : ((JTextField) field).getText().trim();

@@ -290,6 +290,12 @@ public final class GiaoDien {
         if (message == null || message.trim().isEmpty()) {
             message = exception.toString();
         }
+        // Lỗi do Java mới nhưng CSDL vẫn còn cấu trúc cũ.
+        if (message.contains("Invalid column name") || message.contains("Invalid object name")) {
+            message = "CSDL MediDent chưa đồng bộ với mã nguồn.\n"
+                    + "Hãy sao lưu DB rồi chạy SQLData/01_MediDent.sql.\n"
+                    + "Chi tiết: " + message;
+        }
         JOptionPane.showMessageDialog(owner, message,
                 exception instanceof SQLException ? "Lỗi SQL Server" : "Lỗi ứng dụng",
                 JOptionPane.ERROR_MESSAGE);
@@ -345,6 +351,16 @@ public final class GiaoDien {
     /** 14. Trang trí bảng và cho phép cuộn ngang ở bảng nhiều cột. */
     public static JComponent wrapTable(JTable table) {
         table.setRowHeight(39);
+        table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        // Không chọn nhầm dòng khi người dùng lọc/sắp xếp JTable.
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override public void mousePressed(java.awt.event.MouseEvent e) {
+                if (javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+                    int row = table.rowAtPoint(e.getPoint());
+                    if (row >= 0) table.setRowSelectionInterval(row, row);
+                }
+            }
+        });
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.setGridColor(BORDER);
         table.setFillsViewportHeight(true);

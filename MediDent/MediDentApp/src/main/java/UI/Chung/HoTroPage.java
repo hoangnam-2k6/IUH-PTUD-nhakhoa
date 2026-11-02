@@ -149,7 +149,13 @@ public final class HoTroPage extends JPanel {
             JOptionPane.showMessageDialog(this, "Hãy chọn một yêu cầu.");
             return null;
         }
-        return duLieu.get(bang.convertRowIndexToModel(viewIndex));
+        int modelRow = bang.convertRowIndexToModel(viewIndex);
+        int id = ((Number) model.getValueAt(modelRow, 1)).intValue();
+        for (QuanLyDAO.Hang hang : duLieu) {
+            if (hang.id == id) return hang;
+        }
+        JOptionPane.showMessageDialog(this, "Dữ liệu đã thay đổi, hãy tải lại danh sách.");
+        return null;
     }
 
     private void guiYeuCau() {
