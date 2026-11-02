@@ -63,6 +63,24 @@ public final class QuanLyDAO {
         }
     }
 
+    /** Dữ liệu tổng hợp cho Dashboard Quản lý, nạp bằng một tác vụ nền. */
+    public static final class DuLieuDashboard {
+        public final int tongBenhNhan;
+        public final int lichHenHomNay;
+        public final int luotKhamTrongThang;
+        public final int tongHoaDon;
+        public final List<Hang> lichHenGanDay;
+
+        public DuLieuDashboard(int tongBenhNhan, int lichHenHomNay,
+                int luotKhamTrongThang, int tongHoaDon, List<Hang> lichHenGanDay) {
+            this.tongBenhNhan = tongBenhNhan;
+            this.lichHenHomNay = lichHenHomNay;
+            this.luotKhamTrongThang = luotKhamTrongThang;
+            this.tongHoaDon = tongHoaDon;
+            this.lichHenGanDay = Collections.unmodifiableList(new ArrayList<>(lichHenGanDay));
+        }
+    }
+
     /** Dữ liệu đầy đủ của một ca làm việc để mở form sửa. */
     public static final class ThongTinLichLamViec {
         public final int maNV;
@@ -311,14 +329,43 @@ public final class QuanLyDAO {
     }
 
     public List<Hang> benhNhan() throws SQLException {
-        return truyVan("SELECT maBN,hoTen,ISNULL(sdt,'') AS sdt,ISNULL(gioiTinh,'') AS gioiTinh, "
-                + "CONVERT(varchar(10),ngaySinh,103) AS ngaySinh,ISNULL(email,'') AS email, "
-                + "CASE WHEN ISNULL(trangThaiHoSo,N'Hoạt động')=N'Ngừng hồ sơ' "
-                + "THEN N'Ngừng hồ sơ' ELSE ISNULL(trangThai,'') END AS trangThai "
-                + "FROM dbo.BenhNhan ORDER BY maBN DESC",
-                r -> new Hang(r.getInt("maBN"), chuoi(r,"hoTen"), chuoi(r,"sdt"),
-                        chuoi(r,"gioiTinh"), chuoi(r,"ngaySinh"), chuoi(r,"email"),
-                        chuoi(r,"trangThai")));
+        // Database được tạo trước migration 13 có thể chưa có cột trangThaiHoSo.
+        // Kiểm tra sự tồn tại của cột trước khi dựng SELECT để danh sách bệnh nhân
+        // vẫn đọc được từ schema cũ, thay vì lỗi Invalid column name.
+        try (Connection c = KetNoi.mo()) {
+            boolean coTrangThaiHoSo;
+            try (PreparedStatement check = c.prepareStatement(
+                    "SELECT CASE WHEN COL_LENGTH(N'dbo.BenhNhan',N'trangThaiHoSo') "
+                  + "IS NULL THEN 0 ELSE 1 END");
+                 ResultSet rs = check.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException("Không xác định được cấu trúc bảng dbo.BenhNhan.");
+                }
+                coTrangThaiHoSo = rs.getInt(1) == 1;
+            }
+
+            String sql = "SELECT maBN,hoTen,ISNULL(sdt,'') AS sdt,"
+                    + "ISNULL(gioiTinh,'') AS gioiTinh,"
+                    + "CONVERT(varchar(10),ngaySinh,103) AS ngaySinh,"
+                    + "ISNULL(email,'') AS email,"
+                    + (coTrangThaiHoSo
+                        ? "CASE WHEN ISNULL(trangThaiHoSo,N'Hoạt động')=N'Ngừng hồ sơ' "
+                          + "THEN N'Ngừng hồ sơ' ELSE ISNULL(trangThai,'') END AS trangThai "
+                        : "ISNULL(trangThai,'') AS trangThai ")
+                    + "FROM dbo.BenhNhan ORDER BY maBN DESC";
+
+            List<Hang> ketQua = new ArrayList<>();
+            try (PreparedStatement ps = c.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    ketQua.add(new Hang(rs.getInt("maBN"), chuoi(rs,"hoTen"),
+                            chuoi(rs,"sdt"), chuoi(rs,"gioiTinh"),
+                            chuoi(rs,"ngaySinh"), chuoi(rs,"email"),
+                            chuoi(rs,"trangThai")));
+                }
+            }
+            return ketQua;
+        }
     }
 
     public void luuBenhNhan(int id, String hoTen, String sdt, LocalDate ngaySinh,
@@ -709,6 +756,54 @@ public final class QuanLyDAO {
                 + "ORDER BY l.ngayHen DESC,l.gioHen DESC",
                 r->new Hang(r.getInt(1),chuoi(r,"ngay"),chuoi(r,"gio"),
                         r.getString(4),chuoi(r,"trangThai")));
+    }
+
+    /**
+     * Tải dữ liệu Dashboard trong một lần làm việc nền, dùng một kết nối và hai truy vấn.
+     * Tránh gọi nhiều truy vấn đếm tuần tự từ constructor giao diện Swing.
+     */
+    public DuLieuDashboard duLieuDashboard() throws SQLException {
+        int tongBenhNhan;
+        int lichHenHomNay;
+        int luotKhamTrongThang;
+        int tongHoaDon;
+        List<Hang> lichGanDay = new ArrayList<>();
+
+        try (Connection c = KetNoi.mo()) {
+            String sqlThongKe = "SELECT "
+                    + "(SELECT COUNT(*) FROM dbo.BenhNhan) AS tongBenhNhan, "
+                    + "(SELECT COUNT(*) FROM dbo.LichHen "
+                    + " WHERE ngayHen=CONVERT(date,GETDATE())) AS lichHenHomNay, "
+                    + "(SELECT COUNT(*) FROM dbo.PhieuKham "
+                    + " WHERE ngayKham>=DATEADD(month,DATEDIFF(month,0,GETDATE()),0) "
+                    + " AND ngayKham<DATEADD(month,DATEDIFF(month,0,GETDATE())+1,0)) AS luotKhamTrongThang, "
+                    + "(SELECT COUNT(*) FROM dbo.HoaDon) AS tongHoaDon";
+            try (PreparedStatement ps = c.prepareStatement(sqlThongKe);
+                 ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new SQLException("Không lấy được số liệu Dashboard.");
+                tongBenhNhan = rs.getInt("tongBenhNhan");
+                lichHenHomNay = rs.getInt("lichHenHomNay");
+                luotKhamTrongThang = rs.getInt("luotKhamTrongThang");
+                tongHoaDon = rs.getInt("tongHoaDon");
+            }
+
+            String sqlLich = "SELECT TOP 8 l.maLichHen, "
+                    + "CONVERT(varchar(10),l.ngayHen,103) AS ngay, "
+                    + "CONVERT(varchar(5),l.gioHen,108) AS gio,b.hoTen,l.trangThai "
+                    + "FROM dbo.LichHen l JOIN dbo.BenhNhan b ON l.maBN=b.maBN "
+                    + "ORDER BY l.ngayHen DESC,l.gioHen DESC";
+            try (PreparedStatement ps = c.prepareStatement(sqlLich);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lichGanDay.add(new Hang(rs.getInt("maLichHen"),
+                            chuoi(rs, "ngay"), chuoi(rs, "gio"),
+                            chuoi(rs, "hoTen"), chuoi(rs, "trangThai")));
+                }
+            }
+        }
+
+        return new DuLieuDashboard(tongBenhNhan, lichHenHomNay,
+                luotKhamTrongThang, tongHoaDon, lichGanDay);
     }
 
     /** Tương thích form cũ: dùng thời lượng mặc định 60 phút đã ghi trong migration. */
