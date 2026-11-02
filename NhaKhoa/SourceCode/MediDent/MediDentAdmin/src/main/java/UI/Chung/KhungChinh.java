@@ -5,6 +5,7 @@ import DAO.KhoDuLieu;
 import DAO.QuanLyDAO;
 import UI.QuanLy.*;
 import UI.LeTan.TrangChuLeTan;
+import UI.LeTan.TrangThanhToanHoaDon;
 import UI.QuanTriVien.*;
 import java.awt.*;
 import java.util.*;
@@ -423,7 +424,7 @@ public final class KhungChinh extends JFrame {
             case "LICHHEN":
                 return new LichHenGUI(quanLyDAO, user);
             case "THANHTOAN":
-                return new ThanhToanGUI(quanLyDAO, user);
+                return taoTrangThanhToan();
             case "BAOCAO":
                 return access.laAdmin
                         ? new BaoCaoHeThongAdmin(db, user)
@@ -445,6 +446,29 @@ public final class KhungChinh extends JFrame {
             default:
                 throw new IllegalArgumentException("Màn hình chưa hỗ trợ: " + page);
         }
+    }
+
+    /**
+     * Mục "Thanh toán & hóa đơn": giữ nguyên màn hình thanh toán cũ (ThanhToanGUI) ở tab đầu,
+     * thêm tab "In hóa đơn" (xem trước + in). Tab in hóa đơn chỉ tải dữ liệu khi được mở lần đầu.
+     */
+    private JPanel taoTrangThanhToan() {
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.addTab("Thanh toán", new ThanhToanGUI(quanLyDAO, user));
+
+        JPanel hoaDonHolder = new JPanel(new BorderLayout());
+        tabs.addTab("In hóa đơn", hoaDonHolder);
+        tabs.addChangeListener(e -> {
+            if (tabs.getSelectedComponent() == hoaDonHolder && hoaDonHolder.getComponentCount() == 0) {
+                hoaDonHolder.add(new TrangThanhToanHoaDon(user), BorderLayout.CENTER);
+                hoaDonHolder.revalidate();
+                hoaDonHolder.repaint();
+            }
+        });
+
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(tabs, BorderLayout.CENTER);
+        return panel;
     }
 
     private void capNhatGiaoDienTrang(String page, JPanel view) {
