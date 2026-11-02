@@ -63,7 +63,9 @@ BEGIN
 END;
 GO
 
--- Chống hai máy tạo cùng giờ cho cùng nhân viên; chỉ áp dụng các lịch chưa kết thúc.
+-- Unique index nay chi chan trung gio bat dau chinh xac.
+-- Kiem tra CHONG KHOANG (vd 09:00-10:00 va 09:30-10:30) van do QuanLyDAO xu ly trong transaction;
+-- SQL Server khong the bieu dien rang buoc overlap interval don gian bang UNIQUE index.
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name=N'UX_MediDent_LichHen_NhanVien_Gio'
                AND object_id=OBJECT_ID(N'dbo.LichHen'))
 BEGIN
@@ -72,7 +74,7 @@ BEGIN
         WHERE maNV IS NOT NULL AND trangThai NOT IN (N'Đã hủy',N'Hoàn tất')
         GROUP BY maNV,ngayHen,gioHen HAVING COUNT(*)>1
     )
-        PRINT N'Đã có lịch trùng bác sĩ/giờ; cần xử lý trước khi tạo unique index.';
+        PRINT N'CANH BAO: da co lich trung bac si/gio bat dau; bo qua UNIQUE index, khong sua lich cu.';
     ELSE
         CREATE UNIQUE INDEX UX_MediDent_LichHen_NhanVien_Gio
         ON dbo.LichHen(maNV,ngayHen,gioHen)

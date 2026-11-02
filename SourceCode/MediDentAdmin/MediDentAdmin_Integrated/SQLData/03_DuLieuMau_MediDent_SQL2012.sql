@@ -1,6 +1,8 @@
-﻿-- MEDIDENT - DU LIEU MAU CHO SQL SERVER 2012 (RTM / SP4)
+-- MEDIDENT - DU LIEU MAU CHO SQL SERVER 2012 (RTM / SP4)
 -- Chay SAU file SQLData/01_MediDent.sql tren DATABASE MEDIDENT THU NGHIEM.
--- Chi them du lieu neu chua co; KHONG DELETE, KHONG UPDATE du lieu cu.
+-- Chi them ban ghi DEMO neu chua co; KHONG UPDATE/DELETE ban ghi da ton tai.
+-- CAN CHU DONG DOI @XACNHAN_NAP_DEMO = 1 ben duoi truoc khi chay.
+-- Khong chay tren database dang su dung voi du lieu benh nhan that.
 -- Chi dung cho DEMO, khong chay tren he thong co du lieu benh nhan that.
 -- 5 tai khoan mau thuoc 3 vai tro co MAT KHAU CHUNG: Demo@2026! (hash BCrypt $2a$).
 -- Sau demo nen doi mat khau / xoa cac tai khoan mau.
@@ -11,6 +13,10 @@ SET XACT_ABORT ON;
 GO
 BEGIN TRY
     BEGIN TRANSACTION;
+
+    DECLARE @XACNHAN_NAP_DEMO BIT = 1; -- doi thanh 1 chi tren database demo/test
+    IF @XACNHAN_NAP_DEMO <> 1
+        RAISERROR(N'An toan: SQL demo dang bi khoa. Chi doi @XACNHAN_NAP_DEMO=1 tren database thu nghiem.',16,1);
 
     -- 1. Chi ba vai tro dang nhap: Quan tri vien, Quan ly phong kham, Le tan.
     -- Nhan su chuyen mon tham gia phieu kham KHONG co tai khoan/role dang nhap.
@@ -59,22 +65,22 @@ BEGIN TRY
     JOIN dbo.TaiKhoan t ON t.maTK=n.maTK WHERE t.tenDangNhap LIKE 'demo_lt%'
       AND NOT EXISTS(SELECT 1 FROM dbo.LeTan q WHERE q.maNV=n.maNV);
 
-    -- 3. Benh nhan gia lap; SDT bat dau 000 de de phan biet voi du lieu that.
+    -- 3. Benh nhan gia lap; SDT dau 039 hop le theo validator va chi dung cho database demo.
     DECLARE @BenhNhanMau TABLE (hoTen NVARCHAR(120), ngaySinh DATE,
                                 gioiTinh NVARCHAR(15), sdt VARCHAR(20), tienSu NVARCHAR(200));
     INSERT INTO @BenhNhanMau VALUES
-      (N'Nguyễn Minh Khoa','2001-03-12',N'Nam','0001000001',N'Không ghi nhận'),
-      (N'Trần Ngọc Hân','1999-11-23',N'Nữ','0001000002',N'Dị ứng thuốc tê (giả lập)'),
-      (N'Lê Hoàng Nam','1996-07-14',N'Nam','0001000003',N'Không ghi nhận'),
-      (N'Phạm Thu Hà','1988-09-05',N'Nữ','0001000004',N'Viêm lợi'),
-      (N'Võ Thanh Long','2004-02-20',N'Nam','0001000005',N'Không ghi nhận'),
-      (N'Đặng Bảo Anh','2012-08-06',N'Nữ','0001000006',N'Không ghi nhận'),
-      (N'Bùi Gia Huy','2014-12-11',N'Nam','0001000007',N'Không ghi nhận'),
-      (N'Ngô Minh Châu','1994-06-16',N'Nữ','0001000008',N'Ê buốt răng'),
-      (N'Đỗ Thuỳ Dương','2000-10-09',N'Nữ','0001000009',N'Không ghi nhận'),
-      (N'Hoàng Quốc Duy','1985-01-17',N'Nam','0001000010',N'Cao huyết áp (giả lập)'),
-      (N'Phan Nhật Minh','2003-04-27',N'Nam','0001000011',N'Không ghi nhận'),
-      (N'Mai Ngọc Linh','1992-05-02',N'Nữ','0001000012',N'Không ghi nhận');
+      (N'Nguyễn Minh Khoa','2001-03-12',N'Nam','0390000001',N'Không ghi nhận'),
+      (N'Trần Ngọc Hân','1999-11-23',N'Nữ','0390000002',N'Dị ứng thuốc tê (giả lập)'),
+      (N'Lê Hoàng Nam','1996-07-14',N'Nam','0390000003',N'Không ghi nhận'),
+      (N'Phạm Thu Hà','1988-09-05',N'Nữ','0390000004',N'Viêm lợi'),
+      (N'Võ Thanh Long','2004-02-20',N'Nam','0390000005',N'Không ghi nhận'),
+      (N'Đặng Bảo Anh','2012-08-06',N'Nữ','0390000006',N'Không ghi nhận'),
+      (N'Bùi Gia Huy','2014-12-11',N'Nam','0390000007',N'Không ghi nhận'),
+      (N'Ngô Minh Châu','1994-06-16',N'Nữ','0390000008',N'Ê buốt răng'),
+      (N'Đỗ Thuỳ Dương','2000-10-09',N'Nữ','0390000009',N'Không ghi nhận'),
+      (N'Hoàng Quốc Duy','1985-01-17',N'Nam','0390000010',N'Cao huyết áp (giả lập)'),
+      (N'Phan Nhật Minh','2003-04-27',N'Nam','0390000011',N'Không ghi nhận'),
+      (N'Mai Ngọc Linh','1992-05-02',N'Nữ','0390000012',N'Không ghi nhận');
 
     INSERT INTO dbo.BenhNhan(hoTen, ngaySinh, gioiTinh, sdt, email, diaChi, tienSuBenh, trangThai)
     SELECT m.hoTen, m.ngaySinh, m.gioiTinh, m.sdt,
@@ -84,7 +90,7 @@ BEGIN TRY
 
     INSERT INTO dbo.NguoiGiamHo(maBN, hoTen, sdt, quanHe)
     SELECT b.maBN, N'Người giám hộ (mẫu)', '0002000001', N'Cha/mẹ'
-    FROM dbo.BenhNhan b WHERE b.sdt IN('0001000006','0001000007')
+    FROM dbo.BenhNhan b WHERE b.sdt IN('0390000006','0390000007')
     AND NOT EXISTS(SELECT 1 FROM dbo.NguoiGiamHo g WHERE g.maBN=b.maBN);
 
     -- 4. Danh muc dich vu va gia.
@@ -161,7 +167,7 @@ BEGIN TRY
             INSERT INTO dbo.LichHen(maBN,maNV,phongKham,ngayHen,gioHen,lyDo,trangThai,ghiChu)
             VALUES(@bn,@bs,N'Phòng 0'+CAST((@i%3)+1 AS NVARCHAR(2)),@hen,@gio,
                    N'Khám nha khoa định kỳ (dữ liệu mẫu)',
-                   CASE WHEN @i%5=0 THEN N'Chờ xác nhận' ELSE N'Đã khám' END,
+                   CASE WHEN @i%5=0 THEN N'Đã hủy' ELSE N'Hoàn tất' END,
                    N'MEDIDENT DEMO - lịch hẹn');
         SET @i=@i+1;
     END;

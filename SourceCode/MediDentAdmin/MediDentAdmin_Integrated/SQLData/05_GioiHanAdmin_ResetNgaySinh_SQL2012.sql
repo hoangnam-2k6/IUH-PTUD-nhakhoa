@@ -5,17 +5,14 @@ GO
 IF COL_LENGTH(N'dbo.TaiKhoan', N'phaiDoiMatKhau') IS NULL
 BEGIN
     ALTER TABLE dbo.TaiKhoan
-    ADD phaiDoiMatKhau BIT NOT NULL
+    -- Nullable de cac tai khoan cu giu NULL; ResultSet.getBoolean doc NULL nhu false.
+    ADD phaiDoiMatKhau BIT NULL
         CONSTRAINT DF_TaiKhoan_PhaiDoiMatKhau DEFAULT (0);
 END;
 GO
--- Giới hạn role Admin chỉ các nhóm: Tài khoản, Báo cáo hệ thống, Hệ thống, Hỗ trợ.
--- Thao tác nghiệp vụ bị từ chối thêm ở DAO dù SQL cũ còn cấp quyền.
-DELETE vq
-FROM dbo.VaiTroQuyen vq
-JOIN dbo.VaiTro vt ON vt.maVaiTro=vq.maVaiTro
-WHERE vt.tenVaiTro=N'Quản trị viên'
-  AND vq.maQuyen IN ('BENHNHAN','LICHHEN','THANHTOAN','NHANVIEN','DICHVU');
+-- Bao toan toan bo VaiTroQuyen hien co: KHONG thu hoi/xoa quyen da cap.
+-- Gioi han thao tac nghiep vu cua Admin duoc kiem tra tai DAO/KhungChinh.
+-- Script chi bo sung cac quyen Admin can neu dang thieu; khong sua mapping cu.
 GO
 -- Các quyền Admin cần dùng nếu chưa có.
 INSERT INTO dbo.VaiTroQuyen(maVaiTro,maQuyen)

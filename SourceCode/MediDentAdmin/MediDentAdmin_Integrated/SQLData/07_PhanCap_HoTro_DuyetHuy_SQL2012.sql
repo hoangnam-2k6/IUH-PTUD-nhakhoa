@@ -9,21 +9,19 @@ GO
 -- 1. VaiTro.capBacHoTro la cap xem yeu cau, doc tu SQL moi lan truy van.
 -- 3: Quan tri vien, 2: Quan ly phong kham, 1: Le tan.
 -- 0: Vai tro chua duoc cap -> chi duoc xem yeu cau cua chinh minh.
-IF COL_LENGTH(N'dbo.VaiTro', N'capBacHoTro') IS NULL
+IF NOT EXISTS (SELECT 1 FROM sys.columns
+               WHERE object_id=OBJECT_ID(N'dbo.VaiTro') AND name=N'capBacHoTro')
 BEGIN
-    ALTER TABLE dbo.VaiTro
-    ADD capBacHoTro INT NOT NULL
-        CONSTRAINT DF_VaiTro_CapBacHoTro DEFAULT (0) WITH VALUES;
+    -- Cot tinh: xep cap tu ten vai tro, khong UPDATE/backfill cac dong VaiTro cu.
+    -- DAO van doc SELECT v.capBacHoTro nhu mot cot INT binh thuong.
+    ALTER TABLE dbo.VaiTro ADD capBacHoTro AS
+        (CONVERT(INT, CASE
+            WHEN tenVaiTro=N'Quản trị viên' THEN 3
+            WHEN tenVaiTro IN (N'Quản lý phòng khám',N'Quản lý') THEN 2
+            WHEN tenVaiTro=N'Lễ tân' THEN 1
+            ELSE 0
+        END));
 END;
-GO
-UPDATE dbo.VaiTro
-SET capBacHoTro = CASE
-    WHEN tenVaiTro = N'Quản trị viên' THEN 3
-    WHEN tenVaiTro IN (N'Quản lý phòng khám', N'Quản lý') THEN 2
-    WHEN tenVaiTro = N'Lễ tân' THEN 1
-    ELSE capBacHoTro
-END
-WHERE tenVaiTro IN (N'Quản trị viên', N'Quản lý phòng khám', N'Quản lý', N'Lễ tân');
 GO
 
 -- 2. Ban dau YeuCauHuyPhieuThu khong ghi maTK nguoi gui.
@@ -39,9 +37,14 @@ IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys
                WHERE name=N'FK_YeuCauHuyPhieuThu_NguoiGui'
                  AND parent_object_id=OBJECT_ID(N'dbo.YeuCauHuyPhieuThu'))
 BEGIN
-    ALTER TABLE dbo.YeuCauHuyPhieuThu WITH CHECK
-    ADD CONSTRAINT FK_YeuCauHuyPhieuThu_NguoiGui
-        FOREIGN KEY (maTKNguoiGui) REFERENCES dbo.TaiKhoan(maTK);
+    IF EXISTS (SELECT 1 FROM dbo.YeuCauHuyPhieuThu y
+               LEFT JOIN dbo.TaiKhoan t ON t.maTK=y.maTKNguoiGui
+               WHERE y.maTKNguoiGui IS NOT NULL AND t.maTK IS NULL)
+        PRINT N'CANH BAO: co maTKNguoiGui cu khong ton tai trong TaiKhoan; bo qua FK, khong sua du lieu.';
+    ELSE
+        ALTER TABLE dbo.YeuCauHuyPhieuThu WITH CHECK
+        ADD CONSTRAINT FK_YeuCauHuyPhieuThu_NguoiGui
+            FOREIGN KEY (maTKNguoiGui) REFERENCES dbo.TaiKhoan(maTK);
 END;
 GO
 

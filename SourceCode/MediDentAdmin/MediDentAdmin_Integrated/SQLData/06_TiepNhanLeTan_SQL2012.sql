@@ -9,6 +9,7 @@ GO
 IF OBJECT_ID(N'dbo.LichHen',N'U') IS NULL
 BEGIN
     RAISERROR(N'Chua ton tai dbo.LichHen. Hay tao database truoc.',16,1);
+    RETURN;
 END
 GO
 
@@ -27,8 +28,11 @@ IF OBJECT_ID(N'dbo.LichHen',N'U') IS NOT NULL
                    WHERE name=N'CK_LichHen_SoThuTuKham'
                      AND parent_object_id=OBJECT_ID(N'dbo.LichHen'))
 BEGIN
-    ALTER TABLE dbo.LichHen ADD CONSTRAINT CK_LichHen_SoThuTuKham
-        CHECK (soThuTuKham IS NULL OR soThuTuKham > 0);
+    IF EXISTS (SELECT 1 FROM dbo.LichHen WHERE soThuTuKham IS NOT NULL AND soThuTuKham<=0)
+        PRINT N'CANH BAO: soThuTuKham cu co gia tri <=0; bo qua CHECK, khong sua du lieu.';
+    ELSE
+        ALTER TABLE dbo.LichHen ADD CONSTRAINT CK_LichHen_SoThuTuKham
+            CHECK (soThuTuKham IS NULL OR soThuTuKham > 0);
 END
 GO
 
@@ -38,12 +42,18 @@ IF OBJECT_ID(N'dbo.LichHen',N'U') IS NOT NULL
                    WHERE name=N'UX_LichHen_Ngay_STT'
                      AND object_id=OBJECT_ID(N'dbo.LichHen'))
 BEGIN
-    CREATE UNIQUE NONCLUSTERED INDEX UX_LichHen_Ngay_STT
-    ON dbo.LichHen(ngayHen,soThuTuKham)
-    WHERE soThuTuKham IS NOT NULL;
+    IF EXISTS (SELECT ngayHen,soThuTuKham FROM dbo.LichHen
+               WHERE soThuTuKham IS NOT NULL
+               GROUP BY ngayHen,soThuTuKham HAVING COUNT(*)>1)
+        PRINT N'CANH BAO: da co STT trung trong cung ngay; bo qua UNIQUE index, khong sua du lieu.';
+    ELSE
+        CREATE UNIQUE NONCLUSTERED INDEX UX_LichHen_Ngay_STT
+        ON dbo.LichHen(ngayHen,soThuTuKham)
+        WHERE soThuTuKham IS NOT NULL;
 END
 GO
 
-SELECT TOP 20 maLichHen,maBN,ngayHen,phongKham,soThuTuKham,trangThai
-FROM dbo.LichHen ORDER BY maLichHen DESC;
+IF OBJECT_ID(N'dbo.LichHen',N'U') IS NOT NULL
+    SELECT TOP 20 maLichHen,maBN,ngayHen,phongKham,soThuTuKham,trangThai
+    FROM dbo.LichHen ORDER BY maLichHen DESC;
 GO

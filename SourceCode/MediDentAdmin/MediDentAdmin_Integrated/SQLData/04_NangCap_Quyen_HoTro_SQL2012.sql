@@ -3,13 +3,14 @@
 USE MediDent;
 GO
 -- Quyền chuyên biệt để Admin có thể bật/tắt trong màn hình Phân quyền.
-MERGE dbo.Quyen AS t USING (VALUES
+INSERT INTO dbo.Quyen(maQuyen,tenQuyen)
+SELECT s.maQuyen,s.tenQuyen
+FROM (VALUES
     ('NHANVIEN', N'Quản lý nhân viên'),
     ('DICHVU', N'Quản lý dịch vụ'),
     ('HOTRO', N'Xử lý yêu cầu hỗ trợ')
-) s(maQuyen, tenQuyen)
-ON t.maQuyen = s.maQuyen
-WHEN NOT MATCHED THEN INSERT (maQuyen, tenQuyen) VALUES(s.maQuyen, s.tenQuyen);
+) s(maQuyen,tenQuyen)
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Quyen q WHERE q.maQuyen=s.maQuyen);
 GO
 -- Bảng yêu cầu hỗ trợ sử dụng chung cho toàn bộ vai trò.
 IF OBJECT_ID('dbo.YeuCauHoTro', 'U') IS NULL

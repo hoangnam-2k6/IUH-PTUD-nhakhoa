@@ -1,5 +1,6 @@
 -- MEDIDENT - Tao database theo so do ERD nguoi dung cung cap.
--- SQL Server 2012+; tao moi bang khi chua ton tai; KHONG xoa bang hay du lieu cu.
+-- SQL Server 2012+; tao moi bang khi chua ton tai; KHONG UPDATE/DELETE du lieu nghiep vu cu.
+-- Cac cot bo sung cho tuong thich duoc de NULL tren ban ghi cu; Java da dung ISNULL de doc mac dinh.
 -- ERD chi cho TEN COT / QUAN HE, khong cho kieu du lieu; cac kieu va NULL sau la gia dinh.
 -- IDs duoc chon INT IDENTITY, tien/chi phi DECIMAL(18,2), thoi gian DATETIME2.
 -- Quan trong: neu CSDL cua ban da ton tai, DOI CHIEU kieu du lieu truoc khi chay.
@@ -33,7 +34,7 @@ CREATE TABLE dbo.TaiKhoan (
    CHECK (trangThai IN (N'Hoạt động',N'Tạm khóa')),
  ngayTao DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
  ngayDangNhapCuoi DATETIME2 NULL,
- phaiDoiMatKhau BIT NOT NULL DEFAULT 0, -- Buộc đổi mật khẩu sau reset/cấp lần đầu
+ phaiDoiMatKhau BIT NULL CONSTRAINT DF_TaiKhoan_phaiDoiMatKhau DEFAULT (0), -- NULL tren tai khoan cu duoc Java doc nhu false
  maVaiTro INT NOT NULL REFERENCES dbo.VaiTro(maVaiTro)
 );
 GO
@@ -52,7 +53,13 @@ CREATE TABLE dbo.NhanVien (
 );
 GO
 IF NOT EXISTS(SELECT 1 FROM sys.indexes WHERE name=N'UX_NhanVien_maTK' AND object_id=OBJECT_ID(N'dbo.NhanVien'))
-CREATE UNIQUE INDEX UX_NhanVien_maTK ON dbo.NhanVien(maTK) WHERE maTK IS NOT NULL;
+BEGIN
+    IF EXISTS (SELECT maTK FROM dbo.NhanVien WHERE maTK IS NOT NULL
+               GROUP BY maTK HAVING COUNT(*)>1)
+        PRINT N'CANH BAO: NhanVien.maTK bi trung trong du lieu cu; bo qua UNIQUE index, khong sua du lieu.';
+    ELSE
+        CREATE UNIQUE INDEX UX_NhanVien_maTK ON dbo.NhanVien(maTK) WHERE maTK IS NOT NULL;
+END;
 GO
 IF OBJECT_ID(N'dbo.QuanTriVien',N'U') IS NULL
 CREATE TABLE dbo.QuanTriVien (maNV INT PRIMARY KEY REFERENCES dbo.NhanVien(maNV), capDoQuyen NVARCHAR(80) NOT NULL DEFAULT N'Toàn quyền');
@@ -70,7 +77,7 @@ CREATE TABLE dbo.BenhNhan (
  maBN INT IDENTITY(1,1) PRIMARY KEY,hoTen NVARCHAR(120) NOT NULL,ngaySinh DATE NULL,
  gioiTinh NVARCHAR(15) NULL,sdt VARCHAR(20) NULL,email VARCHAR(150) NULL,
  diaChi NVARCHAR(255) NULL,tienSuBenh NVARCHAR(MAX) NULL,trangThai NVARCHAR(30) NULL,
- trangThaiHoSo NVARCHAR(20) NOT NULL DEFAULT N'Hoạt động'
+ trangThaiHoSo NVARCHAR(20) NULL CONSTRAINT DF_BenhNhan_trangThaiHoSo DEFAULT (N'Hoạt động')
 );
 GO
 -- Dam bao schema cu cung co trangThaiHoSo, khong chi schema tao moi.
@@ -78,31 +85,29 @@ GO
 IF OBJECT_ID(N'dbo.BenhNhan',N'U') IS NOT NULL
    AND COL_LENGTH(N'dbo.BenhNhan',N'trangThaiHoSo') IS NULL
 BEGIN
+    -- Cot moi de NULL tren ban ghi cu; khong backfill hay UPDATE du lieu hien co.
+    -- Ban ghi moi nhan DEFAULT; DAO cung truyen trangThaiHoSo ro rang khi INSERT.
     ALTER TABLE dbo.BenhNhan
-      ADD trangThaiHoSo NVARCHAR(20) NOT NULL
-          CONSTRAINT DF_BenhNhan_trangThaiHoSo DEFAULT N'Hoạt động' WITH VALUES;
+      ADD trangThaiHoSo NVARCHAR(20) NULL
+          CONSTRAINT DF_BenhNhan_trangThaiHoSo DEFAULT (N'Hoạt động');
 END;
 GO
 
--- Chuan hoa cac gia tri NULL cu (neu cot da ton tai tu mot lan nang cap thu cong).
-IF COL_LENGTH(N'dbo.BenhNhan',N'trangThaiHoSo') IS NOT NULL
-BEGIN
-    UPDATE dbo.BenhNhan
-       SET trangThaiHoSo=N'Hoạt động'
-     WHERE trangThaiHoSo IS NULL;
-END;
-GO
-
--- Rang buoc cac trang thai ho so hop le; chi tao neu chua co.
+-- Chi them CHECK neu du lieu hien co da tuan thu; khong sua du lieu cu de ep constraint.
 IF NOT EXISTS (
     SELECT 1 FROM sys.check_constraints
      WHERE name=N'CK_BenhNhan_trangThaiHoSo'
        AND parent_object_id=OBJECT_ID(N'dbo.BenhNhan')
 )
 BEGIN
-    ALTER TABLE dbo.BenhNhan WITH CHECK
-      ADD CONSTRAINT CK_BenhNhan_trangThaiHoSo
-      CHECK (trangThaiHoSo IN (N'Hoạt động',N'Ngừng hồ sơ'));
+    IF EXISTS (SELECT 1 FROM dbo.BenhNhan
+               WHERE trangThaiHoSo IS NOT NULL
+                 AND trangThaiHoSo NOT IN (N'Hoạt động',N'Ngừng hồ sơ'))
+        PRINT N'CANH BAO: BenhNhan.trangThaiHoSo co gia tri cu ngoai danh muc; bo qua CHECK, khong sua du lieu.';
+    ELSE
+        ALTER TABLE dbo.BenhNhan WITH CHECK
+          ADD CONSTRAINT CK_BenhNhan_trangThaiHoSo
+          CHECK (trangThaiHoSo IS NULL OR trangThaiHoSo IN (N'Hoạt động',N'Ngừng hồ sơ'));
 END;
 GO
 IF OBJECT_ID(N'dbo.NguoiGiamHo',N'U') IS NULL
@@ -122,7 +127,7 @@ IF OBJECT_ID(N'dbo.LichHen',N'U') IS NULL
 CREATE TABLE dbo.LichHen (
  maLichHen INT IDENTITY(1,1) PRIMARY KEY,maBN INT NOT NULL REFERENCES dbo.BenhNhan(maBN),
  maNV INT NULL REFERENCES dbo.NhanVien(maNV),phongKham NVARCHAR(80) NULL,
- ngayHen DATE NOT NULL,gioHen TIME NOT NULL,thoiLuongPhut SMALLINT NOT NULL DEFAULT 60 CHECK(thoiLuongPhut BETWEEN 15 AND 240),
+ ngayHen DATE NOT NULL,gioHen TIME NOT NULL,thoiLuongPhut SMALLINT NULL CONSTRAINT DF_LichHen_thoiLuongPhut DEFAULT (60),
  lyDo NVARCHAR(500) NULL,trangThai NVARCHAR(30) NOT NULL DEFAULT N'Chờ xác nhận',ghiChu NVARCHAR(1000) NULL
 );
 GO
@@ -213,16 +218,20 @@ IF OBJECT_ID(N'dbo.CauHinh',N'U') IS NULL
 CREATE TABLE dbo.CauHinh (Khoa VARCHAR(60) PRIMARY KEY,GiaTri NVARCHAR(500) NOT NULL);
 GO
 
-MERGE dbo.Quyen AS t USING (VALUES
+INSERT INTO dbo.Quyen(maQuyen,tenQuyen)
+SELECT s.maQuyen,s.tenQuyen
+FROM (VALUES
  ('TAIKHOAN',N'Quản lý tài khoản và phân quyền'),('BENHNHAN',N'Quản lý bệnh nhân'),
  ('LICHHEN',N'Quản lý lịch hẹn'),('THANHTOAN',N'Quản lý thanh toán'),
  ('BAOCAO',N'Báo cáo thống kê'),('HETHONG',N'Quản trị hệ thống')) s(maQuyen,tenQuyen)
- ON t.maQuyen=s.maQuyen WHEN NOT MATCHED THEN INSERT(maQuyen,tenQuyen) VALUES(s.maQuyen,s.tenQuyen);
+WHERE NOT EXISTS (SELECT 1 FROM dbo.Quyen q WHERE q.maQuyen=s.maQuyen);
 GO
-MERGE dbo.VaiTro AS t USING (VALUES
+INSERT INTO dbo.VaiTro(tenVaiTro,moTa)
+SELECT s.tenVaiTro,s.moTa
+FROM (VALUES
  (N'Quản trị viên',N'Toàn quyền'),(N'Quản lý phòng khám',N'Quản lý vận hành'),
  (N'Lễ tân',N'Tiếp nhận bệnh nhân')) s(tenVaiTro,moTa)
- ON t.tenVaiTro=s.tenVaiTro WHEN NOT MATCHED THEN INSERT(tenVaiTro,moTa) VALUES(s.tenVaiTro,s.moTa);
+WHERE NOT EXISTS (SELECT 1 FROM dbo.VaiTro v WHERE v.tenVaiTro=s.tenVaiTro);
 GO
 INSERT INTO dbo.VaiTroQuyen(maVaiTro,maQuyen)
 SELECT v.maVaiTro,q.maQuyen FROM dbo.VaiTro v CROSS JOIN dbo.Quyen q
@@ -235,68 +244,51 @@ SELECT v.maVaiTro,q.maQuyen FROM dbo.VaiTro v JOIN dbo.Quyen q ON
 (v.tenVaiTro=N'Lễ tân' AND q.maQuyen IN('BENHNHAN','LICHHEN','THANHTOAN'))
 WHERE NOT EXISTS(SELECT 1 FROM dbo.VaiTroQuyen z WHERE z.maVaiTro=v.maVaiTro AND z.maQuyen=q.maQuyen);
 GO
-MERGE dbo.CauHinh AS t USING (VALUES
+INSERT INTO dbo.CauHinh(Khoa,GiaTri)
+SELECT s.Khoa,s.GiaTri
+FROM (VALUES
  ('TenHeThong',N'Hệ thống Quản lý Nha khoa MediDent'),('MaDonVi',N'MEDIDENT-HCM-01'),
  ('EmailQuanTri',N'quantri@medident.vn'),('SoDienThoai',N''),('DiaChi',N''),
  ('Bat2FA',N'false'),('KhoaPhien',N'true'),('ThongBaoQuyen',N'false'),('SaoLuuTuDong',N'false')) s(Khoa,GiaTri)
- ON t.Khoa=s.Khoa WHEN NOT MATCHED THEN INSERT(Khoa,GiaTri) VALUES(s.Khoa,s.GiaTri);
+WHERE NOT EXISTS (SELECT 1 FROM dbo.CauHinh c WHERE c.Khoa=s.Khoa);
 GO
 -- Tao tai khoan quan tri lan dau bang ConnectDB.KhoiTaoAdmin (mat khau BCrypt).
 -- Khong seed tai khoan hoac du lieu benh nhan gia.
 
 
--- RANG BUOC EMAIL: chi chap nhan ten mien da duyet; khong tu cho phep @batky.com.
+-- RANG BUOC EMAIL: dong bo voi EmailHopLe.java.
+-- Neu du lieu cu co email khong hop le, BO QUA CHECK; khong sua du lieu va khong tao CHECK khong tin cay.
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_NhanVien_Email_TenMien' AND parent_object_id=OBJECT_ID(N'dbo.NhanVien'))
 BEGIN
-    -- Co du lieu cu khong hop le: ghi canh bao, khong tu sua/xoa ho so.
     IF EXISTS(SELECT 1 FROM dbo.NhanVien WHERE email IS NOT NULL AND NOT (
         email=LTRIM(RTRIM(email))
         AND email NOT LIKE '% %' AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
         AND CHARINDEX('@',email)>1
         AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')
     ))
-    BEGIN
-        PRINT N'Canh bao: dbo.NhanVien co email cu sai ten mien. CHECK moi duoc them WITH NOCHECK, can lam sach du lieu de tin cay.';
-        ALTER TABLE dbo.NhanVien WITH NOCHECK ADD CONSTRAINT CK_NhanVien_Email_TenMien CHECK (
-            email IS NULL OR (email=LTRIM(RTRIM(email)) AND email NOT LIKE '% %'
-            AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
-            AND CHARINDEX('@',email)>1
-            AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')));
-    END
+        PRINT N'Canh bao: dbo.NhanVien co email cu khong hop le; bo qua CHECK, khong sua du lieu.';
     ELSE
-    BEGIN
         ALTER TABLE dbo.NhanVien WITH CHECK ADD CONSTRAINT CK_NhanVien_Email_TenMien CHECK (
             email IS NULL OR (email=LTRIM(RTRIM(email)) AND email NOT LIKE '% %'
             AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
             AND CHARINDEX('@',email)>1
             AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')));
-    END
 END;
 GO
 IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE name=N'CK_BenhNhan_Email_TenMien' AND parent_object_id=OBJECT_ID(N'dbo.BenhNhan'))
 BEGIN
-    -- Co du lieu cu khong hop le: ghi canh bao, khong tu sua/xoa ho so.
     IF EXISTS(SELECT 1 FROM dbo.BenhNhan WHERE email IS NOT NULL AND NOT (
         email=LTRIM(RTRIM(email))
         AND email NOT LIKE '% %' AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
         AND CHARINDEX('@',email)>1
         AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')
     ))
-    BEGIN
-        PRINT N'Canh bao: dbo.BenhNhan co email cu sai ten mien. CHECK moi duoc them WITH NOCHECK, can lam sach du lieu de tin cay.';
-        ALTER TABLE dbo.BenhNhan WITH NOCHECK ADD CONSTRAINT CK_BenhNhan_Email_TenMien CHECK (
-            email IS NULL OR (email=LTRIM(RTRIM(email)) AND email NOT LIKE '% %'
-            AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
-            AND CHARINDEX('@',email)>1
-            AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')));
-    END
+        PRINT N'Canh bao: dbo.BenhNhan co email cu khong hop le; bo qua CHECK, khong sua du lieu.';
     ELSE
-    BEGIN
         ALTER TABLE dbo.BenhNhan WITH CHECK ADD CONSTRAINT CK_BenhNhan_Email_TenMien CHECK (
             email IS NULL OR (email=LTRIM(RTRIM(email)) AND email NOT LIKE '% %'
             AND email NOT LIKE '%..%' AND email NOT LIKE '%@%@%'
             AND CHARINDEX('@',email)>1
             AND LOWER(SUBSTRING(email,CHARINDEX('@',email)+1,150)) IN (N'gmail.com',N'yahoo.com',N'yahoo.com.vn',N'outlook.com',N'hotmail.com',N'live.com',N'icloud.com',N'proton.me',N'protonmail.com',N'medident.vn')));
-    END
 END;
 GO
