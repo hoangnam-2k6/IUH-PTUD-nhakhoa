@@ -1,5 +1,0 @@
-
-# SQL Server local secrets
-/db.properties
-
-/src/main/resources/db.properties
