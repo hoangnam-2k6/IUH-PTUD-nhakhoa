@@ -1,6 +1,7 @@
 package UI.QuanLy;
 
 import java.awt.BorderLayout;
+import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
@@ -30,6 +31,17 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 	private JLabel tenapp;
 	private JLabel lblchucnang;
 	private JButton hoadon;
+	private JButton hotro;
+	private JPanel mainbar_top_left;
+	private JPanel mainbar_top_right;
+	private JLabel tenapp2;
+	private JLabel hoten;
+	private JLabel vaitro;
+	private JPanel mainbar_center;
+	private CardLayout CardLayout;
+	private final Color maumacdinh = Color.white;
+	private final Color maukhichon = new Color(52, 152, 219);
+	private JButton nutDangChon;
 	public QuanLy_GUI() {
 		setTitle("^-^");
 		setSize(1200, 800);
@@ -114,6 +126,14 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		sidebar_bottom.setLayout(new BorderLayout());
 		sidebar_bottom.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
 		
+		hotro = new JButton("hỗ trợ");
+		hotro.setForeground(new Color(52, 152, 219));
+		hotro.setBackground(Color.white);
+		hotro.setPreferredSize(new Dimension(300, 50));
+		hotro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+		hotro.setFocusPainted(false);
+		hotro.setBorderPainted(false);
+		
 		dangxuat = new JButton("đăng xuất");
 		dangxuat.setForeground(new Color(52, 152, 219));
 		dangxuat.setBackground(Color.white);
@@ -137,7 +157,8 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		chucnang.add(hoadon);
 		chucnang.add(thongke);
 		//dưới
-		sidebar_bottom.add(dangxuat);
+		sidebar_bottom.add(hotro, BorderLayout.NORTH);
+		sidebar_bottom.add(dangxuat, BorderLayout.SOUTH);
 		//--------------------------------------------------
 		sidebar.add(sidebar_top, BorderLayout.NORTH);
 		sidebar.add(chucnang, BorderLayout.CENTER);
@@ -149,20 +170,108 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		mainbar.setLayout(new BorderLayout());
 		//**main.trên
 		JPanel mainbar_top = new JPanel();
+		mainbar_top.setLayout(new BorderLayout(0,0));
 		mainbar_top.setBackground(Color.white);
+		
+		mainbar_top_left = new JPanel();
+		mainbar_top_left.setBackground(Color.white);
+		tenapp2 = new JLabel("MEDIDENT  /  Quản Lý Nha Khoa");
+		mainbar_top_left.add(tenapp2);
+		mainbar_top.add(mainbar_top_left, BorderLayout.WEST);
+		
+		mainbar_top_right = new JPanel();
+		mainbar_top_right.setLayout(new BorderLayout());
+		mainbar_top_right.setBackground(Color.white);
+		hoten = new JLabel("Trịnh Hoàng Nam");
+		vaitro = new JLabel("quản lý Phòng Khám");
+		mainbar_top_right.add(hoten, BorderLayout.NORTH);
+		mainbar_top_right.add(vaitro, BorderLayout.SOUTH);
+		mainbar_top.add(mainbar_top_right, BorderLayout.EAST);
+		
 		mainbar.add(mainbar_top, BorderLayout.NORTH);
+		
 		//**mainbar.giữa
-		JPanel mainbar_center = new JPanel();
+		CardLayout = new CardLayout();
+		mainbar_center = new JPanel(CardLayout);
+		mainbar_center.add(new TrangChuQuanLyPanel(), "trangchu");
+		mainbar_center.add(new QuanLyNhanVienPanel(), "nhanvien");
+		mainbar_center.add(new QuanLyLichHenPanel(), "lichhen");
+		mainbar_center.add(new QuanLyBenhNhanPanel(), "benhnhan");
+		mainbar_center.add(new QuanLyDichVuPanel(), "dichvu");
+		mainbar_center.add(new QuanLyHoaDonPanel(), "hoadon");
+		mainbar_center.add(new BaoCaoThongKePanel(), "thongke");
+		
 		mainbar.add(mainbar_center, BorderLayout.CENTER);
+		
 		//add 
 		add(sidebar, BorderLayout.WEST);
 		add(mainbar, BorderLayout.CENTER);
+		
+		//listener
+		trangchu.addActionListener(this);
+		nhanvien.addActionListener(this);
+		lichhen.addActionListener(this);
+		benhnhan.addActionListener(this);
+		dichvu.addActionListener(this);
+		hoadon.addActionListener(this);
+		thongke.addActionListener(this);
+		
+		hotro.addActionListener(this);
+		
+		doiMauNut(trangchu);
 	}
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		// TODO Auto-generated method stub
-		
+		Object o = e.getSource();
+		if(o.equals(trangchu)) {
+			CardLayout.show(mainbar_center, "trangchu");
+			doiMauNut(trangchu);
+		}
+		else if(o.equals(nhanvien)) {
+			CardLayout.show(mainbar_center, "nhanvien");
+			doiMauNut(nhanvien);
+		}
+		else if(o.equals(lichhen)) {
+			CardLayout.show(mainbar_center, "lichhen");
+			doiMauNut(lichhen);
+		}
+		else if(o.equals(benhnhan)) {
+			CardLayout.show(mainbar_center, "benhnhan");
+			doiMauNut(benhnhan);
+		}
+		else if(o.equals(dichvu)) {
+			CardLayout.show(mainbar_center, "dichvu");
+			doiMauNut(dichvu);
+		}
+		else if(o.equals(hoadon)) {
+			CardLayout.show(mainbar_center, "hoadon");
+			doiMauNut(hoadon);
+		}
+		else if(o.equals(thongke)) {
+			CardLayout.show(mainbar_center, "thongke");
+			doiMauNut(thongke);
+		}
+		else if(o.equals(hotro)) {
+			CardLayout.show(mainbar_center, "hotro");
+			doiMauNut(hotro);
+		}
+	}
+	private void doiMauNut(JButton nutMoi) {
+
+	    // Trả nút cũ về màu mặc định
+	    if (nutDangChon != null) {
+	        nutDangChon.setBackground(maumacdinh);
+	        nutDangChon.setForeground(maukhichon);
+	    }
+
+	    // Đổi màu nút mới được chọn
+	    nutMoi.setBackground(maukhichon);
+	    nutMoi.setForeground(maumacdinh);
+
+	    // Cập nhật nút đang được chọn
+	    nutDangChon = nutMoi;
 	}
 	public static void main(String[] args) {
 		new QuanLy_GUI().setVisible(true);

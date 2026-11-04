@@ -1,5 +1,9 @@
 package UI.QuanLy;
 
-public class BaoCaoThongKePanel {
+import javax.swing.JPanel;
 
+public class BaoCaoThongKePanel extends JPanel{
+	public BaoCaoThongKePanel() {
+		
+	}
 }

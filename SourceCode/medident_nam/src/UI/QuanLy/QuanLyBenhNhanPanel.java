@@ -1,5 +1,9 @@
 package UI.QuanLy;
 
-public class QuanLyBenhNhanPanel {
+import javax.swing.JPanel;
 
+public class QuanLyBenhNhanPanel extends JPanel{
+	public QuanLyBenhNhanPanel() {
+		
+	}
 }
