@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
+<<<<<<<< HEAD:SourceCode/MediDent/MediDentAdmin/.project
 	<name>medident-admin</name>
+========
+	<name>MediDent</name>
+>>>>>>>> e8817bfd128e2d8033c04b2f355feba3dab81f25:SourceCode/MediDent/.project
 	<comment></comment>
 	<projects>
 	</projects>
@@ -22,7 +26,11 @@
 	</natures>
 	<filteredResources>
 		<filter>
+<<<<<<<< HEAD:SourceCode/MediDent/MediDentAdmin/.project
 			<id>1793421881460</id>
+========
+			<id>1793790785546</id>
+>>>>>>>> e8817bfd128e2d8033c04b2f355feba3dab81f25:SourceCode/MediDent/.project
 			<name></name>
 			<type>30</type>
 			<matcher>

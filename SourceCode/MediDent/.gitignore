@@ -1,1 +1,10 @@
+<<<<<<< HEAD
 /.metadata/
+=======
+# Khong commit thong tin ket noi that
+/db.properties
+/src/Resource/db.properties
+/build/
+/target/
+*.log
+>>>>>>> e8817bfd128e2d8033c04b2f355feba3dab81f25
