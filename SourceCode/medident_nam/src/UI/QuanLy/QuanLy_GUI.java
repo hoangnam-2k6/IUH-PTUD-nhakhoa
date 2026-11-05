@@ -52,7 +52,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		//***sidebar
 		sidebar = new JPanel();
 		sidebar.setLayout(new BorderLayout(0, 0));
-		sidebar.setPreferredSize(new Dimension(250, 0));
+		sidebar.setPreferredSize(new Dimension(200, 0));
 		sidebar.setBackground(Color.white);
 		//**sidebar.trên
 		sidebar_top = new JPanel();
@@ -72,7 +72,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		trangchu.setPreferredSize(new Dimension(300, 50));
 		trangchu.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		trangchu.setFocusPainted(false);
-		trangchu.setBorderPainted(false);
+		trangchu.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, maukhichon));
 		
 		nhanvien = new JButton("Nhân Viên");
 		nhanvien.setForeground(new Color(52, 152, 219));
@@ -80,7 +80,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		nhanvien.setPreferredSize(new Dimension(300, 50));
 		nhanvien.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		nhanvien.setFocusPainted(false);
-		nhanvien.setBorderPainted(false);
+		nhanvien.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, maukhichon));
 
 		benhnhan = new JButton("bệnh nhân");
 		benhnhan.setForeground(new Color(52, 152, 219));
@@ -88,7 +88,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		benhnhan.setPreferredSize(new Dimension(300, 50));
 		benhnhan.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		benhnhan.setFocusPainted(false);
-		benhnhan.setBorderPainted(false);
+		benhnhan.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, maukhichon));
 		
 		dichvu = new JButton("dịch vụ");
 		dichvu.setForeground(new Color(52, 152, 219));
@@ -96,7 +96,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		dichvu.setPreferredSize(new Dimension(300, 50));
 		dichvu.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		dichvu.setFocusPainted(false);
-		dichvu.setBorderPainted(false);
+		dichvu.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, maukhichon));
 		
 		lichhen = new JButton("lịch hẹn");
 		lichhen.setForeground(new Color(52, 152, 219));
@@ -104,7 +104,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		lichhen.setPreferredSize(new Dimension(300, 50));
 		lichhen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		lichhen.setFocusPainted(false);
-		lichhen.setBorderPainted(false);
+		lichhen.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, maukhichon));
 
 		hoadon = new JButton("Hóa Đơn");
 		hoadon.setForeground(new Color(52, 152, 219));
@@ -112,7 +112,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		hoadon.setPreferredSize(new Dimension(300, 50));
 		hoadon.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		hoadon.setFocusPainted(false);
-		hoadon.setBorderPainted(false);
+		hoadon.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, maukhichon));
 		
 		thongke = new JButton("Thống kê");
 		thongke.setForeground(new Color(52, 152, 219));
@@ -120,11 +120,12 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		thongke.setPreferredSize(new Dimension(300, 50));
 		thongke.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		thongke.setFocusPainted(false);
-		thongke.setBorderPainted(false);
+		thongke.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, maukhichon));
 		//**sidebar.dưới
 		sidebar_bottom = new JPanel();
-		sidebar_bottom.setLayout(new BorderLayout());
+		sidebar_bottom.setLayout(new BorderLayout(10, 10));
 		sidebar_bottom.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+		sidebar_bottom.setBackground(Color.white);
 		
 		hotro = new JButton("hỗ trợ");
 		hotro.setForeground(new Color(52, 152, 219));
@@ -132,7 +133,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		hotro.setPreferredSize(new Dimension(300, 50));
 		hotro.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		hotro.setFocusPainted(false);
-		hotro.setBorderPainted(false);
+		hotro.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, maukhichon));
 		
 		dangxuat = new JButton("đăng xuất");
 		dangxuat.setForeground(new Color(52, 152, 219));
@@ -140,7 +141,7 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		dangxuat.setPreferredSize(new Dimension(300, 50));
 		dangxuat.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		dangxuat.setFocusPainted(false);
-		dangxuat.setBorderPainted(false);
+		dangxuat.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, maukhichon));
 		
 		//add
 		//trên
