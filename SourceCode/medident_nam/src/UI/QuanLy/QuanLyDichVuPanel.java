@@ -82,7 +82,7 @@ public class QuanLyDichVuPanel extends JPanel{
 		dichvu_center.setBorder(BorderFactory.createEmptyBorder(5,10,5,10));
 		dichvu_center.setBackground(Color.white);
 		
-		String colsDV[] = {"STT", "Dịch Vụ", "Đơn Giá(vnđ)", "Trạng Thái", "Mô Tả"};
+		String colsDV[] = {"STT", "mã dịch vụ", "Dịch Vụ", "Mô Tả", "Đơn Giá(vnđ)", "Trạng Thái"};
 		modelDV = new DefaultTableModel(colsDV, 0);
 		tableDV = new JTable(modelDV);
 		tableDV.setRowHeight(20);

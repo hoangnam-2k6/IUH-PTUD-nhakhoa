@@ -85,7 +85,7 @@ public class QuanLyNhanVienPanel extends JPanel{
 		nhanvien_center.setBorder(BorderFactory.createEmptyBorder(5,10,5,10));
 		nhanvien_center.setBackground(Color.white);
 		
-		String colsNV[] = {"STT", "Họ tên", "Số Điện Thoại", "Email", "Chức Vụ", "Trạng Thái"};
+		String colsNV[] = {"STT", "mã nhân viên", "Họ tên", "ngày sinh", "giới tính", "Số Điện Thoại", "Email", "địa chỉ", "Chức Vụ", "Trạng Thái", "mã tài khoản"};
 		modelNV = new DefaultTableModel(colsNV, 0);
 		tableNV = new JTable(modelNV);
 		tableNV.setRowHeight(20);

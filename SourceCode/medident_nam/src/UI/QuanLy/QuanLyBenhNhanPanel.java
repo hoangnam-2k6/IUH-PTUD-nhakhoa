@@ -82,7 +82,7 @@ public class QuanLyBenhNhanPanel extends JPanel{
 		benhnhan_center.setBorder(BorderFactory.createEmptyBorder(5,10,5,10));
 		benhnhan_center.setBackground(Color.white);
 		
-		String colsBN[] = {"STT", "Họ tên", "Số Điện Thoại", "giới tính", "ngày sinh", "email"};
+		String colsBN[] = {"STT", "mã bệnh nhân", "Họ tên", "ngày sinh", "giới tính", "Số Điện Thoại", "email", "địa chỉ", "tiền sử bệnh", "trạng Thái"};
 		modelBN = new DefaultTableModel(colsBN, 0);
 		tableBN = new JTable(modelBN);
 		tableBN.setRowHeight(20);
