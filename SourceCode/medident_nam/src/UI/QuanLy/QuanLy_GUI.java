@@ -82,14 +82,6 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		nhanvien.setFocusPainted(false);
 		nhanvien.setBorderPainted(false);
 
-		lichhen = new JButton("lịch hẹn");
-		lichhen.setForeground(new Color(52, 152, 219));
-		lichhen.setBackground(Color.white);
-		lichhen.setPreferredSize(new Dimension(300, 50));
-		lichhen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
-		lichhen.setFocusPainted(false);
-		lichhen.setBorderPainted(false);
-		
 		benhnhan = new JButton("bệnh nhân");
 		benhnhan.setForeground(new Color(52, 152, 219));
 		benhnhan.setBackground(Color.white);
@@ -105,6 +97,14 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		dichvu.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 		dichvu.setFocusPainted(false);
 		dichvu.setBorderPainted(false);
+		
+		lichhen = new JButton("lịch hẹn");
+		lichhen.setForeground(new Color(52, 152, 219));
+		lichhen.setBackground(Color.white);
+		lichhen.setPreferredSize(new Dimension(300, 50));
+		lichhen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+		lichhen.setFocusPainted(false);
+		lichhen.setBorderPainted(false);
 
 		hoadon = new JButton("Hóa Đơn");
 		hoadon.setForeground(new Color(52, 152, 219));
@@ -151,9 +151,9 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		chucnang.add(Box.createVerticalStrut(10));
 		chucnang.add(trangchu);
 		chucnang.add(nhanvien);
-		chucnang.add(lichhen);
 		chucnang.add(benhnhan);
 		chucnang.add(dichvu);
+		chucnang.add(lichhen);
 		chucnang.add(hoadon);
 		chucnang.add(thongke);
 		//dưới
@@ -195,9 +195,9 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		mainbar_center = new JPanel(CardLayout);
 		mainbar_center.add(new TrangChuQuanLyPanel(), "trangchu");
 		mainbar_center.add(new QuanLyNhanVienPanel(), "nhanvien");
-		mainbar_center.add(new QuanLyLichHenPanel(), "lichhen");
 		mainbar_center.add(new QuanLyBenhNhanPanel(), "benhnhan");
 		mainbar_center.add(new QuanLyDichVuPanel(), "dichvu");
+		mainbar_center.add(new QuanLyLichHenPanel(), "lichhen");
 		mainbar_center.add(new QuanLyHoaDonPanel(), "hoadon");
 		mainbar_center.add(new BaoCaoThongKePanel(), "thongke");
 		
@@ -210,13 +210,14 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		//listener
 		trangchu.addActionListener(this);
 		nhanvien.addActionListener(this);
-		lichhen.addActionListener(this);
 		benhnhan.addActionListener(this);
 		dichvu.addActionListener(this);
+		lichhen.addActionListener(this);
 		hoadon.addActionListener(this);
 		thongke.addActionListener(this);
 		
 		hotro.addActionListener(this);
+		dangxuat.addActionListener(this);
 		
 		doiMauNut(trangchu);
 	}
@@ -233,10 +234,6 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 			CardLayout.show(mainbar_center, "nhanvien");
 			doiMauNut(nhanvien);
 		}
-		else if(o.equals(lichhen)) {
-			CardLayout.show(mainbar_center, "lichhen");
-			doiMauNut(lichhen);
-		}
 		else if(o.equals(benhnhan)) {
 			CardLayout.show(mainbar_center, "benhnhan");
 			doiMauNut(benhnhan);
@@ -244,6 +241,10 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		else if(o.equals(dichvu)) {
 			CardLayout.show(mainbar_center, "dichvu");
 			doiMauNut(dichvu);
+		}
+		else if(o.equals(lichhen)) {
+			CardLayout.show(mainbar_center, "lichhen");
+			doiMauNut(lichhen);
 		}
 		else if(o.equals(hoadon)) {
 			CardLayout.show(mainbar_center, "hoadon");
@@ -256,6 +257,9 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		else if(o.equals(hotro)) {
 			CardLayout.show(mainbar_center, "hotro");
 			doiMauNut(hotro);
+		}
+		else if (o.equals(dangxuat)) {
+			dispose();
 		}
 	}
 	private void doiMauNut(JButton nutMoi) {
