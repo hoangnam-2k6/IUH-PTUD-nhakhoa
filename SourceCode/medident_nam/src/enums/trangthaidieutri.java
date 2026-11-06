@@ -1,7 +1,7 @@
 package enums;
 
 public enum trangthaidieutri {
-	Moi,
-	Dangdieutri,
-	Hoantat
+	MOI,
+	DANGDIEUTRI,
+	HOANTAT
 }

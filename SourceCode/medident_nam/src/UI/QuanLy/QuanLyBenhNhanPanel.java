@@ -4,6 +4,9 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -15,7 +18,10 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
-public class QuanLyBenhNhanPanel extends JPanel{
+import DAO.BenhNhanDAO;
+import Entity.BenhNhan;
+
+public class QuanLyBenhNhanPanel extends JPanel implements ActionListener{
 	private JLabel lbltitle;
 	private JLabel lbltimnhanh;
 	private JTextField txttimnhanh;
@@ -29,6 +35,9 @@ public class QuanLyBenhNhanPanel extends JPanel{
 	private JPanel benhnhan_top;
 	private JPanel benhnhan_top_top;
 	private JPanel benhnhan_center;
+	private JButton btntim;
+	//DAO
+	BenhNhanDAO bnDAO = new BenhNhanDAO();
 
 	public QuanLyBenhNhanPanel() {
 		setLayout(new BorderLayout(10, 10));
@@ -57,6 +66,10 @@ public class QuanLyBenhNhanPanel extends JPanel{
 		pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
 		pbtn.setBackground(Color.white);
 		
+		btntim = new JButton("tìm");
+		btntim.setBackground(Color.white);
+		btntim.setForeground(new Color(52, 152, 219));
+		
 		btnthem = new JButton("+ thêm bệnh nhân");
 		btnthem.setBackground(Color.white);
 		btnthem.setForeground(new Color(52, 152, 219));
@@ -70,6 +83,7 @@ public class QuanLyBenhNhanPanel extends JPanel{
 		btnxoa.setForeground(new Color(52, 152, 219));
 		
 		pbtn.add(txttimnhanh);
+		pbtn.add(btntim);
 		pbtn.add(btnthem);
 		pbtn.add(btnsua);
 		pbtn.add(btnxoa);
@@ -97,5 +111,56 @@ public class QuanLyBenhNhanPanel extends JPanel{
 		add(benhnhan_top, BorderLayout.NORTH);
 		
 		add(benhnhan_center, BorderLayout.CENTER);
+		
+		//listener
+		btntim.addActionListener(this);
+		btnthem.addActionListener(this);
+		btnsua.addActionListener(this);
+		btnxoa.addActionListener(this);
+		
+		//load
+		loadbenhnhan();
+	}
+	public static void main(String[] args) {
+		new QuanLyBenhNhanPanel();
+	}
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		Object o = e.getSource();
+		if (o.equals(btntim)) {
+			
+		}
+		else if (o.equals(btnthem)) {
+			
+		}
+		else if (o.equals(btnsua)) {
+			
+		}
+		else if (o.equals(btnxoa)) {
+			
+		}
+	}
+	void loadbenhnhan() {
+	    modelBN.setRowCount(0);
+
+	    List<BenhNhan> ds = bnDAO.getallbenhnhan();
+
+	    int stt = 1;
+
+	    for (BenhNhan bn : ds) {
+	        modelBN.addRow(new Object[]{
+	            stt++,
+	            bn.getMaBN(),
+	            bn.getHoten(),
+	            bn.getNgaysinh(),
+	            bn.getGioitinh(),
+	            bn.getSdt(),
+	            bn.getEmail(),
+	            bn.getDiachi(),
+	            bn.getTiensubenh(),
+	            bn.getTrangthai()
+	        });
+	    }
 	}
 }

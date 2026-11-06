@@ -4,6 +4,9 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -15,7 +18,10 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
-public class QuanLyDichVuPanel extends JPanel{
+import DAO.DichVuDAO;
+import Entity.DichVu;
+
+public class QuanLyDichVuPanel extends JPanel implements ActionListener{
 	private JLabel lbltitle;
 	private JLabel lbltimnhanh;
 	private JTextField txttimnhanh;
@@ -29,6 +35,9 @@ public class QuanLyDichVuPanel extends JPanel{
 	private DefaultTableModel modelDV;
 	private JTable tableDV;
 	private JScrollPane scrollDV;
+	private JButton btntim;
+	//DAO
+	DichVuDAO dvDAO = new DichVuDAO();
 
 	public QuanLyDichVuPanel() {
 		setLayout(new BorderLayout(10, 10));
@@ -57,6 +66,10 @@ public class QuanLyDichVuPanel extends JPanel{
 		pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
 		pbtn.setBackground(Color.white);
 		
+		btntim = new JButton("tìm");
+		btntim.setBackground(Color.white);
+		btntim.setForeground(new Color(52, 152, 219));
+		
 		btnthem = new JButton("+ thêm bệnh nhân");
 		btnthem.setBackground(Color.white);
 		btnthem.setForeground(new Color(52, 152, 219));
@@ -70,6 +83,7 @@ public class QuanLyDichVuPanel extends JPanel{
 		btnxoa.setForeground(new Color(52, 152, 219));
 		
 		pbtn.add(txttimnhanh);
+		pbtn.add(btntim);
 		pbtn.add(btnthem);
 		pbtn.add(btnsua);
 		pbtn.add(btnxoa);
@@ -97,5 +111,50 @@ public class QuanLyDichVuPanel extends JPanel{
 		add(dichvu_top, BorderLayout.NORTH);
 		
 		add(dichvu_center, BorderLayout.CENTER);
+		
+		//listener
+		btntim.addActionListener(this);
+		btnthem.addActionListener(this);
+		btnsua.addActionListener(this);
+		btnxoa.addActionListener(this);
+		
+		//load
+		loaddichvu();
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		Object o = e.getSource();
+		if (o.equals(btntim)) {
+			
+		}
+		else if (o.equals(btnthem)) {
+			
+		}
+		else if (o.equals(btnsua)) {
+			
+		}
+		else if (o.equals(btnxoa)) {
+			
+		}
+	}
+	void loaddichvu() {
+	    modelDV.setRowCount(0);
+	    
+	    List<DichVu> ds = dvDAO.getalldichvu();
+
+	    int stt = 1;
+
+	    for (DichVu dv : ds) {
+	        modelDV.addRow(new Object[]{
+	            stt++,
+	            dv.getMaDV(),
+	            dv.getTenDV(),
+	            dv.getMota(),
+	            dv.getDongia(),
+	            dv.getTrangthai()
+	        });
+	    }
 	}
 }

@@ -1,6 +1,6 @@
 package Entity;
 
-import java.text.DecimalFormat;
+import java.math.BigDecimal;
 import java.util.Objects;
 
 import enums.trangthai_dichvu;
@@ -9,14 +9,14 @@ public class DichVu {
 	private String maDV;
 	private String tenDV;
 	private String mota;
-	private DecimalFormat dongia;
+	private BigDecimal dongia;
 	private trangthai_dichvu trangthai;
 	
 	public DichVu() {
 		super();
 	}
 
-	public DichVu(String maDV, String tenDV, String mota, DecimalFormat dongia, trangthai_dichvu trangthai) {
+	public DichVu(String maDV, String tenDV, String mota, BigDecimal dongia, trangthai_dichvu trangthai) {
 		super();
 		this.maDV = maDV;
 		this.tenDV = tenDV;
@@ -49,11 +49,11 @@ public class DichVu {
 		this.mota = mota;
 	}
 
-	public DecimalFormat getDongia() {
+	public BigDecimal getDongia() {
 		return dongia;
 	}
 
-	public void setDongia(DecimalFormat dongia) {
+	public void setDongia(BigDecimal dongia) {
 		this.dongia = dongia;
 	}
 

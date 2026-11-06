@@ -4,6 +4,13 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Vector;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -16,7 +23,10 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
 
-public class QuanLyNhanVienPanel extends JPanel{
+import DAO.NhanVienDAO;
+import Entity.NhanVien;
+
+public class QuanLyNhanVienPanel extends JPanel implements ActionListener{
 	private JLabel lbltest;
 	private JPanel nhanvien_top;
 	private JPanel nhanvien_center;
@@ -31,6 +41,9 @@ public class QuanLyNhanVienPanel extends JPanel{
 	private DefaultTableModel modelNV;
 	private JTable tableNV;
 	private JScrollPane scrollNV;
+	private JButton btntim;
+	//DAO
+	NhanVienDAO nvDAO = new NhanVienDAO();
 
 	public QuanLyNhanVienPanel() {
 		setLayout(new BorderLayout(10, 10));
@@ -60,6 +73,10 @@ public class QuanLyNhanVienPanel extends JPanel{
 		pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
 		pbtn.setBackground(Color.white);
 		
+		btntim = new JButton("tìm");
+		btntim.setBackground(Color.white);
+		btntim.setForeground(new Color(52, 152, 219));
+		
 		btnthem = new JButton("+ thêm nhân viên");
 		btnthem.setBackground(Color.white);
 		btnthem.setForeground(new Color(52, 152, 219));
@@ -73,6 +90,7 @@ public class QuanLyNhanVienPanel extends JPanel{
 		btnxoa.setForeground(new Color(52, 152, 219));
 		
 		pbtn.add(txttimnhanh);
+		pbtn.add(btntim);
 		pbtn.add(btnthem);
 		pbtn.add(btnsua);
 		pbtn.add(btnxoa);
@@ -100,5 +118,55 @@ public class QuanLyNhanVienPanel extends JPanel{
 		add(nhanvien_top, BorderLayout.NORTH);
 		
 		add(nhanvien_center, BorderLayout.CENTER);
+		
+		//listener
+		btntim.addActionListener(this);
+		btnthem.addActionListener(this);
+		btnsua.addActionListener(this);
+		btnxoa.addActionListener(this);
+		
+		//load
+		loadnhanvien();
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		Object o = e.getSource();
+		if (o.equals(btntim)) {
+			
+		}
+		else if (o.equals(btnthem)) {
+			
+		}
+		else if (o.equals(btnsua)) {
+			
+		}
+		else if (o.equals(btnxoa)) {
+			
+		}
+	}
+	void loadnhanvien() {
+		modelNV.setRowCount(0);
+		
+		List<NhanVien> ds = nvDAO.getallnhanvien();
+		
+		int stt = 1;
+
+	    for (NhanVien nv : ds) {
+	        modelNV.addRow(new Object[]{
+	            stt++,
+	            nv.getMaNV(),
+	            nv.getHoten(),
+	            nv.getNgaysinh(),
+	            nv.getGioitinh(),
+	            nv.getSdt(),
+	            nv.getEmail(),
+	            nv.getDiachi(),
+	            nv.getChucvu(),
+	            nv.getTrangthai(),
+	            nv.getMaTK()
+	        });
+	    }
 	}
 }
