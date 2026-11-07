@@ -1,9 +1,0 @@
-# Sao chep file nay thanh db.properties, nhap thong tin SQL Server cua may ban.
-# Su dung trustServerCertificate=true CHI cho localhost / demo co kiem soat.
-db.url=jdbc:sqlserver://localhost:1433;databaseName=MediDent;encrypt=true;trustServerCertificate=true;loginTimeout=8;sendTimeAsDatetime=false
-db.user=sa
-db.password=CHANGE_ME
-# Mã mời đăng ký khi đã có tài khoản Quản lý (ít nhất 8 ký tự)
-register.invite=
-# Cho phép tạo Quản lý đầu tiên không cần mã mời CHỈ khi cài đặt cục bộ tin cậy
-register.allowFirst=false
