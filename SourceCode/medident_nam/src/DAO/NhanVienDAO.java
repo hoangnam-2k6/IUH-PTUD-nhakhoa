@@ -320,4 +320,79 @@ public class NhanVienDAO {
 	    }
 	    return dsnv;
 	}
+	// 2. Lấy một nhân viên theo mã nhân viên
+	public NhanVien getNhanVienByMaNV(String maNV) throws SQLException {
+
+	    ConnectDB.GetInstance();
+
+	    Connection con = ConnectDB.getConnection();
+
+	    if (con == null) {
+	        throw new SQLException("Chưa kết nối SQL Server!");
+	    }
+
+	    String sql = "SELECT maNV, hoten, ngaysinh, gioitinh, "
+	               + "sdt, email, diachi, chucvu, trangthai, maTK "
+	               + "FROM NhanVien WHERE maNV = ?";
+
+	    try (PreparedStatement stmt = con.prepareStatement(sql)) {
+
+	        stmt.setString(1, maNV);
+
+	        try (ResultSet rs = stmt.executeQuery()) {
+
+	            if (rs.next()) {
+
+	                String ma = rs.getString("maNV");
+	                String hoten = rs.getString("hoten");
+
+	                // Chuyển SQL Date thành LocalDate
+	                Date ngaySQL = rs.getDate("ngaysinh");
+
+	                LocalDate ngaysinh = (ngaySQL != null)
+	                        ? ngaySQL.toLocalDate()
+	                        : null;
+
+	                // Lấy giới tính
+	                String gt1 = rs.getString("gioitinh");
+
+	                gioitinh gt2 = (gt1 != null && !gt1.isBlank())
+	                        ? gioitinh.valueOf(gt1.trim())
+	                        : null;
+
+	                String sdt = rs.getString("sdt");
+	                String email = rs.getString("email");
+	                String diachi = rs.getString("diachi");
+	                String chucvu = rs.getString("chucvu");
+
+	                // Lấy trạng thái
+	                String ttnv = rs.getString("trangthai");
+
+	                trangthai_NhanVien trangthai =
+	                        (ttnv != null && !ttnv.isBlank())
+	                        ? trangthai_NhanVien.valueOf(ttnv.trim())
+	                        : null;
+
+	                String maTK = rs.getString("maTK");
+
+	                // Tạo đối tượng NhanVien
+	                return new NhanVien(
+	                    ma,
+	                    hoten,
+	                    ngaysinh,
+	                    gt2,
+	                    sdt,
+	                    email,
+	                    diachi,
+	                    chucvu,
+	                    trangthai,
+	                    maTK
+	                );
+	            }
+	        }
+
+	    }
+
+	    return null;
+	}
 }

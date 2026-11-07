@@ -213,97 +213,165 @@ public class BenhNhanDAO {
         return n > 0;
     }
 
-public ArrayList<BenhNhan> timBenhNhan(
-        String tuKhoa,
-        gioitinh gt,
-        trangthaidieutri tt) {
+	public ArrayList<BenhNhan> timBenhNhan(
+	        String tuKhoa,
+	        gioitinh gt,
+	        trangthaidieutri tt) {
+	
+	    ArrayList<BenhNhan> dsbn = new ArrayList<>();
+	
+	    ConnectDB.GetInstance();
+	    Connection con = ConnectDB.getConnection();
+	
+	    StringBuilder sql = new StringBuilder(
+	        "SELECT maBN, hoten, ngaysinh, gioitinh, "
+	      + "sdt, email, diachi, tiensubenh, trangthai "
+	      + "FROM BenhNhan WHERE 1=1"
+	    );
+	
+	    // Lọc theo mã, họ tên, số điện thoại hoặc email
+	    if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
+	        sql.append(" AND (CAST(maBN AS NVARCHAR(30)) LIKE ? "
+	                 + "OR hoten LIKE ? OR sdt LIKE ? OR email LIKE ?)");
+	    }
+	
+	    // Lọc theo giới tính
+	    if (gt != null) {
+	        sql.append(" AND gioitinh = ?");
+	    }
+	
+	    // Lọc theo trạng thái điều trị
+	    if (tt != null) {
+	        sql.append(" AND trangthai = ?");
+	    }
+	
+	    try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
+	
+	        int i = 1;
+	
+	        if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
+	            String key = "%" + tuKhoa.trim() + "%";
+	
+	            stmt.setString(i++, key);
+	            stmt.setString(i++, key);
+	            stmt.setString(i++, key);
+	            stmt.setString(i++, key);
+	        }
+	
+	        if (gt != null) {
+	            stmt.setString(i++, gt.name());
+	        }
+	
+	        if (tt != null) {
+	            stmt.setString(i++, tt.name());
+	        }
+	
+	        try (ResultSet rs = stmt.executeQuery()) {
+	
+	            while (rs.next()) {
+	
+	                String maBN = rs.getString("maBN");
+	                String hoten = rs.getString("hoten");
+	
+	                Date ngaySQL = rs.getDate("ngaysinh");
+	                LocalDate ngaysinh = ngaySQL != null
+	                        ? ngaySQL.toLocalDate() : null;
+	
+	                String gt1 = rs.getString("gioitinh");
+	                gioitinh gt2 = gt1 != null
+	                        ? gioitinh.valueOf(gt1) : null;
+	
+	                String sdt = rs.getString("sdt");
+	                String email = rs.getString("email");
+	                String diachi = rs.getString("diachi");
+	                String tiensubenh = rs.getString("tiensubenh");
+	
+	                String tt1 = rs.getString("trangthai");
+	                trangthaidieutri trangthai = tt1 != null
+	                        ? trangthaidieutri.valueOf(tt1) : null;
+	
+	                BenhNhan bn = new BenhNhan(
+	                    maBN, hoten, ngaysinh, gt2,
+	                    sdt, email, diachi, tiensubenh, trangthai
+	                );
+	
+	                dsbn.add(bn);
+	            }
+	        }
+	
+	    } catch (SQLException | IllegalArgumentException e) {
+	        e.printStackTrace();
+	    }
+	
+	    return dsbn;
+	}
+	// Lấy một bệnh nhân theo mã
+	public BenhNhan getBenhNhanByMaBN(String maBN) throws SQLException {
 
-    ArrayList<BenhNhan> dsbn = new ArrayList<>();
+	    ConnectDB.GetInstance();
 
-    ConnectDB.GetInstance();
-    Connection con = ConnectDB.getConnection();
+	    Connection con = ConnectDB.getConnection();
 
-    StringBuilder sql = new StringBuilder(
-        "SELECT maBN, hoten, ngaysinh, gioitinh, "
-      + "sdt, email, diachi, tiensubenh, trangthai "
-      + "FROM BenhNhan WHERE 1=1"
-    );
+	    if (con == null) {
+	        throw new SQLException("Chưa kết nối SQL Server!");
+	    }
 
-    // Lọc theo mã, họ tên, số điện thoại hoặc email
-    if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
-        sql.append(" AND (CAST(maBN AS NVARCHAR(30)) LIKE ? "
-                 + "OR hoten LIKE ? OR sdt LIKE ? OR email LIKE ?)");
-    }
+	    String sql = "SELECT maBN, hoten, ngaysinh, gioitinh, "
+	               + "sdt, email, diachi, tiensubenh, trangthai "
+	               + "FROM BenhNhan WHERE maBN = ?";
 
-    // Lọc theo giới tính
-    if (gt != null) {
-        sql.append(" AND gioitinh = ?");
-    }
+	    try (PreparedStatement stmt = con.prepareStatement(sql)) {
 
-    // Lọc theo trạng thái điều trị
-    if (tt != null) {
-        sql.append(" AND trangthai = ?");
-    }
+	        stmt.setString(1, maBN);
 
-    try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
+	        try (ResultSet rs = stmt.executeQuery()) {
 
-        int i = 1;
+	            if (rs.next()) {
 
-        if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
-            String key = "%" + tuKhoa.trim() + "%";
+	                String ma = rs.getString("maBN");
+	                String hoten = rs.getString("hoten");
 
-            stmt.setString(i++, key);
-            stmt.setString(i++, key);
-            stmt.setString(i++, key);
-            stmt.setString(i++, key);
-        }
+	                // Chuyển SQL Date thành LocalDate
+	                Date ngaySQL = rs.getDate("ngaysinh");
 
-        if (gt != null) {
-            stmt.setString(i++, gt.name());
-        }
+	                LocalDate ngaysinh = (ngaySQL != null)
+	                        ? ngaySQL.toLocalDate()
+	                        : null;
 
-        if (tt != null) {
-            stmt.setString(i++, tt.name());
-        }
+	                // Lấy giới tính
+	                String gt1 = rs.getString("gioitinh");
 
-        try (ResultSet rs = stmt.executeQuery()) {
+	                gioitinh gt = (gt1 != null && !gt1.isBlank())
+	                        ? gioitinh.valueOf(gt1.trim())
+	                        : null;
 
-            while (rs.next()) {
+	                String sdt = rs.getString("sdt");
+	                String email = rs.getString("email");
+	                String diachi = rs.getString("diachi");
+	                String tiensubenh = rs.getString("tiensubenh");
 
-                String maBN = rs.getString("maBN");
-                String hoten = rs.getString("hoten");
+	                // Lấy trạng thái điều trị
+	                String tt1 = rs.getString("trangthai");
 
-                Date ngaySQL = rs.getDate("ngaysinh");
-                LocalDate ngaysinh = ngaySQL != null
-                        ? ngaySQL.toLocalDate() : null;
+	                trangthaidieutri tt =
+	                        (tt1 != null && !tt1.isBlank())
+	                        ? trangthaidieutri.valueOf(tt1.trim())
+	                        : null;
 
-                String gt1 = rs.getString("gioitinh");
-                gioitinh gt2 = gt1 != null
-                        ? gioitinh.valueOf(gt1) : null;
-
-                String sdt = rs.getString("sdt");
-                String email = rs.getString("email");
-                String diachi = rs.getString("diachi");
-                String tiensubenh = rs.getString("tiensubenh");
-
-                String tt1 = rs.getString("trangthai");
-                trangthaidieutri trangthai = tt1 != null
-                        ? trangthaidieutri.valueOf(tt1) : null;
-
-                BenhNhan bn = new BenhNhan(
-                    maBN, hoten, ngaysinh, gt2,
-                    sdt, email, diachi, tiensubenh, trangthai
-                );
-
-                dsbn.add(bn);
-            }
-        }
-
-    } catch (SQLException | IllegalArgumentException e) {
-        e.printStackTrace();
-    }
-
-    return dsbn;
-}
-
+	                return new BenhNhan(
+	                    ma,
+	                    hoten,
+	                    ngaysinh,
+	                    gt,
+	                    sdt,
+	                    email,
+	                    diachi,
+	                    tiensubenh,
+	                    tt
+	                );
+	            }
+	        }
+	    }
+	    return null;
+	}
 }

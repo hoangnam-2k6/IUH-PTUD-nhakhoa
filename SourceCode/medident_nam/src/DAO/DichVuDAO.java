@@ -169,105 +169,151 @@ public class DichVuDAO {
         return n > 0;
     }
 
-public ArrayList<DichVu> timDichVu(
-        String tuKhoa,
-        BigDecimal giaTu,
-        BigDecimal giaDen,
-        trangthai_dichvu tt) {
+	public ArrayList<DichVu> timDichVu(
+	        String tuKhoa,
+	        BigDecimal giaTu,
+	        BigDecimal giaDen,
+	        trangthai_dichvu tt) {
+	
+	    ArrayList<DichVu> dsdv = new ArrayList<>();
+	
+	    // Kiểm tra khoảng giá
+	    if (giaTu != null && giaDen != null
+	            && giaTu.compareTo(giaDen) > 0) {
+	        throw new IllegalArgumentException(
+	            "Giá từ không được lớn hơn giá đến."
+	        );
+	    }
+	
+	    ConnectDB.GetInstance();
+	    Connection con = ConnectDB.getConnection();
+	
+	    StringBuilder sql = new StringBuilder(
+	        "SELECT maDV, tenDV, moTa, donGia, trangThai "
+	      + "FROM DichVu WHERE 1=1"
+	    );
+	
+	    // Lọc theo mã, tên hoặc mô tả
+	    if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
+	        sql.append(" AND (CAST(maDV AS NVARCHAR(30)) LIKE ? "
+	                 + "OR tenDV LIKE ? OR moTa LIKE ?)");
+	    }
+	
+	    // Lọc giá tối thiểu
+	    if (giaTu != null) {
+	        sql.append(" AND donGia >= ?");
+	    }
+	
+	    // Lọc giá tối đa
+	    if (giaDen != null) {
+	        sql.append(" AND donGia <= ?");
+	    }
+	
+	    // Lọc trạng thái dịch vụ
+	    if (tt != null) {
+	        sql.append(" AND trangThai = ?");
+	    }
+	
+	    sql.append(" ORDER BY maDV DESC");
+	
+	    try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
+	
+	        int i = 1;
+	
+	        if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
+	            String key = "%" + tuKhoa.trim() + "%";
+	
+	            stmt.setString(i++, key);
+	            stmt.setString(i++, key);
+	            stmt.setString(i++, key);
+	        }
+	
+	        if (giaTu != null) {
+	            stmt.setBigDecimal(i++, giaTu);
+	        }
+	
+	        if (giaDen != null) {
+	            stmt.setBigDecimal(i++, giaDen);
+	        }
+	
+	        if (tt != null) {
+	            stmt.setString(i++, tt.name());
+	        }
+	
+	        try (ResultSet rs = stmt.executeQuery()) {
+	
+	            while (rs.next()) {
+	
+	                String maDV = rs.getString("maDV");
+	                String tenDV = rs.getString("tenDV");
+	                String mota = rs.getString("moTa");
+	
+	                BigDecimal dongia = rs.getBigDecimal("donGia");
+	
+	                String tt1 = rs.getString("trangThai");
+	
+	                trangthai_dichvu tt2 = tt1 != null
+	                        ? trangthai_dichvu.valueOf(tt1) : null;
+	
+	                DichVu dv = new DichVu(
+	                    maDV, tenDV, mota, dongia, tt2
+	                );
+	
+	                dsdv.add(dv);
+	            }
+	        }
+	
+	    } catch (SQLException | IllegalArgumentException e) {
+	        e.printStackTrace();
+	    }
+	
+	    return dsdv;
+	}
+	public DichVu getDichVuByMaDV(String maDV) throws SQLException {
 
-    ArrayList<DichVu> dsdv = new ArrayList<>();
+	    ConnectDB.GetInstance();
 
-    // Kiểm tra khoảng giá
-    if (giaTu != null && giaDen != null
-            && giaTu.compareTo(giaDen) > 0) {
-        throw new IllegalArgumentException(
-            "Giá từ không được lớn hơn giá đến."
-        );
-    }
+	    Connection con = ConnectDB.getConnection();
 
-    ConnectDB.GetInstance();
-    Connection con = ConnectDB.getConnection();
+	    if (con == null) {
+	        throw new SQLException("Chưa kết nối SQL Server!");
+	    }
 
-    StringBuilder sql = new StringBuilder(
-        "SELECT maDV, tenDV, moTa, donGia, trangThai "
-      + "FROM DichVu WHERE 1=1"
-    );
+	    String sql = "SELECT maDV, tenDV, mota, dongia, trangthai "
+	               + "FROM DichVu WHERE maDV = ?";
 
-    // Lọc theo mã, tên hoặc mô tả
-    if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
-        sql.append(" AND (CAST(maDV AS NVARCHAR(30)) LIKE ? "
-                 + "OR tenDV LIKE ? OR moTa LIKE ?)");
-    }
+	    try (PreparedStatement ps = con.prepareStatement(sql)) {
 
-    // Lọc giá tối thiểu
-    if (giaTu != null) {
-        sql.append(" AND donGia >= ?");
-    }
+	        ps.setString(1, maDV);
 
-    // Lọc giá tối đa
-    if (giaDen != null) {
-        sql.append(" AND donGia <= ?");
-    }
+	        try (ResultSet rs = ps.executeQuery()) {
 
-    // Lọc trạng thái dịch vụ
-    if (tt != null) {
-        sql.append(" AND trangThai = ?");
-    }
+	            if (rs.next()) {
 
-    sql.append(" ORDER BY maDV DESC");
+	                String ma = rs.getString("maDV");
+	                String ten = rs.getString("tenDV");
+	                String mota = rs.getString("mota");
 
-    try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
+	                BigDecimal dongia = rs.getBigDecimal("dongia");
 
-        int i = 1;
+	                String tt1 = rs.getString("trangthai");
 
-        if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
-            String key = "%" + tuKhoa.trim() + "%";
+	                trangthai_dichvu tt =
+	                    (tt1 != null && !tt1.isBlank())
+	                    ? trangthai_dichvu.valueOf(tt1.trim())
+	                    : null;
 
-            stmt.setString(i++, key);
-            stmt.setString(i++, key);
-            stmt.setString(i++, key);
-        }
+	                return new DichVu(
+	                    ma,
+	                    ten,
+	                    mota,
+	                    dongia,
+	                    tt
+	                );
+	            }
+	        }
+	    }
 
-        if (giaTu != null) {
-            stmt.setBigDecimal(i++, giaTu);
-        }
-
-        if (giaDen != null) {
-            stmt.setBigDecimal(i++, giaDen);
-        }
-
-        if (tt != null) {
-            stmt.setString(i++, tt.name());
-        }
-
-        try (ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-
-                String maDV = rs.getString("maDV");
-                String tenDV = rs.getString("tenDV");
-                String mota = rs.getString("moTa");
-
-                BigDecimal dongia = rs.getBigDecimal("donGia");
-
-                String tt1 = rs.getString("trangThai");
-
-                trangthai_dichvu tt2 = tt1 != null
-                        ? trangthai_dichvu.valueOf(tt1) : null;
-
-                DichVu dv = new DichVu(
-                    maDV, tenDV, mota, dongia, tt2
-                );
-
-                dsdv.add(dv);
-            }
-        }
-
-    } catch (SQLException | IllegalArgumentException e) {
-        e.printStackTrace();
-    }
-
-    return dsdv;
-}
-
+	    return null;
+	}
 }
