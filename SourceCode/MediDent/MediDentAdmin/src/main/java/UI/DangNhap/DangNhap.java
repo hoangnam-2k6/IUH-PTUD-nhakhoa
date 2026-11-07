@@ -35,11 +35,11 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import UI.Chung.BieuTuong;
+
 
 import Class.TaiKhoan;
 import DAO.TaiKhoanDAO;
-import UI.Chung.BieuTuong;
+
 
 import UI.Chung.KhungChinh;
 import java.awt.*;
@@ -153,7 +153,7 @@ public final class DangNhap extends JFrame {
         form.add(GiaoDienDangNhap.label("Tên đăng nhập", 12, true));
         form.add(Box.createVerticalStrut(8));
         JTextField taiKhoan = GiaoDienDangNhap.text("");
-        taiKhoan.setToolTipText("Tên đăng nhập do hệ thống cấp, ví dụ NV000001");
+        taiKhoan.setToolTipText("Tên đăng nhập do hệ thống cấp, ví dụ nv1");
         taiKhoan.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         form.add(taiKhoan);
         JLabel loiTaiKhoan = new JLabel("");
@@ -206,7 +206,7 @@ public final class DangNhap extends JFrame {
         for (Component component : hangMatKhau.getComponents()) {
             if (component instanceof JLabel) component.addMouseListener(roiO);
         }
-        JButton dangNhap = GiaoDienDangNhap.nutIcon("Đăng nhập", true, BieuTuong.Loai.DANG_NHAP);
+        JButton dangNhap = GiaoDienDangNhap.nut("Đăng nhập", true);
         dangNhap.setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
         dangNhap.setAlignmentX(LEFT_ALIGNMENT);
         form.add(dangNhap);
@@ -221,30 +221,64 @@ public final class DangNhap extends JFrame {
         form.add(Box.createVerticalStrut(16));
         quenMatKhau.addActionListener(e -> {
             JTextField tenCanLayLai = new JTextField(taiKhoan.getText().trim(), 23);
+            JTextField ngaySinh = new JTextField(15);
             JLabel loiQuen = new JLabel(" ");
             loiQuen.setForeground(new Color(0xDC2626));
-            JPanel khungQuen = new JPanel(new BorderLayout(0, 7));
-            khungQuen.add(new JLabel("Tên đăng nhập"), BorderLayout.NORTH);
-            khungQuen.add(tenCanLayLai, BorderLayout.CENTER);
-            khungQuen.add(loiQuen, BorderLayout.SOUTH);
-            tenCanLayLai.addFocusListener(new java.awt.event.FocusAdapter() {
-                @Override public void focusLost(java.awt.event.FocusEvent ev) {
-                    loiQuen.setText(tenCanLayLai.getText().trim().isEmpty()
-                            ? "Hãy nhập tên đăng nhập." : " ");
+            JPanel khungQuen = new JPanel(new GridLayout(0, 1, 4, 5));
+            khungQuen.add(new JLabel("Tên đăng nhập"));
+            khungQuen.add(tenCanLayLai);
+            khungQuen.add(new JLabel("Ngày sinh (dd/MM/yyyy)"));
+            khungQuen.add(ngaySinh);
+            khungQuen.add(loiQuen);
+
+            Runnable kiemTra = () -> {
+                if (tenCanLayLai.getText().trim().isEmpty()) {
+                    loiQuen.setText("Hãy nhập tên đăng nhập.");
+                    return;
                 }
-            });
-            while (JOptionPane.showConfirmDialog(this, khungQuen, "Quên mật khẩu",
-                    JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-                String ten = tenCanLayLai.getText().trim();
-                if (ten.isEmpty()) { loiQuen.setText("Hãy nhập tên đăng nhập."); continue; }
                 try {
-                    db.guiYeuCauQuenMatKhau(ten);
-                    JOptionPane.showMessageDialog(this,
-                            "Nếu tài khoản hợp lệ, yêu cầu sẽ được chuyển đến Quản trị viên.");
+                    java.time.LocalDate.parse(ngaySinh.getText().trim(),
+                        java.time.format.DateTimeFormatter.ofPattern("dd/MM/uuuu")
+                        .withResolverStyle(java.time.format.ResolverStyle.STRICT));
+                    loiQuen.setText(" ");
+                } catch (java.time.format.DateTimeParseException ex) {
+                    loiQuen.setText("Ngày sinh không hợp lệ (dd/MM/yyyy).");
+                }
+            };
+            tenCanLayLai.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override public void focusLost(java.awt.event.FocusEvent ev) { kiemTra.run(); }
+            });
+            ngaySinh.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override public void focusLost(java.awt.event.FocusEvent ev) { kiemTra.run(); }
+            });
+
+            while (JOptionPane.showConfirmDialog(this, khungQuen, "Quên mật khẩu",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE)
+                    == JOptionPane.OK_OPTION) {
+                kiemTra.run();
+                if (!loiQuen.getText().trim().isEmpty()) continue;
+                try {
+                    java.time.LocalDate ngay = java.time.LocalDate.parse(ngaySinh.getText().trim(),
+                        java.time.format.DateTimeFormatter.ofPattern("dd/MM/uuuu")
+                        .withResolverStyle(java.time.format.ResolverStyle.STRICT));
+                    String matKhauTam = db.tuDatLaiMatKhau(tenCanLayLai.getText().trim(), ngay);
+                    if (matKhauTam == null) {
+                        loiQuen.setText("Tài khoản hoặc ngày sinh không đúng.");
+                        continue;
+                    }
+                    JTextField hienMatKhau = new JTextField(matKhauTam, 23);
+                    hienMatKhau.setEditable(false);
+                    JPanel thongBao = new JPanel(new GridLayout(0, 1, 5, 5));
+                    thongBao.add(new JLabel("Mật khẩu tạm của bạn:"));
+                    thongBao.add(hienMatKhau);
+                    thongBao.add(new JLabel("Đăng nhập lại và đổi mật khẩu mới."));
+                    JOptionPane.showMessageDialog(this, thongBao, "Đã đặt lại mật khẩu",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    break;
                 } catch (SQLException ex) {
                     GiaoDienDangNhap.loi(this, ex);
+                    break;
                 }
-                break;
             }
         });
         benPhai.add(form);
@@ -361,14 +395,6 @@ final class GiaoDienDangNhap {
         button.setFocusPainted(false);
         button.setBorder(new EmptyBorder(10, 14, 10, 14));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return button;
-    }
-
-    /** 4. Nút có icon Java2D, không còn các ký tự Unicode gây ô vuông. */
-    public static JButton nutIcon(String title, boolean primary, BieuTuong.Loai loai) {
-        JButton button = nut(title, primary);
-        button.setIcon(new BieuTuong(loai, primary ? WHITE : MUTED, 17));
-        button.setIconTextGap(9);
         return button;
     }
 

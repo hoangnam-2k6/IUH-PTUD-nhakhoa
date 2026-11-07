@@ -35,14 +35,14 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import UI.Chung.BieuTuong;
+
 
 import Class.TaiKhoan;
 import Class.VaiTro;
 import TienIch.EmailHopLe;
 import TienIch.MatKhauHopLe;
 import DAO.TaiKhoanDAO;
-import UI.Chung.BieuTuong;
+
 
 import UI.Chung.NgayChon;
 import java.awt.BorderLayout;
@@ -108,6 +108,7 @@ public class QuanLyTaiKhoan extends JPanel {
     // Dữ liệu thật tương ứng với mỗi hàng MODEL (khác chỉ số hàng đang sắp xếp).
     private List<TaiKhoan> visibleAccounts = new ArrayList<>();
     private List<VaiTro> roles = new ArrayList<>();
+    private JScrollPane trangDanhSach;
 
     public QuanLyTaiKhoan(TaiKhoanDAO db, TaiKhoan actor) {
         this.db = db;
@@ -117,7 +118,8 @@ public class QuanLyTaiKhoan extends JPanel {
 
         JPanel page = GiaoDienQuanLyTaiKhoan.trang("Quản lý tài khoản",
                 "Quản lý người dùng, vai trò và trạng thái truy cập hệ thống.");
-        add(GiaoDienQuanLyTaiKhoan.cuon(page), BorderLayout.CENTER);
+        trangDanhSach = GiaoDienQuanLyTaiKhoan.cuon(page);
+        add(trangDanhSach, BorderLayout.CENTER);
 
         // 1. Thanh tìm kiếm và lọc co giãn theo chiều rộng cửa sổ.
         JPanel filters = new JPanel(new GridBagLayout());
@@ -129,8 +131,8 @@ public class QuanLyTaiKhoan extends JPanel {
         role.setPreferredSize(new Dimension(148, 37));
         status.setPreferredSize(new Dimension(135, 37));
 
-        JButton find = GiaoDienQuanLyTaiKhoan.nutIcon("Tìm kiếm", false, BieuTuong.Loai.TIM_KIEM);
-        JButton add = GiaoDienQuanLyTaiKhoan.nutIcon("Thêm tài khoản", true, BieuTuong.Loai.THEM);
+        JButton find = GiaoDienQuanLyTaiKhoan.nut("Tìm kiếm", false);
+        JButton add = GiaoDienQuanLyTaiKhoan.nut("Thêm tài khoản", true);
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.gridy = 0;
         constraints.insets = new Insets(0, 0, 0, 8);
@@ -156,10 +158,9 @@ public class QuanLyTaiKhoan extends JPanel {
         card.setPreferredSize(new Dimension(700, 550));
 
         // Đặt các nút ở ĐẦU bảng, luôn dễ nhìn thấy thay vì cuối bảng cao 550px.
-        JButton edit = GiaoDienQuanLyTaiKhoan.nutIcon("Sửa thông tin", true, BieuTuong.Loai.SUA);
-        JButton remove = GiaoDienQuanLyTaiKhoan.nutIcon("Xóa tài khoản", false, BieuTuong.Loai.XOA);
-        JButton reset = GiaoDienQuanLyTaiKhoan.nutIcon("Quên mật khẩu / Reset", false,
-                BieuTuong.Loai.TAI_LAI);
+        JButton edit = GiaoDienQuanLyTaiKhoan.nut("Sửa thông tin", true);
+        JButton remove = GiaoDienQuanLyTaiKhoan.nut("Xóa tài khoản", false);
+        JButton reset = GiaoDienQuanLyTaiKhoan.nut("Quên mật khẩu / Reset", false);
 
         JPanel tools = GiaoDienQuanLyTaiKhoan.hang();
         tools.add(edit);
@@ -237,7 +238,7 @@ public class QuanLyTaiKhoan extends JPanel {
                     ? 0 : roles.get(role.getSelectedIndex() - 1).id;
             String currentStatus = status.getSelectedIndex() == 0
                     ? "" : (String) status.getSelectedItem();
-            visibleAccounts = db.taiKhoan(search.getText().trim(), roleId, currentStatus);
+            visibleAccounts = db.taiKhoan(search.getText().trim(), roleId, currentStatus, actor.id);
             model.setRowCount(0);
             int number = 1;
             for (TaiKhoan account : visibleAccounts) {
@@ -315,7 +316,7 @@ public class QuanLyTaiKhoan extends JPanel {
 
         JTextField name = GiaoDienQuanLyTaiKhoan.text(creating ? "" : account.hoTen);
         JTextField email = GiaoDienQuanLyTaiKhoan.text(creating ? "" : account.email);
-        JPasswordField password = new JPasswordField();
+        JPasswordField password = creating ? new JPasswordField() : null;
         JLabel loiTen = nhanLoi();
         JLabel loiEmail = nhanLoi();
         JLabel loiMatKhau = nhanLoi();
@@ -327,9 +328,11 @@ public class QuanLyTaiKhoan extends JPanel {
                 email.getText().trim().length() > 150 ? "Email tối đa 150 ký tự."
                         : EmailHopLe.kiemTra(email.getText()) ? "" : "Email không hợp lệ (ví dụ: ten@gmail.com).");
         Runnable kiemTraMatKhau = () -> {
-            String value = new String(password.getPassword());
-            hienLoi(password, loiMatKhau, (!creating && value.isEmpty())
-                    || MatKhauHopLe.kiemTra(value) ? "" : "Mật khẩu 10–72 ký tự, có chữ hoa và số.");
+            if (creating) {
+                String value = new String(password.getPassword());
+                hienLoi(password, loiMatKhau, MatKhauHopLe.kiemTra(value)
+                        ? "" : "Mật khẩu 10–72 ký tự, có chữ hoa và số.");
+            }
         };
 
         // Calendar thực: chỉ chọn ngày đã có trong tháng/năm hợp lệ.
@@ -344,7 +347,7 @@ public class QuanLyTaiKhoan extends JPanel {
         };
         batLoiKhiRoiO(name, kiemTraTen);
         batLoiKhiRoiO(email, kiemTraEmail);
-        batLoiKhiRoiO(password, kiemTraMatKhau);
+        if (creating) batLoiKhiRoiO(password, kiemTraMatKhau);
         ngaySinh.addPropertyChangeListener("ngay", event -> kiemTraNgaySinh.run());
         ngaySinh.addPropertyChangeListener("roiNgayChon", event -> kiemTraNgaySinh.run());
         try {
@@ -356,9 +359,9 @@ public class QuanLyTaiKhoan extends JPanel {
             return;
         }
 
-        JTextField ngayTao = GiaoDienQuanLyTaiKhoan.text(creating
-                ? "Tự động" : account.ngayTao);
-        ngayTao.setEditable(false);
+        // Ngày tạo vẫn xem được khi sửa, không hiện trên biểu mẫu Thêm.
+        JTextField ngayTao = creating ? null : GiaoDienQuanLyTaiKhoan.text(account.ngayTao);
+        if (ngayTao != null) ngayTao.setEditable(false);
 
         JComboBox<VaiTro> roleBox = new JComboBox<>(roles.toArray(new VaiTro[0]));
         JComboBox<String> statusBox = new JComboBox<>(
@@ -378,17 +381,20 @@ public class QuanLyTaiKhoan extends JPanel {
         form.add(idTuDong);
         form.add(GiaoDienQuanLyTaiKhoan.label("Tên đăng nhập (tự động)", 12, true));
         form.add(username);
-        form.add(GiaoDienQuanLyTaiKhoan.label("Ngày tạo (tự động)", 12, true));
-        form.add(ngayTao);
+        if (!creating) {
+            form.add(GiaoDienQuanLyTaiKhoan.label("Ngày tạo", 12, true));
+            form.add(ngayTao);
+        }
         form.add(GiaoDienQuanLyTaiKhoan.label("Họ và tên *", 12, true));
         form.add(oVaLoi(name, loiTen));
         form.add(GiaoDienQuanLyTaiKhoan.label("Email *", 12, true));
         form.add(oVaLoi(email, loiEmail));
         form.add(GiaoDienQuanLyTaiKhoan.label("Ngày sinh (chọn từ lịch) *", 12, true));
         form.add(oVaLoi(ngaySinh, loiNgaySinh));
-        form.add(GiaoDienQuanLyTaiKhoan.label(creating ? "Mật khẩu *" : "Mật khẩu mới (trống: giữ nguyên)",
-                12, true));
-        form.add(oVaLoi(password, loiMatKhau));
+        if (creating) {
+            form.add(GiaoDienQuanLyTaiKhoan.label("Mật khẩu *", 12, true));
+            form.add(oVaLoi(password, loiMatKhau));
+        }
         form.add(GiaoDienQuanLyTaiKhoan.label("Vai trò", 12, true));
         form.add(roleBox);
         form.add(GiaoDienQuanLyTaiKhoan.label("Trạng thái", 12, true));
@@ -409,21 +415,26 @@ public class QuanLyTaiKhoan extends JPanel {
         for (Component component : form.getComponents()) {
             if (component instanceof JLabel) component.addMouseListener(boFocus);
         }
-        JScrollPane formCuon = new JScrollPane(formChinh);
-        formCuon.setBorder(null);
-        formCuon.setPreferredSize(new Dimension(650, 490));
-        formCuon.getVerticalScrollBar().setUnitIncrement(16);
+        // Hiển thị biểu mẫu ngay trong vùng nội dung, không mở cửa sổ popup.
+        form.setOpaque(false);
+        JPanel trangNhap = GiaoDienQuanLyTaiKhoan.trang(
+                creating ? "Thêm tài khoản" : "Sửa thông tin tài khoản",
+                creating ? "Nhập thông tin tài khoản mới." : "Cập nhật thông tin tài khoản.");
+        JPanel khungForm = GiaoDienQuanLyTaiKhoan.card(new BorderLayout());
+        khungForm.add(formChinh, BorderLayout.CENTER);
+        trangNhap.add(khungForm);
+        trangNhap.add(Box.createVerticalStrut(18));
 
-        // Khi dữ liệu không hợp lệ, mở lại đúng form này, giữ nguyên nội dung.
-        while (true) {
-            int answer = JOptionPane.showConfirmDialog(
-                    this, formCuon,
-                    creating ? "Thêm tài khoản" : "Sửa tài khoản",
-                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-            if (answer != JOptionPane.OK_OPTION) {
-                return;
-            }
+        JPanel nutChucNang = GiaoDienQuanLyTaiKhoan.hang();
+        JButton luu = GiaoDienQuanLyTaiKhoan.nut("Lưu thông tin", true);
+        JButton quayLai = GiaoDienQuanLyTaiKhoan.nut("Quay lại", false);
+        nutChucNang.add(luu);
+        nutChucNang.add(quayLai);
+        trangNhap.add(nutChucNang);
+        quayLai.addActionListener(e -> hienDanhSach());
 
+        // Đọc dữ liệu ngay tại đây; sau khi lưu, trở lại bảng tài khoản.
+        luu.addActionListener(e -> {
             kiemTraTen.run();
             kiemTraEmail.run();
             kiemTraMatKhau.run();
@@ -432,51 +443,49 @@ public class QuanLyTaiKhoan extends JPanel {
                     || !loiMatKhau.getText().isEmpty() || !loiNgaySinh.getText().isEmpty()) {
                 if (!loiTen.getText().isEmpty()) name.requestFocusInWindow();
                 else if (!loiEmail.getText().isEmpty()) email.requestFocusInWindow();
-                else if (!loiMatKhau.getText().isEmpty()) password.requestFocusInWindow();
-                continue;
+                else if (creating && !loiMatKhau.getText().isEmpty()) password.requestFocusInWindow();
+                else ngaySinh.requestFocusInWindow();
+                return;
             }
-            String passwordValue = new String(password.getPassword());
+            VaiTro selectedRole = (VaiTro) roleBox.getSelectedItem();
+            if (selectedRole == null) {
+                JOptionPane.showMessageDialog(this, "Hãy chọn vai trò.");
+                return;
+            }
             try {
-                java.time.LocalDate ngaySinhThuc = ngaySinh.getNgay();
-                VaiTro selectedRole = (VaiTro) roleBox.getSelectedItem();
-                if (selectedRole == null) {
-                    JOptionPane.showMessageDialog(this, "Chưa có vai trò để chọn.");
-                    continue;
-                }
-
-                // Lấy mã THẬT trả về sau khi SQL Server INSERT thành công.
                 int maThucTe = db.luuTaiKhoanTraVeMa(
                         creating ? 0 : account.id,
-                        username.getText().trim(),
                         name.getText().trim(),
                         email.getText().trim(),
                         selectedRole.id,
                         (String) statusBox.getSelectedItem(),
-                        passwordValue,
-                        ngaySinhThuc,
+                        creating ? new String(password.getPassword()) : null,
+                        ngaySinh.getNgay(),
                         actor.id);
-
                 taiLai();
-                String tenDangNhapThuc = creating
-                        ? TaiKhoanDAO.tenDangNhapTheoMa(maThucTe)
-                        : account.tenDangNhap;
-
+                hienDanhSach();
                 JOptionPane.showMessageDialog(this,
-                        creating
-                                ? "Đã thêm tài khoản thành công!\n"
-                                    + "Mã tài khoản chính thức: " + maThucTe + "\n"
-                                    + "Tên đăng nhập: " + tenDangNhapThuc
-                                : "Đã cập nhật thông tin tài khoản thành công.",
-                        "MediDent", JOptionPane.INFORMATION_MESSAGE);
-                return;
-
-            } catch (IllegalArgumentException dateError) {
-                hienLoi(ngaySinh, loiNgaySinh, dateError.getMessage());
+                        creating ? "Đã thêm tài khoản " + TaiKhoanDAO.tenDangNhapTheoMa(maThucTe)
+                                 : "Đã cập nhật thông tin tài khoản.");
+            } catch (IllegalArgumentException ex) {
+                hienLoi(ngaySinh, loiNgaySinh, ex.getMessage());
             } catch (Exception ex) {
                 GiaoDienQuanLyTaiKhoan.loi(this, ex);
-                // Form giữ dữ liệu để người quản trị có thể kiểm tra và thử lại.
             }
-        }
+        });
+
+        removeAll();
+        add(GiaoDienQuanLyTaiKhoan.cuon(trangNhap), BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+
+    /** Trở lại danh sách khi bấm Quay lại hoặc lưu thành công. */
+    private void hienDanhSach() {
+        removeAll();
+        add(trangDanhSach, BorderLayout.CENTER);
+        revalidate();
+        repaint();
     }
 
     /**
@@ -621,14 +630,6 @@ final class GiaoDienQuanLyTaiKhoan {
         button.setFocusPainted(false);
         button.setBorder(new EmptyBorder(10, 14, 10, 14));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return button;
-    }
-
-    /** 4. Nút có icon Java2D, không còn các ký tự Unicode gây ô vuông. */
-    public static JButton nutIcon(String title, boolean primary, BieuTuong.Loai loai) {
-        JButton button = nut(title, primary);
-        button.setIcon(new BieuTuong(loai, MUTED, 17));
-        button.setIconTextGap(9);
         return button;
     }
 

@@ -97,13 +97,6 @@ IF NOT EXISTS (SELECT 1 FROM dbo.VaiTroQuyen WHERE maVaiTro=@leTanRole)
     WHERE maQuyen IN ('HOTRO','LT_KHAM','LT_TIEPNHAN','LT_LICHHEN',
                       'LT_THANHTOAN','LT_TRACUU');
 
--- Du lieu ho tro de test: nguoi dung Quen mat khau -> Admin co the xem va reset.
-IF NOT EXISTS (SELECT 1 FROM dbo.YeuCauHoTro WHERE tieuDe=N'Quên mật khẩu' AND
-    maTK=(SELECT maTK FROM dbo.TaiKhoan WHERE tenDangNhap='letan2'))
-    INSERT INTO dbo.YeuCauHoTro(maTK,tieuDe,noiDung,trangThai)
-    SELECT maTK,N'Quên mật khẩu',N'Yêu cầu đặt lại mật khẩu (dữ liệu thử nghiệm).',N'Chờ xử lý'
-    FROM dbo.TaiKhoan WHERE tenDangNhap='letan2';
-
 SELECT t.tenDangNhap, n.hoTen, v.tenVaiTro, t.trangThai, n.ngaySinh
 FROM dbo.TaiKhoan t JOIN dbo.VaiTro v ON t.maVaiTro=v.maVaiTro
 JOIN dbo.NhanVien n ON n.maTK=t.maTK

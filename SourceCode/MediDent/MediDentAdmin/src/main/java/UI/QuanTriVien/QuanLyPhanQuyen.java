@@ -28,7 +28,6 @@ import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.Scrollable;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -36,12 +35,12 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import UI.Chung.BieuTuong;
-import UI.DangNhap.DangNhap;
+
+
 import Class.TaiKhoan;
 import Class.VaiTro;
 import DAO.TaiKhoanDAO;
-import UI.Chung.BieuTuong;
+
 
 import java.awt.BorderLayout;
 import java.awt.Component;
@@ -61,12 +60,21 @@ import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
+/**
+ * Quản lý phân quyền: bảng ma trận quyền theo các VaiTro / VaiTroQuyen trong SQL.
+ *
+ * STT tăng từ 1 đến N; quyền có/không được vẽ bằng icon Java2D xanh/xám
+ * (không dùng dấu ✓ hoặc × Unicode nên không còn ô vuông).
+ */
 public class QuanLyPhanQuyen extends JPanel {
 
     private final TaiKhoanDAO db;
     private final TaiKhoan actor;
     private List<VaiTro> roles = new ArrayList<>();
+    private JScrollPane trangDanhSach;
 
+    // Ma trận đọc mã quyền từ DAO, thống nhất cả quyền Nhân viên, Dịch vụ và Hỗ trợ.
+    // Thứ tự tên quyền khớp trực tiếp với danh sách mã quyền trong DAO.
     private static final String[] TEN_QUYEN = TaiKhoanDAO.tenCacQuyen();
     private final DefaultTableModel model = new DefaultTableModel(taoTieuDe(), 0) {
         @Override
@@ -109,11 +117,12 @@ public class QuanLyPhanQuyen extends JPanel {
 
         JPanel page = GiaoDienQuanLyPhanQuyen.trang("Quản lý phân quyền",
                 "Thiết lập vai trò và quyền truy cập cho từng nhóm người dùng.");
-        add(GiaoDienQuanLyPhanQuyen.cuon(page), BorderLayout.CENTER);
+        trangDanhSach = GiaoDienQuanLyPhanQuyen.cuon(page);
+        add(trangDanhSach, BorderLayout.CENTER);
 
         // 1. Các nút thao tác với VaiTro.
         JPanel actions = GiaoDienQuanLyPhanQuyen.hang();
-        JButton edit = GiaoDienQuanLyPhanQuyen.nutIcon("Chỉnh sửa quyền", true, BieuTuong.Loai.SUA);
+        JButton edit = GiaoDienQuanLyPhanQuyen.nut("Chỉnh sửa quyền", true);
         actions.add(edit);
         page.add(actions);
         page.add(Box.createVerticalStrut(17));
@@ -137,11 +146,9 @@ public class QuanLyPhanQuyen extends JPanel {
                 hienForm(selected);
             }
         });
-        
     }
 
-
-    /** 3. Renderer chỉ hiển thị icon, không cho JTable dùng checkbox mặc định. */
+    /** 3. Renderer hiển thị chữ Có/Không, không cho JTable dùng checkbox mặc định. */
     private void trangTriCotQuyen() {
         for (int column = 2; column < table.getColumnCount(); column++) {
             table.getColumnModel().getColumn(column).setCellRenderer(
@@ -153,9 +160,9 @@ public class QuanLyPhanQuyen extends JPanel {
                             source, "", selected, focused, row, column);
                     boolean allowed = Boolean.TRUE.equals(value);
                     result.setHorizontalAlignment(SwingConstants.CENTER);
-                    result.setIcon(new BieuTuong(
-                            allowed ? BieuTuong.Loai.KIEM_TRA : BieuTuong.Loai.HUY,
-                            allowed ? GiaoDienQuanLyPhanQuyen.GREEN : GiaoDienQuanLyPhanQuyen.MUTED, 17));
+                    result.setIcon(null);
+                    result.setText(allowed ? "Có" : "Không");
+                    result.setForeground(allowed ? GiaoDienQuanLyPhanQuyen.GREEN : GiaoDienQuanLyPhanQuyen.MUTED);
                     return result;
                 }
             });
@@ -220,26 +227,49 @@ public class QuanLyPhanQuyen extends JPanel {
             form.add(permissions[i]);
         }
 
-        JScrollPane cuonQuyen = new JScrollPane(form);
-        cuonQuyen.setPreferredSize(new Dimension(390, 480));
-        int answer = JOptionPane.showConfirmDialog(this, cuonQuyen,
-                "Chỉnh sửa quyền", JOptionPane.OK_CANCEL_OPTION);
-        if (answer != JOptionPane.OK_OPTION) {
-            return;
-        }
+        // Form sửa quyền hiển thị thay cho bảng, không mở hộp thoại.
+        form.setOpaque(false);
+        JPanel trangSua = GiaoDienQuanLyPhanQuyen.trang(
+                "Chỉnh sửa quyền", "Tích các chức năng được phép hiển thị trong menu.");
+        JPanel khungForm = GiaoDienQuanLyPhanQuyen.card(new BorderLayout());
+        khungForm.add(form, BorderLayout.CENTER);
+        trangSua.add(khungForm);
+        trangSua.add(Box.createVerticalStrut(16));
 
-        boolean[] values = new boolean[permissions.length];
-        for (int i = 0; i < values.length; i++) {
-            values[i] = permissions[i].isSelected();
-        }
-        try {
-            db.luuVaiTro(old == null ? 0 : old.id, name.getText().trim(),
-                    description.getText().trim(), values, actor.id);
-            taiLai();
-        } catch (Exception exception) {
-            GiaoDienQuanLyPhanQuyen.loi(this, exception);
-        }
+        JPanel thaoTac = GiaoDienQuanLyPhanQuyen.hang();
+        JButton luu = GiaoDienQuanLyPhanQuyen.nut("Lưu quyền", true);
+        JButton quayLai = GiaoDienQuanLyPhanQuyen.nut("Quay lại", false);
+        thaoTac.add(luu);
+        thaoTac.add(quayLai);
+        trangSua.add(thaoTac);
+        quayLai.addActionListener(e -> hienDanhSach());
+        luu.addActionListener(e -> {
+            boolean[] values = new boolean[permissions.length];
+            for (int i = 0; i < values.length; i++) {
+                values[i] = permissions[i].isSelected();
+            }
+            try {
+                db.luuVaiTro(old.id, name.getText().trim(),
+                        description.getText().trim(), values, actor.id);
+                taiLai();
+                hienDanhSach();
+            } catch (Exception exception) {
+                GiaoDienQuanLyPhanQuyen.loi(this, exception);
+            }
+        });
+        removeAll();
+        add(GiaoDienQuanLyPhanQuyen.cuon(trangSua), BorderLayout.CENTER);
+        revalidate();
+        repaint();
     }
+
+    private void hienDanhSach() {
+        removeAll();
+        add(trangDanhSach, BorderLayout.CENTER);
+        revalidate();
+        repaint();
+    }
+
 
 
 }
@@ -302,14 +332,6 @@ final class GiaoDienQuanLyPhanQuyen {
         button.setFocusPainted(false);
         button.setBorder(new EmptyBorder(10, 14, 10, 14));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        return button;
-    }
-
-    /** 4. Nút có icon Java2D, không còn các ký tự Unicode gây ô vuông. */
-    public static JButton nutIcon(String title, boolean primary, BieuTuong.Loai loai) {
-        JButton button = nut(title, primary);
-        button.setIcon(new BieuTuong(loai, MUTED, 17));
-        button.setIconTextGap(9);
         return button;
     }
 

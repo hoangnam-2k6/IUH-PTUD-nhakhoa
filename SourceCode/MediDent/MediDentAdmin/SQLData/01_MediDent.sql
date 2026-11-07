@@ -1,4 +1,4 @@
--- MediDent: tài khoản, phân quyền, hỗ trợ và lịch sử đăng nhập.
+-- MediDent: tài khoản, phân quyền, lịch sử đăng nhập; Hỗ trợ chỉ là trang hướng dẫn.
 -- Các quyền nghiệp vụ chỉ được khai báo để phân quyền; giao diện nghiệp vụ chưa triển khai.
 -- SQL Server 2012+. Khong xoa du lieu/bang cu neu database da ton tai.
 IF DB_ID(N'MediDent') IS NULL CREATE DATABASE MediDent;
@@ -67,18 +67,6 @@ IF OBJECT_ID(N'dbo.NhatKyHeThong',N'U') IS NULL
 CREATE TABLE dbo.NhatKyHeThong(maNK BIGINT IDENTITY(1,1) PRIMARY KEY,
  thoiGian DATETIME2 NOT NULL DEFAULT SYSDATETIME(),hanhDong NVARCHAR(200) NOT NULL,
  doiTuong NVARCHAR(150) NULL,moTa NVARCHAR(1000) NULL);
-GO
-IF OBJECT_ID(N'dbo.YeuCauHoTro',N'U') IS NULL
-CREATE TABLE dbo.YeuCauHoTro(maYC INT IDENTITY(1,1) PRIMARY KEY,
- maTK INT NOT NULL REFERENCES dbo.TaiKhoan(maTK),tieuDe NVARCHAR(160) NOT NULL,
- noiDung NVARCHAR(1500) NOT NULL,ngayTao DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
- trangThai NVARCHAR(30) NOT NULL DEFAULT N'Chờ xử lý',
- phanHoi NVARCHAR(1500) NULL,ngayXuLy DATETIME2 NULL);
-GO
-IF COL_LENGTH('dbo.YeuCauHoTro','phanHoi') IS NULL
-ALTER TABLE dbo.YeuCauHoTro ADD phanHoi NVARCHAR(1500) NULL;
-IF COL_LENGTH('dbo.YeuCauHoTro','ngayXuLy') IS NULL
-ALTER TABLE dbo.YeuCauHoTro ADD ngayXuLy DATETIME2 NULL;
 GO
 -- Lưu lịch sử đăng nhập của cả ba vai trò, kể cả các lần đăng nhập thất bại.
 IF OBJECT_ID(N'dbo.LichSuDangNhap', N'U') IS NULL

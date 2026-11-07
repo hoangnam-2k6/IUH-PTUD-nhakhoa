@@ -2,7 +2,7 @@ package UI.Chung;
 
 import Class.TaiKhoan;
 import Class.VaiTro;
-import DAO.HoTroDAO;
+import Enum.VaiTroHeThong;
 import DAO.TaiKhoanDAO;
 import UI.QuanTriVien.QuanLyPhanQuyen;
 import UI.QuanTriVien.QuanLyTaiKhoan;
@@ -49,13 +49,10 @@ public final class KhungChinh extends JFrame {
         JPanel khung = new JPanel(new BorderLayout());
         setContentPane(khung);
         khung.add(taoMenu(), BorderLayout.WEST);
-        JPanel benPhai = new JPanel(new BorderLayout());
-        benPhai.add(taoHeader(), BorderLayout.NORTH);
         noiDung.setBackground(NEN);
-        benPhai.add(noiDung, BorderLayout.CENTER);
-        khung.add(benPhai, BorderLayout.CENTER);
+        khung.add(noiDung, BorderLayout.CENTER);
 
-        moTrang("HOME");            // Đăng nhập xong luôn mở trang chủ / Dashboard.
+        hienThiPanel(trangChu(), "HOME"); // Đăng nhập xong mở trang chủ.
         taiQuyen();                 // Nạp quyền và hiển thị các nút menu được tích.
     }
 
@@ -72,9 +69,17 @@ public final class KhungChinh extends JFrame {
             Image anh = new ImageIcon(url).getImage().getScaledInstance(46, 46, Image.SCALE_SMOOTH);
             logo.add(new JLabel(new ImageIcon(anh)));
         }
-        JLabel ten = new JLabel("<html><b style='font-size:16px'>MEDIDENT</b><br>Quản lý nha khoa</html>");
-        ten.setForeground(CHU);
-        logo.add(ten);
+        JPanel nhanHieu = new JPanel();
+        nhanHieu.setLayout(new BoxLayout(nhanHieu, BoxLayout.Y_AXIS));
+        nhanHieu.setOpaque(false);
+        JLabel ten = new JLabel("MEDIDENT");
+        ten.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        ten.setForeground(XANH);
+        JLabel moTa = new JLabel("Quản lý nha khoa");
+        moTa.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        nhanHieu.add(ten);
+        nhanHieu.add(moTa);
+        logo.add(nhanHieu);
         sidebar.add(logo, BorderLayout.NORTH);
 
         menu.setBackground(Color.WHITE);
@@ -115,19 +120,6 @@ public final class KhungChinh extends JFrame {
         duoi.add(dangXuat);
         sidebar.add(duoi, BorderLayout.SOUTH);
         return sidebar;
-    }
-
-    private JPanel taoHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(Color.WHITE);
-        header.setBorder(new CompoundBorder(new MatteBorder(0, 0, 1, 0, VIEN), new EmptyBorder(20, 25, 20, 25)));
-        JLabel tieuDe = new JLabel("MEDIDENT     /     Quản lý nha khoa");
-        tieuDe.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        header.add(tieuDe, BorderLayout.WEST);
-        JLabel nguoiDung = new JLabel("<html><div style='text-align:right'><b>" + taiKhoan.hoTen
-                + "</b><br>" + taiKhoan.tenVaiTro + "</div></html>");
-        header.add(nguoiDung, BorderLayout.EAST);
-        return header;
     }
 
     /** Đọc checkbox từ SQL và tạo ba Map quyền có cùng tên vai trò. */
@@ -171,66 +163,68 @@ public final class KhungChinh extends JFrame {
         nutMenu.clear();
 
         JButton btnTrangChu = themNut("HOME", "Trang chủ");
-        btnTrangChu.addActionListener(e -> moTrang("HOME"));
+        btnTrangChu.addActionListener(e -> hienThiPanel(trangChu(), "HOME"));
 
-        if (quyen.getOrDefault("Quản lý tài khoản", false)) {
+        if (VaiTroHeThong.QUAN_TRI_VIEN.ten().equals(taiKhoan.tenVaiTro)
+                && quyen.getOrDefault("Quản lý tài khoản", false)) {
             JButton btnTaiKhoan = themNut("TAIKHOAN", "Quản lý tài khoản");
-            btnTaiKhoan.addActionListener(e -> moTrang("TAIKHOAN"));
+            btnTaiKhoan.addActionListener(e -> hienThiPanel(new QuanLyTaiKhoan(dao, taiKhoan), "TAIKHOAN"));
         }
-        if (quyen.getOrDefault("Phân quyền tài khoản", false)) {
+        if (VaiTroHeThong.QUAN_TRI_VIEN.ten().equals(taiKhoan.tenVaiTro)
+                && quyen.getOrDefault("Phân quyền tài khoản", false)) {
             JButton btnPhanQuyen = themNut("PHANQUYEN", "Phân quyền tài khoản");
-            btnPhanQuyen.addActionListener(e -> moTrang("PHANQUYEN"));
+            btnPhanQuyen.addActionListener(e -> hienThiPanel(new QuanLyPhanQuyen(dao, taiKhoan), "PHANQUYEN"));
         }
         if (quyen.getOrDefault("Hỗ trợ", false)) {
             JButton btnHoTro = themNut("HOTRO", "Hỗ trợ");
-            btnHoTro.addActionListener(e -> moTrang("HOTRO"));
+            btnHoTro.addActionListener(e -> hienThiPanel(new HoTroPage(taiKhoan), "HOTRO"));
         }
 
         // Các quyền nghiệp vụ đã có trong SQL nhưng chưa có màn hình Java.
         // Tạo nút theo checkbox; khi bấm, khung sẽ giải thích rõ trạng thái.
         if (quyen.getOrDefault("Quản lý nhân viên", false)) {
             JButton btnNhanVien = themNut("QL_NHANVIEN", "Quản lý nhân viên");
-            btnNhanVien.addActionListener(e -> moTrang("QL_NHANVIEN"));
+            btnNhanVien.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("QL_NHANVIEN"), "QL_NHANVIEN"));
         }
         if (quyen.getOrDefault("Quản lý dịch vụ", false)) {
             JButton btnDichVu = themNut("QL_DICHVU", "Quản lý dịch vụ");
-            btnDichVu.addActionListener(e -> moTrang("QL_DICHVU"));
+            btnDichVu.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("QL_DICHVU"), "QL_DICHVU"));
         }
         if (quyen.getOrDefault("Quản lý bệnh nhân", false)) {
             JButton btnBenhNhan = themNut("QL_BENHNHAN", "Quản lý bệnh nhân");
-            btnBenhNhan.addActionListener(e -> moTrang("QL_BENHNHAN"));
+            btnBenhNhan.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("QL_BENHNHAN"), "QL_BENHNHAN"));
         }
         if (quyen.getOrDefault("Lịch hẹn (Quản lý)", false)) {
             JButton btnLichHen = themNut("QL_LICHHEN", "Quản lý lịch hẹn");
-            btnLichHen.addActionListener(e -> moTrang("QL_LICHHEN"));
+            btnLichHen.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("QL_LICHHEN"), "QL_LICHHEN"));
         }
         if (quyen.getOrDefault("Thanh toán (Quản lý)", false)) {
             JButton btnThanhToan = themNut("QL_THANHTOAN", "Thanh toán và hóa đơn");
-            btnThanhToan.addActionListener(e -> moTrang("QL_THANHTOAN"));
+            btnThanhToan.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("QL_THANHTOAN"), "QL_THANHTOAN"));
         }
         if (quyen.getOrDefault("Báo cáo (Quản lý)", false)) {
             JButton btnBaoCao = themNut("QL_BAOCAO", "Báo cáo - thống kê");
-            btnBaoCao.addActionListener(e -> moTrang("QL_BAOCAO"));
+            btnBaoCao.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("QL_BAOCAO"), "QL_BAOCAO"));
         }
         if (quyen.getOrDefault("Khám và điều trị", false)) {
             JButton btnKham = themNut("LT_KHAM", "Khám và điều trị");
-            btnKham.addActionListener(e -> moTrang("LT_KHAM"));
+            btnKham.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("LT_KHAM"), "LT_KHAM"));
         }
         if (quyen.getOrDefault("Tiếp nhận bệnh nhân", false)) {
             JButton btnTiepNhan = themNut("LT_TIEPNHAN", "Tiếp nhận bệnh nhân");
-            btnTiepNhan.addActionListener(e -> moTrang("LT_TIEPNHAN"));
+            btnTiepNhan.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("LT_TIEPNHAN"), "LT_TIEPNHAN"));
         }
         if (quyen.getOrDefault("Lịch hẹn (Lễ tân)", false)) {
             JButton btnLichHenLeTan = themNut("LT_LICHHEN", "Quản lý lịch hẹn");
-            btnLichHenLeTan.addActionListener(e -> moTrang("LT_LICHHEN"));
+            btnLichHenLeTan.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("LT_LICHHEN"), "LT_LICHHEN"));
         }
         if (quyen.getOrDefault("Thanh toán (Lễ tân)", false)) {
             JButton btnThuNgan = themNut("LT_THANHTOAN", "Thanh toán và hóa đơn");
-            btnThuNgan.addActionListener(e -> moTrang("LT_THANHTOAN"));
+            btnThuNgan.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("LT_THANHTOAN"), "LT_THANHTOAN"));
         }
         if (quyen.getOrDefault("Tra cứu thông tin", false)) {
             JButton btnTraCuu = themNut("LT_TRACUU", "Tra cứu thông tin");
-            btnTraCuu.addActionListener(e -> moTrang("LT_TRACUU"));
+            btnTraCuu.addActionListener(e -> hienThiPanel(trangChuaHoanThanh("LT_TRACUU"), "LT_TRACUU"));
         }
 
         chonNut();
@@ -259,49 +253,45 @@ public final class KhungChinh extends JFrame {
         nut.setBorder(new CompoundBorder(new LineBorder(VIEN, 1, true), new EmptyBorder(12, 13, 12, 8)));
         nut.setAlignmentX(LEFT_ALIGNMENT);
         nut.setMaximumSize(new Dimension(225, 46));
-        nut.setIcon(new BieuTuong(bieuTuong(ma), CHU_PHU, 17));
-        nut.setIconTextGap(12);
         nutMenu.put(ma, nut);
         menu.add(nut);
         menu.add(Box.createVerticalStrut(7));
         return nut;
     }
 
-    private void moTrang(String ma) {
-        JPanel trang;
-        switch (ma) {
-            case "TAIKHOAN": trang = new QuanLyTaiKhoan(dao, taiKhoan); break;
-            case "PHANQUYEN": trang = new QuanLyPhanQuyen(dao, taiKhoan); break;
-            case "HOTRO": trang = new HoTroPage(new HoTroDAO(), taiKhoan,
-                    "Quản trị viên".equals(taiKhoan.tenVaiTro)); break;
-            case "HOME":
-                if ("Quản trị viên".equals(taiKhoan.tenVaiTro)) {
-                    trang = new TrangChuQuanTriVien(dao, taiKhoan);
-                } else {
-                    trang = new JPanel(new BorderLayout());
-                    trang.setBackground(NEN);
-                    JLabel chao = new JLabel("Trang chủ - " + taiKhoan.tenVaiTro);
-                    chao.setFont(new Font("Segoe UI", Font.BOLD, 25));
-                    chao.setBorder(new EmptyBorder(32, 36, 0, 0));
-                    trang.add(chao, BorderLayout.NORTH);
-                }
-                break;
-            default:
-                // Chưa khôi phục màn hình nghiệp vụ của Quản lý và Lễ tân.
-                trang = new JPanel(new BorderLayout());
-                trang.setBackground(NEN);
-                JLabel ghiChu = new JLabel("Chức năng chưa được xây dựng lại: " + tenTrang(ma));
-                ghiChu.setFont(new Font("Segoe UI", Font.BOLD, 20));
-                ghiChu.setForeground(CHU);
-                ghiChu.setBorder(new EmptyBorder(32, 36, 0, 0));
-                trang.add(ghiChu, BorderLayout.NORTH);
-        }
+    /** Chỉ thay panel trong vùng nội dung; màn hình được new trực tiếp ở nút. */
+    private void hienThiPanel(JPanel trang, String ma) {
         noiDung.removeAll();
         noiDung.add(trang, BorderLayout.CENTER);
         noiDung.revalidate();
         noiDung.repaint();
         trangDangMo = ma;
         chonNut();
+    }
+
+    private JPanel trangChu() {
+        if (VaiTroHeThong.QUAN_TRI_VIEN.ten().equals(taiKhoan.tenVaiTro)) {
+            return new TrangChuQuanTriVien(dao, taiKhoan);
+        }
+        JPanel trang = new JPanel(new BorderLayout());
+        trang.setBackground(NEN);
+        JLabel chao = new JLabel("Trang chủ - " + taiKhoan.tenVaiTro);
+        chao.setFont(new Font("Segoe UI", Font.BOLD, 25));
+        chao.setBorder(new EmptyBorder(32, 36, 0, 0));
+        trang.add(chao, BorderLayout.NORTH);
+        return trang;
+    }
+
+    /** Nghiệp vụ chưa có trong ZIP gốc: giữ thông báo, không tạo chức năng giả. */
+    private JPanel trangChuaHoanThanh(String ma) {
+        JPanel trang = new JPanel(new BorderLayout());
+        trang.setBackground(NEN);
+        JLabel ghiChu = new JLabel("Chức năng chưa được xây dựng lại: " + tenTrang(ma));
+        ghiChu.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        ghiChu.setForeground(CHU);
+        ghiChu.setBorder(new EmptyBorder(32, 36, 0, 0));
+        trang.add(ghiChu, BorderLayout.NORTH);
+        return trang;
     }
 
     private String tenTrang(String ma) {
@@ -319,31 +309,13 @@ public final class KhungChinh extends JFrame {
         }
     }
 
-    private BieuTuong.Loai bieuTuong(String ma) {
-        switch (ma) {
-            case "TAIKHOAN": return BieuTuong.Loai.TAI_KHOAN;
-            case "PHANQUYEN": return BieuTuong.Loai.PHAN_QUYEN;
-            case "HOTRO": return BieuTuong.Loai.THONG_BAO;
-            case "QL_BAOCAO": return BieuTuong.Loai.BAO_CAO;
-            case "QL_NHANVIEN": case "QL_BENHNHAN": case "LT_TIEPNHAN":
-                return BieuTuong.Loai.TAI_KHOAN;
-            case "QL_DICHVU": case "QL_THANHTOAN": case "LT_THANHTOAN":
-                return BieuTuong.Loai.HE_THONG;
-            case "QL_LICHHEN": case "LT_LICHHEN": case "LT_KHAM":
-                return BieuTuong.Loai.KIEM_TRA;
-            case "LT_TRACUU": return BieuTuong.Loai.TIM_KIEM;
-            default: return BieuTuong.Loai.TRANG_CHU;
-        }
-    }
-
     /** Chỉ nút đang mở có nền xanh đậm; nút còn lại trở về màu trắng. */
     private void chonNut() {
         for (Map.Entry<String, JButton> entry : nutMenu.entrySet()) {
             boolean dangChon = entry.getKey().equals(trangDangMo);
             entry.getValue().setBackground(dangChon ? XANH_DAM : Color.WHITE);
             entry.getValue().setForeground(dangChon ? Color.WHITE : CHU_PHU);
-            entry.getValue().setIcon(new BieuTuong(bieuTuong(entry.getKey()),
-                    dangChon ? Color.WHITE : CHU_PHU, 17));
+
         }
     }
 }

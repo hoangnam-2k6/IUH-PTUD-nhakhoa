@@ -154,6 +154,7 @@ public final class TrangChuQuanTriVien extends JPanel {
                         String[] hang = danhSach.get(i);
                         duLieu.addRow(new Object[]{i + 1, hang[0], hang[1], hang[2], hang[3]});
                     }
+                    trangThai.setText(danhSach.isEmpty() ? "Chưa có lịch sử đăng nhập." : "Hiển thị 100 lần đăng nhập gần nhất.");
                 } catch (Exception e) {
                     trangThai.setText("Không tải được lịch sử đăng nhập.");
                 }

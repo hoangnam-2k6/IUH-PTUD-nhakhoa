@@ -2,9 +2,10 @@ package DAO;
 
 import Class.TaiKhoan;
 import Class.VaiTro;
+import Enum.VaiTroHeThong;
 import TienIch.EmailHopLe;
 import TienIch.MatKhauHopLe;
-import ConnectDB.KetNoi;
+import ConnectDB.ConnectDB;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.*;
@@ -39,7 +40,7 @@ public class TaiKhoanDAO {
         String sql="SELECT "+COT_TAI_KHOAN+",t.matKhau "+JOIN_TAI_KHOAN+
                    " WHERE t.tenDangNhap=? AND n.trangThai=N'Đang làm việc' " +
                    "AND v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân')";
-        try(Connection c=KetNoi.mo()) {
+        try(Connection c=ConnectDB.mo()) {
             TaiKhoan result=null;
             try(PreparedStatement s=c.prepareStatement(sql)) {
                 s.setString(1,username);
@@ -92,16 +93,44 @@ public class TaiKhoanDAO {
         }
     }
 
-    /** Ghi yêu cầu quên mật khẩu, không tiết lộ tài khoản có tồn tại hay không. */
-    public void guiYeuCauQuenMatKhau(String tenDangNhap) throws SQLException {
-        String sql = "INSERT INTO dbo.YeuCauHoTro(maTK,tieuDe,noiDung) "
-                   + "SELECT t.maTK,N'Quên mật khẩu',N'Yêu cầu đặt lại mật khẩu từ màn hình đăng nhập.' "
-                   + "FROM dbo.TaiKhoan t WHERE t.tenDangNhap=? AND t.trangThai=N'Hoạt động' "
-                   + "AND NOT EXISTS(SELECT 1 FROM dbo.YeuCauHoTro y "
-                   + "WHERE y.maTK=t.maTK AND y.tieuDe=N'Quên mật khẩu' AND y.trangThai=N'Chờ xử lý')";
-        try (Connection c = KetNoi.mo(); PreparedStatement p = c.prepareStatement(sql)) {
-            p.setString(1, tenDangNhap);
-            p.executeUpdate();
+    /** Tự cấp mật khẩu tạm khi xác nhận đúng tên đăng nhập và ngày sinh. */
+    public String tuDatLaiMatKhau(String tenDangNhap, LocalDate ngaySinh) throws SQLException {
+        if (tenDangNhap == null || tenDangNhap.trim().isEmpty() || ngaySinh == null)
+            return null;
+        try (Connection c = ConnectDB.mo()) {
+            c.setAutoCommit(false);
+            try {
+                int maTK;
+                String hoTen;
+                String sql = "SELECT t.maTK,n.hoTen FROM dbo.TaiKhoan t WITH (UPDLOCK,HOLDLOCK) "
+                        + "JOIN dbo.NhanVien n ON n.maTK=t.maTK "
+                        + "WHERE t.tenDangNhap=? AND n.ngaySinh=? "
+                        + "AND t.trangThai=N'Hoạt động' AND n.trangThai=N'Đang làm việc'";
+                try (PreparedStatement p = c.prepareStatement(sql)) {
+                    p.setString(1, tenDangNhap.trim());
+                    p.setDate(2, java.sql.Date.valueOf(ngaySinh));
+                    try (ResultSet r = p.executeQuery()) {
+                        if (!r.next()) { c.rollback(); return null; }
+                        maTK = r.getInt(1);
+                        hoTen = r.getString(2);
+                    }
+                }
+                String matKhauTam = taoMatKhauMacDinh(hoTen, ngaySinh);
+                try (PreparedStatement p = c.prepareStatement(
+                        "UPDATE dbo.TaiKhoan SET matKhau=?,phaiDoiMatKhau=1 WHERE maTK=?")) {
+                    p.setString(1, BCrypt.hashpw(matKhauTam, BCrypt.gensalt(11)));
+                    p.setInt(2, maTK);
+                    if (p.executeUpdate() != 1) throw new SQLException("Không đặt lại được mật khẩu.");
+                }
+                ghi(c, maTK, "Tự đặt lại mật khẩu", "TaiKhoan", "maTK=" + maTK);
+                c.commit();
+                return matKhauTam;
+            } catch (SQLException ex) {
+                c.rollback();
+                throw ex;
+            } finally {
+                c.setAutoCommit(true);
+            }
         }
     }
 
@@ -112,7 +141,7 @@ public class TaiKhoanDAO {
         String sql = "SELECT TOP 100 CONVERT(varchar(19),thoiGian,120) AS gio, "
                 + "tenDangNhap,ISNULL(tenVaiTro,N'Không xác định') AS vaiTro,ketQua "
                 + "FROM dbo.LichSuDangNhap ORDER BY thoiGian DESC,maLichSu DESC";
-        try (Connection c = KetNoi.mo(); PreparedStatement p = c.prepareStatement(sql);
+        try (Connection c = ConnectDB.mo(); PreparedStatement p = c.prepareStatement(sql);
              ResultSet r = p.executeQuery()) {
             while (r.next()) rows.add(new String[]{r.getString(1),r.getString(2),
                     r.getString(3),r.getString(4)});
@@ -128,7 +157,7 @@ public class TaiKhoanDAO {
                 + "COUNT(CASE WHEN t.trangThai=N'Tạm khóa' THEN 1 END) "
                 + "FROM dbo.TaiKhoan t JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro "
                 + "WHERE v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân')";
-        try (Connection c = KetNoi.mo();
+        try (Connection c = ConnectDB.mo();
              PreparedStatement p = c.prepareStatement(sql);
              ResultSet r = p.executeQuery()) {
             if (r.next()) return new int[]{r.getInt(1), r.getInt(2), r.getInt(3), 3};
@@ -144,13 +173,14 @@ public class TaiKhoanDAO {
         return t;
     }
 
-    public List<TaiKhoan> taiKhoan(String keyword,int role,String status) throws SQLException {
+    public List<TaiKhoan> taiKhoan(String keyword,int role,String status,int actor) throws SQLException {
+        yeuCauQuyen(actor, "TAIKHOAN"); // Chỉ Admin được đọc danh sách tài khoản.
         List<TaiKhoan> ds=new ArrayList<>();
         String sql="SELECT "+COT_TAI_KHOAN+JOIN_TAI_KHOAN+
             " WHERE v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân')"+
             " AND (n.hoTen LIKE ? OR n.email LIKE ? OR t.tenDangNhap LIKE ?)"+
             " AND (?=0 OR t.maVaiTro=?) AND (?='' OR t.trangThai=?) ORDER BY t.maTK DESC";
-        try(Connection c=KetNoi.mo();PreparedStatement s=c.prepareStatement(sql)) {
+        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(sql)) {
             String term="%"+keyword+"%";
             for(int i=1;i<=3;i++)s.setString(i,term);
             s.setInt(4,role);s.setInt(5,role);s.setString(6,status);s.setString(7,status);
@@ -165,7 +195,7 @@ public class TaiKhoanDAO {
             " FROM dbo.VaiTro v LEFT JOIN dbo.VaiTroQuyen vq ON v.maVaiTro=vq.maVaiTro"+
             " LEFT JOIN dbo.Quyen q ON vq.maQuyen=q.maQuyen"+
             " WHERE v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân') ORDER BY v.maVaiTro";
-        try(Connection c=KetNoi.mo();PreparedStatement s=c.prepareStatement(sql);ResultSet r=s.executeQuery()) {
+        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(sql);ResultSet r=s.executeQuery()) {
             VaiTro old=null;
             while(r.next()) {
                 int id=r.getInt(1);
@@ -181,18 +211,9 @@ public class TaiKhoanDAO {
     }
 
     public boolean laQuanTriVien(int role) throws SQLException {
-        try(Connection c=KetNoi.mo();PreparedStatement s=c.prepareStatement(
+        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(
                 "SELECT 1 FROM dbo.VaiTro WHERE maVaiTro=? AND tenVaiTro=N'Quản trị viên'")) {
             s.setInt(1,role);try(ResultSet r=s.executeQuery()){return r.next();}
-        }
-    }
-
-    public boolean taiKhoanDangHoatDong(int maTK) throws SQLException {
-        try (Connection c=KetNoi.mo(); PreparedStatement p=c.prepareStatement(
-                "SELECT 1 FROM dbo.TaiKhoan t JOIN dbo.NhanVien n ON n.maTK=t.maTK " +
-                "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' AND n.trangThai=N'Đang làm việc'")) {
-            p.setInt(1,maTK);
-            try(ResultSet r=p.executeQuery()) { return r.next(); }
         }
     }
 
@@ -201,7 +222,7 @@ public class TaiKhoanDAO {
             " ON t.maVaiTro=q.maVaiTro JOIN dbo.NhanVien n ON n.maTK=t.maTK " +
             "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' " +
             "AND n.trangThai=N'Đang làm việc' AND q.maQuyen=?";
-        try(Connection c=KetNoi.mo();PreparedStatement s=c.prepareStatement(sql)){
+        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(sql)){
             s.setInt(1,maTK);s.setString(2,maQuyen);
             try(ResultSet r=s.executeQuery()){return r.next();}
         }
@@ -211,7 +232,7 @@ public class TaiKhoanDAO {
         String sql="SELECT 1 FROM dbo.TaiKhoan t JOIN dbo.VaiTro v ON t.maVaiTro=v.maVaiTro " +
             "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' AND v.tenVaiTro=N'Quản trị viên' " +
             "AND EXISTS (SELECT 1 FROM dbo.NhanVien n WHERE n.maTK=t.maTK AND n.trangThai=N'Đang làm việc')";
-        try(Connection c=KetNoi.mo();PreparedStatement s=c.prepareStatement(sql)){
+        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(sql)){
             s.setInt(1,maTK);
             try(ResultSet r=s.executeQuery()){return r.next();}
         }
@@ -226,7 +247,7 @@ public class TaiKhoanDAO {
                 "FROM sys.identity_columns " +
                 "WHERE object_id = OBJECT_ID(N'dbo.TaiKhoan') " +
                 "AND name = N'maTK'";
-        try (Connection c = KetNoi.mo();
+        try (Connection c = ConnectDB.mo();
              PreparedStatement statement = c.prepareStatement(sql);
              ResultSet rs = statement.executeQuery()) {
             if (!rs.next()) {
@@ -241,14 +262,14 @@ public class TaiKhoanDAO {
     }
 
     public static String tenDangNhapTheoMa(int maTaiKhoan) {
-        return String.format(Locale.ROOT, "NV%06d", maTaiKhoan);
+        return "nv" + maTaiKhoan;
     }
 
-    public int luuTaiKhoanTraVeMa(int id, String username, String name, String email,
+    public int luuTaiKhoanTraVeMa(int id, String name, String email,
                                  int role, String status, String newPassword,
                                  LocalDate ngaySinh, int actor) throws SQLException {
         yeuCauQuyen(actor, "TAIKHOAN");
-        // Khi them moi, tenDangNhap tu sinh NV000001...; sua thi giu nguyen.
+        // Khi them moi, tenDangNhap tu sinh nv1, nv2, nv3...; sua thi giu nguyen.
         if(name==null||name.trim().isEmpty())
             throw new SQLException("Thiếu tên nhân viên.");
         if (!EmailHopLe.kiemTra(email))
@@ -262,7 +283,7 @@ public class TaiKhoanDAO {
             throw new SQLException("Ngày sinh nhân viên không hợp lệ.");
         if (id == 0 && !MatKhauHopLe.kiemTra(newPassword))
             throw new SQLException(MatKhauHopLe.huongDan());
-        try(Connection c=KetNoi.mo()) {
+        try(Connection c=ConnectDB.mo()) {
             c.setAutoCommit(false);
             try {
                 int accountId=id;
@@ -302,14 +323,7 @@ public class TaiKhoanDAO {
                         s.setInt(1,role);s.setString(2,status);s.setInt(3,id);
                         if(s.executeUpdate()!=1)throw new SQLException("Không tìm thấy tài khoản cần sửa.");
                     }
-                    if(newPassword!=null&&!newPassword.isEmpty()) {
-                        if (!MatKhauHopLe.kiemTra(newPassword))
-                            throw new SQLException(MatKhauHopLe.huongDan());
-                        try(PreparedStatement s=c.prepareStatement("UPDATE dbo.TaiKhoan SET matKhau=?,phaiDoiMatKhau=1 WHERE maTK=?")) {
-                            s.setString(1,BCrypt.hashpw(newPassword,BCrypt.gensalt(11)));
-                            s.setInt(2,id);s.executeUpdate();
-                        }
-                    }
+                    // Sửa thông tin không đụng đến mật khẩu; dùng nút Reset riêng.
                 }
 
                 // ChucVu duoc chon tu VaiTro, khong bat nguoi dung go thu cong.
@@ -319,7 +333,8 @@ public class TaiKhoanDAO {
                     try(ResultSet r=s.executeQuery()) {
                         if(!r.next())throw new SQLException("Vai trò không tồn tại.");
                         tenVaiTro=r.getString(1);
-                        if (!java.util.Set.of("Quản trị viên", "Quản lý phòng khám", "Lễ tân").contains(tenVaiTro))
+                        if (java.util.Arrays.stream(VaiTroHeThong.values())
+                                .noneMatch(v -> v.ten().equals(tenVaiTro)))
                             throw new SQLException("Chỉ cho phép 3 vai trò đăng nhập: Quản trị viên, Quản lý phòng khám, Lễ tân.");
                     }
                 }
@@ -389,7 +404,7 @@ public class TaiKhoanDAO {
     public void xoaTK(int id,int actor) throws SQLException {
         yeuCauQuyen(actor, "TAIKHOAN");
         if(id==actor)throw new SQLException("Không thể xóa tài khoản đang đăng nhập.");
-        try(Connection c=KetNoi.mo()) {
+        try(Connection c=ConnectDB.mo()) {
             c.setAutoCommit(false);
             try {
                 Integer staffId=null;
@@ -431,7 +446,7 @@ public class TaiKhoanDAO {
             throw new SQLException("Danh sách quyền không hợp lệ.");
         if (rights[0] || rights[1])
             throw new SQLException("Không được cấp quyền quản trị cho vai trò khác.");
-        try (Connection c = KetNoi.mo()) {
+        try (Connection c = ConnectDB.mo()) {
             c.setAutoCommit(false);
             try {
                 try (PreparedStatement p = c.prepareStatement(
@@ -478,7 +493,7 @@ public class TaiKhoanDAO {
     public LocalDate ngaySinhNhanVien(int maTK, int actor) throws SQLException {
         if (!laQuanTriVienTaiKhoan(actor) || !coQuyenTaiKhoan(actor, "TAIKHOAN"))
             throw new SQLException("Không có quyền đọc ngày sinh nhân viên.");
-        try (Connection c=KetNoi.mo(); PreparedStatement p=c.prepareStatement(
+        try (Connection c=ConnectDB.mo(); PreparedStatement p=c.prepareStatement(
                 "SELECT ngaySinh FROM dbo.NhanVien WHERE maTK=?")) {
             p.setInt(1,maTK);
             try (ResultSet r=p.executeQuery()) {
@@ -494,43 +509,11 @@ public class TaiKhoanDAO {
     /** Mật khẩu cấp lại: Tên (viết hoa chữ đầu) + ddMMyyyy, bắt buộc đổi sau đăng nhập. */
     public String datLaiMatKhauTheoNgaySinh(int maTK, int actor) throws SQLException {
         yeuCauQuyen(actor, "TAIKHOAN");
-        try (Connection c = KetNoi.mo()) {
+        try (Connection c = ConnectDB.mo()) {
             c.setAutoCommit(false);
             try {
                 String matKhau = datLaiMatKhau(c, maTK, actor);
                 ghi(c, actor, "Đặt lại mật khẩu", "TaiKhoan", "maTK=" + maTK);
-                c.commit();
-                return matKhau;
-            } catch (SQLException e) { c.rollback(); throw e; }
-            finally { c.setAutoCommit(true); }
-        }
-    }
-
-    /** Chỉ được reset khi người dùng đã gửi yêu cầu quên mật khẩu. */
-    public String datLaiMatKhauTheoYeuCau(int maYC, int actor) throws SQLException {
-        yeuCauQuyen(actor, "TAIKHOAN");
-        try (Connection c = KetNoi.mo()) {
-            c.setAutoCommit(false);
-            try {
-                int maTK;
-                try (PreparedStatement p = c.prepareStatement(
-                        "SELECT maTK FROM dbo.YeuCauHoTro WITH (UPDLOCK,HOLDLOCK) "
-                      + "WHERE maYC=? AND tieuDe=N'Quên mật khẩu' AND trangThai=N'Chờ xử lý'")) {
-                    p.setInt(1, maYC);
-                    try (ResultSet r = p.executeQuery()) {
-                        if (!r.next()) throw new SQLException("Yêu cầu không còn chờ xử lý.");
-                        maTK = r.getInt(1);
-                    }
-                }
-                String matKhau = datLaiMatKhau(c, maTK, actor);
-                try (PreparedStatement p = c.prepareStatement(
-                        "UPDATE dbo.YeuCauHoTro SET trangThai=N'Đã xử lý', "
-                      + "phanHoi=N'Đã đặt lại mật khẩu. Vui lòng đăng nhập và đổi ngay.', "
-                      + "ngayXuLy=SYSDATETIME() WHERE maYC=?")) {
-                    p.setInt(1, maYC);
-                    p.executeUpdate();
-                }
-                ghi(c, actor, "Đặt lại mật khẩu theo hỗ trợ", "YeuCauHoTro", "maYC=" + maYC);
                 c.commit();
                 return matKhau;
             } catch (SQLException e) { c.rollback(); throw e; }
@@ -582,7 +565,7 @@ public class TaiKhoanDAO {
             throws SQLException {
         if (!MatKhauHopLe.kiemTra(matKhauMoi))
             throw new SQLException("Mật khẩu mới ít nhất 10 ký tự, có chữ hoa và số.");
-        try(Connection c=KetNoi.mo()) {
+        try(Connection c=ConnectDB.mo()) {
             c.setAutoCommit(false);
             try {
                 String oldHash;
