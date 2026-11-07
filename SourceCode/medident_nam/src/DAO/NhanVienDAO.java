@@ -216,110 +216,108 @@ public class NhanVienDAO {
         return n > 0;
     }
 
-public ArrayList<NhanVien> timNhanVien(
-        String tuKhoa,
-        gioitinh gt,
-        String chucVu,
-        trangthai_NhanVien tt) {
-
-    ArrayList<NhanVien> dsnv = new ArrayList<>();
-
-    ConnectDB.GetInstance();
-    Connection con = ConnectDB.getConnection();
-
-    StringBuilder sql = new StringBuilder(
-        "SELECT maNV, hoten, ngaysinh, gioitinh, "
-      + "sdt, email, diachi, chucvu, trangthai, maTK "
-      + "FROM NhanVien WHERE 1=1"
-    );
-
-    // Lọc theo mã, họ tên, số điện thoại hoặc email
-    if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
-        sql.append(" AND (CAST(maNV AS NVARCHAR(30)) LIKE ? "
-                 + "OR hoten LIKE ? OR sdt LIKE ? OR email LIKE ?)");
-    }
-
-    // Lọc theo giới tính
-    if (gt != null) {
-        sql.append(" AND gioitinh = ?");
-    }
-
-    // Lọc theo chức vụ
-    if (chucVu != null && !chucVu.trim().isEmpty()) {
-        sql.append(" AND chucvu = ?");
-    }
-
-    // Lọc theo trạng thái nhân viên
-    if (tt != null) {
-        sql.append(" AND trangthai = ?");
-    }
-
-    try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
-
-        int i = 1;
-
-        if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
-            String key = "%" + tuKhoa.trim() + "%";
-
-            stmt.setString(i++, key);
-            stmt.setString(i++, key);
-            stmt.setString(i++, key);
-            stmt.setString(i++, key);
-        }
-
-        if (gt != null) {
-            stmt.setString(i++, gt.name());
-        }
-
-        if (chucVu != null && !chucVu.trim().isEmpty()) {
-            stmt.setString(i++, chucVu.trim());
-        }
-
-        if (tt != null) {
-            stmt.setString(i++, tt.name());
-        }
-
-        try (ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-
-                String maNV = rs.getString("maNV");
-                String hoten = rs.getString("hoten");
-
-                Date ngaySQL = rs.getDate("ngaysinh");
-                LocalDate ngaysinh = ngaySQL != null
-                        ? ngaySQL.toLocalDate() : null;
-
-                String gt1 = rs.getString("gioitinh");
-                gioitinh gt2 = gt1 != null
-                        ? gioitinh.valueOf(gt1) : null;
-
-                String sdt = rs.getString("sdt");
-                String email = rs.getString("email");
-                String diachi = rs.getString("diachi");
-                String chucvu = rs.getString("chucvu");
-
-                String tt1 = rs.getString("trangthai");
-                trangthai_NhanVien trangthai = tt1 != null
-                        ? trangthai_NhanVien.valueOf(tt1) : null;
-
-                String maTK = rs.getString("maTK");
-
-                NhanVien nv = new NhanVien(
-                    maNV, hoten, ngaysinh, gt2,
-                    sdt, email, diachi, chucvu,
-                    trangthai, maTK
-                );
-
-                dsnv.add(nv);
-            }
-        }
-
-    } catch (SQLException | IllegalArgumentException e) {
-        e.printStackTrace();
-    }
-
-    return dsnv;
-}
-
+	public ArrayList<NhanVien> timNhanVien(
+	        String tuKhoa,
+	        gioitinh gt,
+	        String chucVu,
+	        trangthai_NhanVien tt) {
+	
+	    ArrayList<NhanVien> dsnv = new ArrayList<>();
+	
+	    ConnectDB.GetInstance();
+	    Connection con = ConnectDB.getConnection();
+	
+	    StringBuilder sql = new StringBuilder(
+	        "SELECT maNV, hoten, ngaysinh, gioitinh, "
+	      + "sdt, email, diachi, chucvu, trangthai, maTK "
+	      + "FROM NhanVien WHERE 1=1"
+	    );
+	
+	    // Lọc theo mã, họ tên, số điện thoại hoặc email
+	    if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
+	        sql.append(" AND (CAST(maNV AS NVARCHAR(30)) LIKE ? "
+	                 + "OR hoten LIKE ? OR sdt LIKE ? OR email LIKE ?)");
+	    }
+	
+	    // Lọc theo giới tính
+	    if (gt != null) {
+	        sql.append(" AND gioitinh = ?");
+	    }
+	
+	    // Lọc theo chức vụ
+	    if (chucVu != null && !chucVu.trim().isEmpty()) {
+	        sql.append(" AND chucvu = ?");
+	    }
+	
+	    // Lọc theo trạng thái nhân viên
+	    if (tt != null) {
+	        sql.append(" AND trangthai = ?");
+	    }
+	
+	    try (PreparedStatement stmt = con.prepareStatement(sql.toString())) {
+	
+	        int i = 1;
+	
+	        if (tuKhoa != null && !tuKhoa.trim().isEmpty()) {
+	            String key = "%" + tuKhoa.trim() + "%";
+	
+	            stmt.setString(i++, key);
+	            stmt.setString(i++, key);
+	            stmt.setString(i++, key);
+	            stmt.setString(i++, key);
+	        }
+	
+	        if (gt != null) {
+	            stmt.setString(i++, gt.name());
+	        }
+	
+	        if (chucVu != null && !chucVu.trim().isEmpty()) {
+	            stmt.setString(i++, chucVu.trim());
+	        }
+	
+	        if (tt != null) {
+	            stmt.setString(i++, tt.name());
+	        }
+	
+	        try (ResultSet rs = stmt.executeQuery()) {
+	
+	            while (rs.next()) {
+	
+	                String maNV = rs.getString("maNV");
+	                String hoten = rs.getString("hoten");
+	
+	                Date ngaySQL = rs.getDate("ngaysinh");
+	                LocalDate ngaysinh = ngaySQL != null
+	                        ? ngaySQL.toLocalDate() : null;
+	
+	                String gt1 = rs.getString("gioitinh");
+	                gioitinh gt2 = gt1 != null
+	                        ? gioitinh.valueOf(gt1) : null;
+	
+	                String sdt = rs.getString("sdt");
+	                String email = rs.getString("email");
+	                String diachi = rs.getString("diachi");
+	                String chucvu = rs.getString("chucvu");
+	
+	                String tt1 = rs.getString("trangthai");
+	                trangthai_NhanVien trangthai = tt1 != null
+	                        ? trangthai_NhanVien.valueOf(tt1) : null;
+	
+	                String maTK = rs.getString("maTK");
+	
+	                NhanVien nv = new NhanVien(
+	                    maNV, hoten, ngaysinh, gt2,
+	                    sdt, email, diachi, chucvu,
+	                    trangthai, maTK
+	                );
+	
+	                dsnv.add(nv);
+	            }
+	        }
+	
+	    } catch (SQLException | IllegalArgumentException e) {
+	        e.printStackTrace();
+	    }
+	    return dsnv;
+	}
 }

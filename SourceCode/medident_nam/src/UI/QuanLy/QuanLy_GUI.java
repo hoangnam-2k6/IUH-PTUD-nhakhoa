@@ -3,8 +3,6 @@ package UI.QuanLy;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Color;
-import java.awt.Component;
-import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -42,6 +40,10 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 	private final Color maumacdinh = Color.white;
 	private final Color maukhichon = new Color(52, 152, 219);
 	private JButton nutDangChon;
+	private ThemNhanVienPanel themNhanVienPanel;
+	private QuanLyNhanVienPanel QuanLyNhanVienPanel;
+	private SuaNhanVienPanel suaNhanVienPanel;
+	private JPanel panelNhanVienDangMo;
 	public QuanLy_GUI() {
 		setTitle("^-^");
 		setSize(1200, 800);
@@ -195,7 +197,8 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 		CardLayout = new CardLayout();
 		mainbar_center = new JPanel(CardLayout);
 		mainbar_center.add(new TrangChuQuanLyPanel(), "trangchu");
-		mainbar_center.add(new QuanLyNhanVienPanel(), "nhanvien");
+		QuanLyNhanVienPanel = new QuanLyNhanVienPanel(this::moManHinhThemNhanVien, this::moManHinhSuaNhanVien);
+		mainbar_center.add(QuanLyNhanVienPanel, "nhanvien");
 		mainbar_center.add(new QuanLyBenhNhanPanel(), "benhnhan");
 		mainbar_center.add(new QuanLyDichVuPanel(), "dichvu");
 		mainbar_center.add(new QuanLyLichHenPanel(), "lichhen");
@@ -277,6 +280,58 @@ public class QuanLy_GUI extends JFrame implements ActionListener{
 
 	    // Cập nhật nút đang được chọn
 	    nutDangChon = nutMoi;
+	}
+	private void hienThiPanelNhanVien(JPanel panelMoi) {
+
+	    if (QuanLyNhanVienPanel.getParent() == mainbar_center) {
+	        mainbar_center.remove(QuanLyNhanVienPanel);
+	    }
+
+	    if (panelNhanVienDangMo != null) {
+	        mainbar_center.remove(panelNhanVienDangMo);
+	    }
+
+	    panelNhanVienDangMo = panelMoi;
+
+	    mainbar_center.add(panelMoi, "nhanvien");
+
+	    CardLayout.show(mainbar_center, "nhanvien");
+
+	    mainbar_center.revalidate();
+	    mainbar_center.repaint();
+	}
+	private void moManHinhThemNhanVien() {
+
+	    themNhanVienPanel = new ThemNhanVienPanel(
+	        this::quayLaiDanhSachNhanVien
+	    );
+
+	    hienThiPanelNhanVien(themNhanVienPanel);
+	}
+	private void moManHinhSuaNhanVien(String maNV) {
+
+	    suaNhanVienPanel = new SuaNhanVienPanel(
+	        maNV,
+	        this::quayLaiDanhSachNhanVien
+	    );
+
+	    hienThiPanelNhanVien(suaNhanVienPanel);
+	}
+	private void quayLaiDanhSachNhanVien() {
+
+	    if (panelNhanVienDangMo != null) {
+	        mainbar_center.remove(panelNhanVienDangMo);
+	        panelNhanVienDangMo = null;
+	    }
+
+	    QuanLyNhanVienPanel.loadnhanvien();
+
+	    mainbar_center.add(QuanLyNhanVienPanel, "nhanvien");
+
+	    CardLayout.show(mainbar_center, "nhanvien");
+
+	    mainbar_center.revalidate();
+	    mainbar_center.repaint();
 	}
 	public static void main(String[] args) {
 		new QuanLy_GUI().setVisible(true);

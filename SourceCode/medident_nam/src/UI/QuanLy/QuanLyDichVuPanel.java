@@ -11,6 +11,7 @@ import java.util.List;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.JButton;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -156,5 +157,18 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener{
 	            dv.getTrangthai()
 	        });
 	    }
+	}
+	public void moframe() {
+		 JFrame frame = new JFrame("");
+
+	        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+	        frame.setContentPane(this);
+
+	        frame.setSize(1000, 750);
+	        frame.setLocationRelativeTo(null);
+	        frame.setVisible(true);
+	}
+	public static void main(String[] args) {
+		new QuanLyDichVuPanel().moframe();
 	}
 }
