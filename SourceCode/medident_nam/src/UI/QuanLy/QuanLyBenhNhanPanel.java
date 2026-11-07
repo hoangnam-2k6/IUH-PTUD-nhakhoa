@@ -11,7 +11,9 @@ import java.util.function.Consumer;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -43,11 +45,13 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
     private JPanel benhnhan_top;
     private JPanel benhnhan_top_top;
     private JPanel benhnhan_center;
+    private List<BenhNhan> dsBenhNhan;
 
     private Runnable callbackThem;
     private Consumer<String> callbackSua;
 
     private final BenhNhanDAO bnDAO = new BenhNhanDAO();
+	private JComboBox loccombo;
 
     public QuanLyBenhNhanPanel() {
         this(null, null);
@@ -60,6 +64,10 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
 
+        String[] colsBN = {
+        		"STT", "Mã bệnh nhân", "Họ tên", "Ngày sinh", "Giới tính",
+        		"Số điện thoại", "Email", "Địa chỉ", "Tiền sử bệnh", "Trạng thái"
+        };
         // Phần tiêu đề
         benhnhan_top = new JPanel(new BorderLayout(10, 10));
         benhnhan_top_top = new JPanel();
@@ -78,13 +86,16 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
 
         pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
         pbtn.setBackground(Color.WHITE);
-
+        
+        loccombo = new JComboBox<>();
+        loccombo.setModel(new DefaultComboBoxModel<>(colsBN));
         btntim = taoNut("Tìm");
         btnthem = taoNut("+ Thêm bệnh nhân");
         btnsua = taoNut("Chỉnh sửa");
         btnxoa = taoNut("Xóa");
 
         pbtn.add(txttimnhanh);
+        pbtn.add(loccombo);
         pbtn.add(btntim);
         pbtn.add(btnthem);
         pbtn.add(btnsua);
@@ -101,10 +112,6 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         benhnhan_center.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         benhnhan_center.setBackground(Color.WHITE);
 
-        String[] colsBN = {
-            "STT", "Mã bệnh nhân", "Họ tên", "Ngày sinh", "Giới tính",
-            "Số điện thoại", "Email", "Địa chỉ", "Tiền sử bệnh", "Trạng thái"
-        };
 
         modelBN = new DefaultTableModel(colsBN, 0) {
             @Override
@@ -123,6 +130,7 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         add(benhnhan_center, BorderLayout.CENTER);
 
         // Listener
+        txttimnhanh.addActionListener(e -> timBenhNhan());
         btntim.addActionListener(this);
         btnthem.addActionListener(this);
         btnsua.addActionListener(this);
@@ -145,9 +153,7 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         Object o = e.getSource();
 
         if (o == btntim) {
-            // Chức năng lọc sẽ được nối với DAO ở bước riêng.
-            JOptionPane.showMessageDialog(this, "Chức năng tìm kiếm chưa được triển khai.");
-
+            timBenhNhan();
         } else if (o == btnthem) {
             if (callbackThem != null) {
                 callbackThem.run();
@@ -182,16 +188,30 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
     }
 
     public void loadbenhnhan() {
+
         modelBN.setRowCount(0);
-        List<BenhNhan> ds = bnDAO.getallbenhnhan();
-        if (ds == null) return;
+
+        dsBenhNhan = bnDAO.getallbenhnhan();
+
+        if (dsBenhNhan == null) {
+            return;
+        }
 
         int stt = 1;
-        for (BenhNhan bn : ds) {
+
+        for (BenhNhan bn : dsBenhNhan) {
+
             modelBN.addRow(new Object[] {
-                stt++, bn.getMaBN(), bn.getHoten(), bn.getNgaysinh(),
-                bn.getGioitinh(), bn.getSdt(), bn.getEmail(), bn.getDiachi(),
-                bn.getTiensubenh(), bn.getTrangthai()
+                stt++,
+                bn.getMaBN(),
+                bn.getHoten(),
+                bn.getNgaysinh(),
+                bn.getGioitinh(),
+                bn.getSdt(),
+                bn.getEmail(),
+                bn.getDiachi(),
+                bn.getTiensubenh(),
+                bn.getTrangthai()
             });
         }
     }
@@ -243,6 +263,68 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
                     "Xóa bệnh nhân thất bại!"
                 );
             }
+        }
+    }
+    private void timBenhNhan() {
+
+        String tuKhoa = txttimnhanh.getText().trim();
+
+        int cot = loccombo.getSelectedIndex();
+
+        if (cot < 0) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Vui lòng chọn cột cần tìm!"
+            );
+            return;
+        }
+
+        if (dsBenhNhan == null || dsBenhNhan.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Danh sách bệnh nhân không có dữ liệu!"
+            );
+            return;
+        }
+
+        modelBN.setRowCount(0);
+
+        int sttGoc = 1;
+        int sttHienThi = 1;
+
+        for (BenhNhan bn : dsBenhNhan) {
+
+            Object[] dong = {
+                sttGoc,
+                bn.getMaBN(),
+                bn.getHoten(),
+                bn.getNgaysinh(),
+                bn.getGioitinh(),
+                bn.getSdt(),
+                bn.getEmail(),
+                bn.getDiachi(),
+                bn.getTiensubenh(),
+                bn.getTrangthai()
+            };
+
+            String giaTri = String.valueOf(dong[cot]);
+
+            if (tuKhoa.isEmpty()
+                    || giaTri.toLowerCase().contains(tuKhoa.toLowerCase())) {
+
+                dong[0] = sttHienThi++;
+
+                modelBN.addRow(dong);
+            }
+
+            sttGoc++;
+        }
+
+        if (modelBN.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Không tìm thấy bệnh nhân phù hợp!"
+            );
         }
     }
     public void moframe() {

@@ -12,7 +12,9 @@ import java.util.regex.Pattern;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -44,6 +46,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
     private JTable tableDV;
     private JScrollPane scrollDV;
     private JButton btntim;
+    private List<DichVu> dsDichVu;
 
     // Callback mở form thêm và sửa dịch vụ
     private Runnable moManHinhThemDichVu;
@@ -54,6 +57,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
 
     // Hỗ trợ sắp xếp và tìm kiếm trên bảng
     private TableRowSorter<DefaultTableModel> sorterDV;
+	private JComboBox loccombo;
 
     public QuanLyDichVuPanel() {
         this(null, null);
@@ -69,6 +73,10 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
 
+        String[] colsDV = {
+        		"STT", "mã dịch vụ", "Dịch Vụ",
+        		"Mô Tả", "Đơn Giá(vnđ)", "Trạng Thái"
+        };
         // Phần trên
         dichvu_top = new JPanel();
         dichvu_top.setLayout(new BorderLayout(10, 10));
@@ -91,7 +99,10 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
 
         pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
         pbtn.setBackground(Color.WHITE);
-
+        
+        loccombo = new JComboBox<>();
+        loccombo.setModel(new DefaultComboBoxModel<>(colsDV));
+        
         btntim = new JButton("tìm");
         btntim.setBackground(Color.WHITE);
         btntim.setForeground(new Color(52, 152, 219));
@@ -109,6 +120,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         btnxoa.setForeground(new Color(52, 152, 219));
 
         pbtn.add(txttimnhanh);
+        pbtn.add(loccombo);
         pbtn.add(btntim);
         pbtn.add(btnthem);
         pbtn.add(btnsua);
@@ -124,10 +136,6 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         );
         dichvu_center.setBackground(Color.WHITE);
 
-        String[] colsDV = {
-            "STT", "mã dịch vụ", "Dịch Vụ",
-            "Mô Tả", "Đơn Giá(vnđ)", "Trạng Thái"
-        };
 
         modelDV = new DefaultTableModel(colsDV, 0);
         tableDV = new JTable(modelDV);
@@ -149,6 +157,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         add(dichvu_center, BorderLayout.CENTER);
 
         // Listener
+        txttimnhanh.addActionListener(e -> timDichVu());
         btntim.addActionListener(this);
         btnthem.addActionListener(this);
         btnsua.addActionListener(this);
@@ -161,7 +170,6 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         Object o = e.getSource();
-
         if (o == btntim) {
             timDichVu();
         } else if (o == btnthem) {
@@ -175,17 +183,19 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
 
     // Tải danh sách dịch vụ từ database
     public void loaddichvu() {
+
         modelDV.setRowCount(0);
 
-        List<DichVu> ds = dvDAO.getalldichvu();
+        dsDichVu = dvDAO.getalldichvu();
 
-        if (ds == null) {
+        if (dsDichVu == null) {
             return;
         }
 
         int stt = 1;
 
-        for (DichVu dv : ds) {
+        for (DichVu dv : dsDichVu) {
+
             modelDV.addRow(new Object[] {
                 stt++,
                 dv.getMaDV(),
@@ -195,26 +205,6 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
                 dv.getTrangthai()
             });
         }
-
-        if (sorterDV != null) {
-            sorterDV.setRowFilter(null);
-        }
-    }
-
-    // Tìm dịch vụ theo nội dung nhập vào
-    private void timDichVu() {
-        String tuKhoa = txttimnhanh.getText().trim();
-
-        if (tuKhoa.isEmpty()) {
-            sorterDV.setRowFilter(null);
-            return;
-        }
-
-        sorterDV.setRowFilter(
-            RowFilter.regexFilter(
-                "(?i)" + Pattern.quote(tuKhoa)
-            )
-        );
     }
 
     // Mở form thêm dịch vụ
@@ -317,7 +307,64 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
             }
         }
     }
+    private void timDichVu() {
 
+        String tuKhoa = txttimnhanh.getText().trim();
+
+        int cot = loccombo.getSelectedIndex();
+
+        if (cot < 0) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Vui lòng chọn cột cần tìm!"
+            );
+            return;
+        }
+
+        if (dsDichVu == null || dsDichVu.isEmpty()) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Danh sách dịch vụ không có dữ liệu!"
+            );
+            return;
+        }
+
+        modelDV.setRowCount(0);
+
+        int sttGoc = 1;
+        int sttHienThi = 1;
+
+        for (DichVu dv : dsDichVu) {
+
+            Object[] dong = {
+                sttGoc,
+                dv.getMaDV(),
+                dv.getTenDV(),
+                dv.getMota(),
+                dv.getDongia(),
+                dv.getTrangthai()
+            };
+
+            String giaTri = String.valueOf(dong[cot]);
+
+            if (tuKhoa.isEmpty()
+                    || giaTri.toLowerCase().contains(tuKhoa.toLowerCase())) {
+
+                dong[0] = sttHienThi++;
+
+                modelDV.addRow(dong);
+            }
+
+            sttGoc++;
+        }
+
+        if (modelDV.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(
+                this,
+                "Không tìm thấy dịch vụ phù hợp!"
+            );
+        }
+    }
     // Chạy riêng panel để kiểm tra giao diện
     public void moframe() {
         JFrame frame = new JFrame("Quản lý dịch vụ");

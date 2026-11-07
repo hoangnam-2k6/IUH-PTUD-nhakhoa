@@ -44,7 +44,8 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
     private JTable tableNV;
     private JScrollPane scrollNV;
     private JButton btntim;
-
+    private List<NhanVien> dsNhanVien;
+    
     private Runnable moManHinhThemNhanVien;
     private Consumer<String> moManHinhSuaNhanVien;
 
@@ -140,6 +141,7 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
         add(nhanvien_center, BorderLayout.CENTER);
 
         // Listener
+        txttimnhanh.addActionListener(e -> timNhanVien());
         btntim.addActionListener(this);
         btnthem.addActionListener(this);
         btnsua.addActionListener(this);
@@ -154,7 +156,7 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
         Object o = e.getSource();
 
         if (o == btntim) {
-            // Chức năng tìm kiếm chưa được triển khai.
+           timNhanVien();
         } else if (o == btnthem) {
             if (moManHinhThemNhanVien != null) {
                 moManHinhThemNhanVien.run();
@@ -191,15 +193,21 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
     }
 
     public void loadnhanvien() {
+
+        // Xóa dữ liệu cũ trên bảng
         modelNV.setRowCount(0);
 
-        List<NhanVien> ds = nvDAO.getallnhanvien();
-        if (ds == null) {
+        // Lấy toàn bộ danh sách nhân viên
+        dsNhanVien = nvDAO.getallnhanvien();
+
+        if (dsNhanVien == null) {
             return;
         }
 
         int stt = 1;
-        for (NhanVien nv : ds) {
+
+        for (NhanVien nv : dsNhanVien) {
+
             modelNV.addRow(new Object[] {
                 stt++,
                 nv.getMaNV(),
@@ -264,6 +272,77 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
             }
         }
     }
+    private void timNhanVien() {
+
+    String tuKhoa = txttimnhanh.getText().trim();
+
+    int cot = loccombo.getSelectedIndex();
+
+    if (cot < 0) {
+        JOptionPane.showMessageDialog(
+            this,
+            "Vui lòng chọn cột cần tìm!"
+        );
+        return;
+    }
+
+    if (dsNhanVien == null || dsNhanVien.isEmpty()) {
+        JOptionPane.showMessageDialog(
+            this,
+            "Danh sách nhân viên không có dữ liệu!"
+        );
+        return;
+    }
+
+    // Xóa dữ liệu cũ trên bảng
+    modelNV.setRowCount(0);
+
+    int sttGoc = 1;
+    int sttHienThi = 1;
+
+    // Duyệt danh sách nhân viên gốc
+    for (NhanVien nv : dsNhanVien) {
+
+        Object[] dong = {
+            sttGoc,
+            nv.getMaNV(),
+            nv.getHoten(),
+            nv.getNgaysinh(),
+            nv.getGioitinh(),
+            nv.getSdt(),
+            nv.getEmail(),
+            nv.getDiachi(),
+            nv.getChucvu(),
+            nv.getTrangthai(),
+            nv.getMaTK()
+        };
+
+        // Lấy giá trị tại cột đang chọn
+        String giaTri = String.valueOf(dong[cot]);
+
+        // Nếu từ khóa rỗng hoặc có chứa từ khóa tìm kiếm
+        if (tuKhoa.isEmpty()
+                || giaTri.toLowerCase().contains(tuKhoa.toLowerCase())) {
+
+            // Đánh lại số thứ tự hiển thị
+            dong[0] = sttHienThi++;
+
+            modelNV.addRow(dong);
+        }
+
+        // Tăng STT gốc
+        sttGoc++;
+    }
+
+    // Kiểm tra kết quả
+    if (modelNV.getRowCount() == 0) {
+
+        JOptionPane.showMessageDialog(
+            this,
+            "Không tìm thấy nhân viên phù hợp!"
+        );
+    }
+}
     // Tự khai báo cửa sổ để chạy riêng panel
     public void moframe() {
         JFrame frame = new JFrame("");
