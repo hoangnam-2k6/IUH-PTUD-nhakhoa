@@ -1,0 +1,78 @@
+MEDIDENT - 7 YÊU CẦU - HƯỚNG DẪN CHẠY / KIỂM TRA (08/11/2026)
+
+A. NGUỒN GỐC VÀ PHẠM VI
+- Sửa trên ZIP người dùng gửi: MediDent_DongBo_3GUI_Admin_ConnectDB(1).zip.
+- Giữ ba vai trò Quản trị viên / Quản lý phòng khám / Lễ tân và các chức năng cũ.
+- Bổ sung các Dao, Entity và bảng SQL thiếu để dự án biên dịch đủ.
+- Nguyên tắc CLAUDE.md: chỉ chỉnh phạm vi kết nối, lỗi truy vấn, thanh toán,
+  khuyến mãi, tài khoản full và các phần liên quan trực tiếp.
+
+B. SQL SERVER 2012: HAI CÁCH CHẠY (CHỈ CHỌN MỘT)
+CÁCH 1: Chạy SQLData/00_KhoiTao_Va_DuLieuDemo_DAY_DU_SQL2012.sql duy nhất.
+CÁCH 2: Lần lượt chạy SQLData/01_MediDent.sql, 02_DuLieuMau_MediDent.sql,
+        03_TaiKhoan_Demo_Full.sql.
+Sau đó chạy SQLData/04_KiemTra_SQL2012_CHI_DOC.sql để kiểm tra.
+QUAN TRỌNG: Chỉ chạy trên SQL Server demo mới hoặc CSDL tương thích.
+Nếu có CSDL MediDent từ phiên bản cũ, SAO LƯU và tạo CSDL demo riêng trước khi chạy.
+Không tự xóa/cập nhật dữ liệu bệnh nhân thật bằng script demo.
+
+C. CẤU HÌNH JDBC
+Class: src/main/java/ConnectDB/ConnectDB.java
+Mặc định: localhost:1433;databaseName=MediDent;encrypt=false;trustServerCertificate=true
+Username mặc định: sa. Mật khẩu mặc định: sapassword (CHỈ demo).
+Có thể cấu hình bằng biến môi trường:
+  MEDIDENT_DB_URL
+  MEDIDENT_DB_USER
+  MEDIDENT_DB_PASSWORD
+Pool tối đa 5 kết nối. DAO sử dụng try-with-resources; close() trả handle về pool.
+KHÔNG gọi ConnectDB.disconnect() sau mỗi nút / truy vấn.
+Nếu SQL Server 2012 chưa bật TCP/IP, hãy bật TCP/IP/port 1433 và SQL Authentication.
+
+D. TÀI KHOẢN KIỂM THỬ
+  admin    / Admin@123           : Quản trị viên
+  quanly   / QuanLy@123          : Quản lý phòng khám
+  letan    / LeTan@123           : Lễ tân
+  letan2   / LeTan2@123          : Lễ tân thứ hai
+  full     / MediDent#2026Demo! : Ngoại lệ kiểm thử, cửa sổ FULL RIÊNG
+Mật khẩu demo có BCrypt; thay mật khẩu khi không còn kiểm thử.
+Admin không nhìn thấy full trong DS tài khoản, số liệu tài khoản, lịch sử đăng nhập.
+Full không dùng dropdown vai trò. Menu cuộn và mở các panel nghiệp vụ trực tiếp.
+Không cho sửa/xóa/reset full từ màn Quản lý tài khoản.
+
+E. MENU VÀ PHÂN QUYỀN
+- Quản lý: thêm QL_KHUYENMAI (SQL VaiTroQuyen), vào menu Quản lý khuyến mãi;
+  QL_THANHTOAN mở ThanhToanPanel mới.
+- Lễ tân: LT_THANHTOAN mở ThanhToanPanel mới.
+- Quản lý/Lễ tân còn có nút "Lập hóa đơn theo dịch vụ" kế thừa màn hóa đơn
+  để tiếp nhận phiếu chưa có ChiTietDieuTri; ưu đãi được tính lại lúc thu.
+  Thanh toán mới không liệt kê phiếu đã có hóa đơn dự thảo để tránh lập trùng.
+- Full: dùng UI.Chung.FullGUI; nút Admin, quản lý, lễ tân trực tiếp.
+- Quyền kiểm tra trong DAO khi ghi/đọc thanh toán, không chỉ ẩn/hiện nút.
+
+F. THỬ THAO TÁC NHIỀU LẦN
+1. Đăng nhập quanly, mở DS bệnh nhân/nhân viên/dịch vụ; phải hiện bảng có dữ liệu.
+2. Mở Quản lý mã khuyến mãi; thấy KM10, KM20, KM300. Thêm mã và bật/tắt.
+3. Đăng nhập letan, mở Thanh toán và hóa đơn; phiếu hoàn thành chưa thu xuất hiện.
+4. Chọn phiếu, kiểm tra mã ưu đãi giảm tiền thực tế nhiều nhất được tự chọn.
+5. Thu tiền, nhập đúng tiền/maGiaoDich (nếu chuyển khoản), xác nhận nhận đủ.
+6. Tải lại, kiểm tra phiếu không còn chờ thu và hóa đơn trong lịch sử.
+7. Thử 2 nhân viên thu cùng một phiếu: SQL transaction / index chống trùng.
+8. Đăng nhập full; xác nhận tất cả nút trong JScrollPane mở panel riêng.
+9. Đăng nhập admin; full không có trong danh sách tài khoản.
+10. Nhập nhân viên/bệnh nhân mới: MaNV/MaBN do SQL tự cấp, không nhập thủ công.
+11. Xem Báo cáo thống kê; doanh thu lấy SQL, không là số giả.
+
+G. GIỚI HẠN KIỂM TRA
+- Đã biên dịch Java qua javac bằng stub kiểm tra cú pháp BCrypt (stub chỉ ở /tmp,
+  KHÔNG được đưa vào source/bản ZIP). Ứng dụng thật cần thư viện jbcrypt từ Maven.
+- Đã chạy 5 kiểm thử logic giảm giá. Đã kiểm tra 5 mật khẩu demo khớp BCrypt.
+- KHÔNG có máy chủ SQL Server 2012 để chạy script và thử JDBC tích hợp trực tiếp.
+  Chưa thể xác nhận thực thi SQL, tài khoản thật, UI thật và đồng thời thu tiền trên DB.
+- Khi có bản CSDL cũ schema khác, KHÔNG coi script khởi tạo là migration tương thích.
+- Tài khoản full là phương tiện demo/đào tạo; không dùng cho môi trường sản xuất.
+
+H. CHẠY CHƯƠNG TRÌNH
+- Mở thư mục MediDentAdmin như Maven project Java 17+.
+- Đảm bảo pom.xml có mssql-jdbc, jbcrypt, internet hoặc Maven cache để tải thư viện.
+- Chạy UI.DangNhap.DangNhap.main; không dùng main() xem trước của các GUI vai trò
+  để kiểm thử quyền hoặc dữ liệu thực.
