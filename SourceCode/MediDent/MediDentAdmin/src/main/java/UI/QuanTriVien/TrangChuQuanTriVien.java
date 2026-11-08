@@ -1,6 +1,6 @@
 package UI.QuanTriVien;
 
-import Class.TaiKhoan;
+import Entity.TaiKhoan;
 import DAO.TaiKhoanDAO;
 import java.awt.*;
 import java.util.List;

@@ -37,8 +37,8 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 
 
-import Class.TaiKhoan;
-import Class.VaiTro;
+import Entity.TaiKhoan;
+import Entity.VaiTro;
 import DAO.TaiKhoanDAO;
 
 
@@ -225,6 +225,7 @@ public class QuanLyPhanQuyen extends JPanel {
                     old != null && i < old.quyen.length && old.quyen[i]);
             if (i < 2) permissions[i].setEnabled(false); // Chỉ Admin có quyền tài khoản / phân quyền.
             form.add(permissions[i]);
+            permissions[i].setBackground(Color.white);
         }
 
         // Form sửa quyền hiển thị thay cho bảng, không mở hộp thoại.

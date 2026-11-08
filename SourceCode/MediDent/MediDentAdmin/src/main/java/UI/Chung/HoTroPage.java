@@ -1,6 +1,6 @@
 package UI.Chung;
 
-import Class.TaiKhoan;
+import Entity.TaiKhoan;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;

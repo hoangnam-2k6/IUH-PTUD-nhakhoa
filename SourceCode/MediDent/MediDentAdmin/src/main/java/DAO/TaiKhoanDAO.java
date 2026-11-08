@@ -1,10 +1,10 @@
 package DAO;
 
-import Class.TaiKhoan;
-import Class.VaiTro;
+import Entity.TaiKhoan;
+import Entity.VaiTro;
 import Enum.VaiTroHeThong;
-import TienIch.EmailHopLe;
-import TienIch.MatKhauHopLe;
+import Valid.EmailHopLe;
+import Valid.MatKhauHopLe;
 import ConnectDB.ConnectDB;
 import java.sql.*;
 import java.time.LocalDate;
@@ -15,13 +15,13 @@ import org.mindrot.jbcrypt.BCrypt;
 public class TaiKhoanDAO {
     private static final String[] QUYEN = {
         "TAIKHOAN", "PHANQUYEN", "HOTRO",
-        "QL_NHANVIEN", "QL_DICHVU", "QL_BENHNHAN", "QL_LICHHEN", "QL_THANHTOAN", "QL_BAOCAO",
+        "QL_NHANVIEN", "QL_DICHVU", "QL_BENHNHAN", "QL_LICHHEN", "QL_THANHTOAN", "QL_KHUYENMAI", "QL_BAOCAO",
         "LT_KHAM", "LT_TIEPNHAN", "LT_LICHHEN", "LT_THANHTOAN", "LT_TRACUU"
     };
     private static final String[] TEN_QUYEN = {
         "Quản lý tài khoản", "Phân quyền tài khoản", "Hỗ trợ",
         "Quản lý nhân viên", "Quản lý dịch vụ", "Quản lý bệnh nhân", "Lịch hẹn (Quản lý)",
-        "Thanh toán (Quản lý)", "Báo cáo (Quản lý)",
+        "Thanh toán (Quản lý)", "Quản lý mã khuyến mãi", "Báo cáo (Quản lý)",
         "Khám và điều trị", "Tiếp nhận bệnh nhân", "Lịch hẹn (Lễ tân)",
         "Thanh toán (Lễ tân)", "Tra cứu thông tin"
     };
@@ -40,7 +40,7 @@ public class TaiKhoanDAO {
         String sql="SELECT "+COT_TAI_KHOAN+",t.matKhau "+JOIN_TAI_KHOAN+
                    " WHERE t.tenDangNhap=? AND n.trangThai=N'Đang làm việc' " +
                    "AND v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân')";
-        try(Connection c=ConnectDB.mo()) {
+        try(Connection c=ConnectDB.getConnection()) {
             TaiKhoan result=null;
             try(PreparedStatement s=c.prepareStatement(sql)) {
                 s.setString(1,username);
@@ -97,7 +97,7 @@ public class TaiKhoanDAO {
     public String tuDatLaiMatKhau(String tenDangNhap, LocalDate ngaySinh) throws SQLException {
         if (tenDangNhap == null || tenDangNhap.trim().isEmpty() || ngaySinh == null)
             return null;
-        try (Connection c = ConnectDB.mo()) {
+        try (Connection c = ConnectDB.getConnection()) {
             c.setAutoCommit(false);
             try {
                 int maTK;
@@ -105,7 +105,7 @@ public class TaiKhoanDAO {
                 String sql = "SELECT t.maTK,n.hoTen FROM dbo.TaiKhoan t WITH (UPDLOCK,HOLDLOCK) "
                         + "JOIN dbo.NhanVien n ON n.maTK=t.maTK "
                         + "WHERE t.tenDangNhap=? AND n.ngaySinh=? "
-                        + "AND t.trangThai=N'Hoạt động' AND n.trangThai=N'Đang làm việc'";
+                        + "AND t.trangThai=N'Hoạt động' AND n.trangThai=N'Đang làm việc' AND t.tenDangNhap<>'full'";
                 try (PreparedStatement p = c.prepareStatement(sql)) {
                     p.setString(1, tenDangNhap.trim());
                     p.setDate(2, java.sql.Date.valueOf(ngaySinh));
@@ -140,8 +140,8 @@ public class TaiKhoanDAO {
         List<String[]> rows = new ArrayList<>();
         String sql = "SELECT TOP 100 CONVERT(varchar(19),thoiGian,120) AS gio, "
                 + "tenDangNhap,ISNULL(tenVaiTro,N'Không xác định') AS vaiTro,ketQua "
-                + "FROM dbo.LichSuDangNhap ORDER BY thoiGian DESC,maLichSu DESC";
-        try (Connection c = ConnectDB.mo(); PreparedStatement p = c.prepareStatement(sql);
+                + "FROM dbo.LichSuDangNhap WHERE tenDangNhap<>'full' ORDER BY thoiGian DESC,maLichSu DESC";
+        try (Connection c = ConnectDB.getConnection(); PreparedStatement p = c.prepareStatement(sql);
              ResultSet r = p.executeQuery()) {
             while (r.next()) rows.add(new String[]{r.getString(1),r.getString(2),
                     r.getString(3),r.getString(4)});
@@ -156,8 +156,8 @@ public class TaiKhoanDAO {
                 + "COUNT(CASE WHEN t.trangThai=N'Hoạt động' THEN 1 END), "
                 + "COUNT(CASE WHEN t.trangThai=N'Tạm khóa' THEN 1 END) "
                 + "FROM dbo.TaiKhoan t JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro "
-                + "WHERE v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân')";
-        try (Connection c = ConnectDB.mo();
+                + "WHERE v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân') AND t.tenDangNhap<>'full'";
+        try (Connection c = ConnectDB.getConnection();
              PreparedStatement p = c.prepareStatement(sql);
              ResultSet r = p.executeQuery()) {
             if (r.next()) return new int[]{r.getInt(1), r.getInt(2), r.getInt(3), 3};
@@ -177,10 +177,10 @@ public class TaiKhoanDAO {
         yeuCauQuyen(actor, "TAIKHOAN"); // Chỉ Admin được đọc danh sách tài khoản.
         List<TaiKhoan> ds=new ArrayList<>();
         String sql="SELECT "+COT_TAI_KHOAN+JOIN_TAI_KHOAN+
-            " WHERE v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân')"+
+            " WHERE v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân') AND t.tenDangNhap<>'full'"+
             " AND (n.hoTen LIKE ? OR n.email LIKE ? OR t.tenDangNhap LIKE ?)"+
             " AND (?=0 OR t.maVaiTro=?) AND (?='' OR t.trangThai=?) ORDER BY t.maTK DESC";
-        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(sql)) {
+        try(Connection c=ConnectDB.getConnection();PreparedStatement s=c.prepareStatement(sql)) {
             String term="%"+keyword+"%";
             for(int i=1;i<=3;i++)s.setString(i,term);
             s.setInt(4,role);s.setInt(5,role);s.setString(6,status);s.setString(7,status);
@@ -195,7 +195,7 @@ public class TaiKhoanDAO {
             " FROM dbo.VaiTro v LEFT JOIN dbo.VaiTroQuyen vq ON v.maVaiTro=vq.maVaiTro"+
             " LEFT JOIN dbo.Quyen q ON vq.maQuyen=q.maQuyen"+
             " WHERE v.tenVaiTro IN (N'Quản trị viên',N'Quản lý phòng khám',N'Lễ tân') ORDER BY v.maVaiTro";
-        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(sql);ResultSet r=s.executeQuery()) {
+        try(Connection c=ConnectDB.getConnection();PreparedStatement s=c.prepareStatement(sql);ResultSet r=s.executeQuery()) {
             VaiTro old=null;
             while(r.next()) {
                 int id=r.getInt(1);
@@ -211,7 +211,7 @@ public class TaiKhoanDAO {
     }
 
     public boolean laQuanTriVien(int role) throws SQLException {
-        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(
+        try(Connection c=ConnectDB.getConnection();PreparedStatement s=c.prepareStatement(
                 "SELECT 1 FROM dbo.VaiTro WHERE maVaiTro=? AND tenVaiTro=N'Quản trị viên'")) {
             s.setInt(1,role);try(ResultSet r=s.executeQuery()){return r.next();}
         }
@@ -222,7 +222,7 @@ public class TaiKhoanDAO {
             " ON t.maVaiTro=q.maVaiTro JOIN dbo.NhanVien n ON n.maTK=t.maTK " +
             "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' " +
             "AND n.trangThai=N'Đang làm việc' AND q.maQuyen=?";
-        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(sql)){
+        try(Connection c=ConnectDB.getConnection();PreparedStatement s=c.prepareStatement(sql)){
             s.setInt(1,maTK);s.setString(2,maQuyen);
             try(ResultSet r=s.executeQuery()){return r.next();}
         }
@@ -232,9 +232,19 @@ public class TaiKhoanDAO {
         String sql="SELECT 1 FROM dbo.TaiKhoan t JOIN dbo.VaiTro v ON t.maVaiTro=v.maVaiTro " +
             "WHERE t.maTK=? AND t.trangThai=N'Hoạt động' AND v.tenVaiTro=N'Quản trị viên' " +
             "AND EXISTS (SELECT 1 FROM dbo.NhanVien n WHERE n.maTK=t.maTK AND n.trangThai=N'Đang làm việc')";
-        try(Connection c=ConnectDB.mo();PreparedStatement s=c.prepareStatement(sql)){
+        try(Connection c=ConnectDB.getConnection();PreparedStatement s=c.prepareStatement(sql)){
             s.setInt(1,maTK);
             try(ResultSet r=s.executeQuery()){return r.next();}
+        }
+    }
+
+    private static void camSuaFull(int maTK) throws SQLException {
+        try (Connection c=ConnectDB.getConnection(); PreparedStatement p=c.prepareStatement(
+                "SELECT 1 FROM dbo.TaiKhoan WHERE maTK=? AND tenDangNhap='full'")) {
+            p.setInt(1,maTK);
+            try (ResultSet r=p.executeQuery()) {
+                if (r.next()) throw new SQLException("Tài khoản kiểm thử full không được chỉnh sửa từ danh sách tài khoản.");
+            }
         }
     }
 
@@ -247,7 +257,7 @@ public class TaiKhoanDAO {
                 "FROM sys.identity_columns " +
                 "WHERE object_id = OBJECT_ID(N'dbo.TaiKhoan') " +
                 "AND name = N'maTK'";
-        try (Connection c = ConnectDB.mo();
+        try (Connection c = ConnectDB.getConnection();
              PreparedStatement statement = c.prepareStatement(sql);
              ResultSet rs = statement.executeQuery()) {
             if (!rs.next()) {
@@ -269,6 +279,7 @@ public class TaiKhoanDAO {
                                  int role, String status, String newPassword,
                                  LocalDate ngaySinh, int actor) throws SQLException {
         yeuCauQuyen(actor, "TAIKHOAN");
+        if (id != 0) camSuaFull(id);
         // Khi them moi, tenDangNhap tu sinh nv1, nv2, nv3...; sua thi giu nguyen.
         if(name==null||name.trim().isEmpty())
             throw new SQLException("Thiếu tên nhân viên.");
@@ -283,7 +294,7 @@ public class TaiKhoanDAO {
             throw new SQLException("Ngày sinh nhân viên không hợp lệ.");
         if (id == 0 && !MatKhauHopLe.kiemTra(newPassword))
             throw new SQLException(MatKhauHopLe.huongDan());
-        try(Connection c=ConnectDB.mo()) {
+        try(Connection c=ConnectDB.getConnection()) {
             c.setAutoCommit(false);
             try {
                 int accountId=id;
@@ -403,8 +414,9 @@ public class TaiKhoanDAO {
 
     public void xoaTK(int id,int actor) throws SQLException {
         yeuCauQuyen(actor, "TAIKHOAN");
+        camSuaFull(id);
         if(id==actor)throw new SQLException("Không thể xóa tài khoản đang đăng nhập.");
-        try(Connection c=ConnectDB.mo()) {
+        try(Connection c=ConnectDB.getConnection()) {
             c.setAutoCommit(false);
             try {
                 Integer staffId=null;
@@ -446,7 +458,7 @@ public class TaiKhoanDAO {
             throw new SQLException("Danh sách quyền không hợp lệ.");
         if (rights[0] || rights[1])
             throw new SQLException("Không được cấp quyền quản trị cho vai trò khác.");
-        try (Connection c = ConnectDB.mo()) {
+        try (Connection c = ConnectDB.getConnection()) {
             c.setAutoCommit(false);
             try {
                 try (PreparedStatement p = c.prepareStatement(
@@ -491,9 +503,10 @@ public class TaiKhoanDAO {
     }
 
     public LocalDate ngaySinhNhanVien(int maTK, int actor) throws SQLException {
+        camSuaFull(maTK);
         if (!laQuanTriVienTaiKhoan(actor) || !coQuyenTaiKhoan(actor, "TAIKHOAN"))
             throw new SQLException("Không có quyền đọc ngày sinh nhân viên.");
-        try (Connection c=ConnectDB.mo(); PreparedStatement p=c.prepareStatement(
+        try (Connection c=ConnectDB.getConnection(); PreparedStatement p=c.prepareStatement(
                 "SELECT ngaySinh FROM dbo.NhanVien WHERE maTK=?")) {
             p.setInt(1,maTK);
             try (ResultSet r=p.executeQuery()) {
@@ -509,7 +522,8 @@ public class TaiKhoanDAO {
     /** Mật khẩu cấp lại: Tên (viết hoa chữ đầu) + ddMMyyyy, bắt buộc đổi sau đăng nhập. */
     public String datLaiMatKhauTheoNgaySinh(int maTK, int actor) throws SQLException {
         yeuCauQuyen(actor, "TAIKHOAN");
-        try (Connection c = ConnectDB.mo()) {
+        camSuaFull(maTK);
+        try (Connection c = ConnectDB.getConnection()) {
             c.setAutoCommit(false);
             try {
                 String matKhau = datLaiMatKhau(c, maTK, actor);
@@ -565,7 +579,7 @@ public class TaiKhoanDAO {
             throws SQLException {
         if (!MatKhauHopLe.kiemTra(matKhauMoi))
             throw new SQLException("Mật khẩu mới ít nhất 10 ký tự, có chữ hoa và số.");
-        try(Connection c=ConnectDB.mo()) {
+        try(Connection c=ConnectDB.getConnection()) {
             c.setAutoCommit(false);
             try {
                 String oldHash;

@@ -37,7 +37,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 
 
-import Class.TaiKhoan;
+import Entity.TaiKhoan;
 import DAO.TaiKhoanDAO;
 
 import java.awt.Component;
@@ -77,8 +77,8 @@ final class DoiMatKhauBatBuoc {
         Runnable kiemTraCu = () -> loiCu.setText(hienTai.getPassword().length == 0
                 ? "Vui lòng nhập mật khẩu hiện tại." : "");
         Runnable kiemTraMoi = () -> loiMoi.setText(
-                TienIch.MatKhauHopLe.kiemTra(new String(moi.getPassword())) ? ""
-                        : TienIch.MatKhauHopLe.huongDan());
+                Valid.MatKhauHopLe.kiemTra(new String(moi.getPassword())) ? ""
+                        : Valid.MatKhauHopLe.huongDan());
         Runnable kiemTraXacNhan = () -> loiXacNhan.setText(
                 xacNhan.getPassword().length > 0
                         && Arrays.equals(moi.getPassword(), xacNhan.getPassword())

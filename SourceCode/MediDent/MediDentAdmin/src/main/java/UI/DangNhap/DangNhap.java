@@ -37,11 +37,13 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 
 
-import Class.TaiKhoan;
+import Entity.TaiKhoan;
 import DAO.TaiKhoanDAO;
 
 
-import UI.Chung.KhungChinh;
+import UI.QuanTriVien.QuanTriVienGUI;
+import UI.QuanLy.QuanLyGUI;
+import UI.LeTan.LeTanGUI;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -316,7 +318,15 @@ public final class DangNhap extends JFrame {
                         if (nguoiDung.phaiDoiMatKhau
                                 && !DoiMatKhauBatBuoc.thucHien(DangNhap.this, db, nguoiDung)) return;
                         dispose();
-                        new KhungChinh(nguoiDung, db).setVisible(true); // Điều hướng đúng vai trò.
+                        if ("full".equals(nguoiDung.tenDangNhap) &&
+                                "Quản trị viên".equals(nguoiDung.tenVaiTro)) {
+                            new UI.Chung.FullGUI(nguoiDung,db).setVisible(true);
+                        } else switch (nguoiDung.tenVaiTro) {
+                            case "Quản trị viên" -> new QuanTriVienGUI(nguoiDung, db).setVisible(true);
+                            case "Quản lý phòng khám" -> new QuanLyGUI(nguoiDung, db).setVisible(true);
+                            case "Lễ tân" -> new LeTanGUI(nguoiDung, db).setVisible(true);
+                            default -> throw new IllegalStateException("Vai trò chưa được hỗ trợ: " + nguoiDung.tenVaiTro);
+                        } // Chỉ điều hướng sau khi xác thực thành công.
                     } catch (InterruptedException ex) {
                         Thread.currentThread().interrupt();
                     } catch (ExecutionException ex) {

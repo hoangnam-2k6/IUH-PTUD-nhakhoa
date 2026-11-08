@@ -37,10 +37,10 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 
 
-import Class.TaiKhoan;
-import Class.VaiTro;
-import TienIch.EmailHopLe;
-import TienIch.MatKhauHopLe;
+import Entity.TaiKhoan;
+import Entity.VaiTro;
+import Valid.EmailHopLe;
+import Valid.MatKhauHopLe;
 import DAO.TaiKhoanDAO;
 
 
@@ -379,6 +379,7 @@ public class QuanLyTaiKhoan extends JPanel {
         JPanel form = new JPanel(new GridLayout(0, 2, 10, 12));
         form.add(GiaoDienQuanLyTaiKhoan.label(creating ? "Mã tài khoản (dự kiến)" : "Mã tài khoản", 12, true));
         form.add(idTuDong);
+        
         form.add(GiaoDienQuanLyTaiKhoan.label("Tên đăng nhập (tự động)", 12, true));
         form.add(username);
         if (!creating) {
@@ -402,6 +403,7 @@ public class QuanLyTaiKhoan extends JPanel {
 
         JPanel formChinh = new JPanel(new BorderLayout(0, 12));
         formChinh.add(form, BorderLayout.CENTER);
+        formChinh.setBackground(Color.white);
         // Click vào khoảng trắng cũng làm ô hiện tại mất focus và kiểm tra ngay.
         formChinh.setFocusable(true);
         form.setFocusable(true);
@@ -603,6 +605,7 @@ final class GiaoDienQuanLyTaiKhoan {
         result.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, fontSize));
         result.setForeground(bold ? TEXT : MUTED);
         result.setAlignmentX(Component.LEFT_ALIGNMENT);
+        result.setBackground(Color.white);
         return result;
     }
 
