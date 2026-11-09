@@ -4,7 +4,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Types;
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -21,6 +20,34 @@ public class DichVuDAO {
     public DichVuDAO() {
         dsdv = new ArrayList<>();
         dv = new DichVu();
+    }
+
+    // Lấy mã dịch vụ tiếp theo theo định dạng DV001, DV002, ...
+    public String getMaDichVuTiepTheo() throws SQLException {
+
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
+
+        if (con == null) {
+            throw new SQLException("Chưa kết nối SQL Server!");
+        }
+
+        String sql = "SELECT COALESCE(MAX(TRY_CONVERT(BIGINT, "
+                   + "SUBSTRING(maDV, 3, LEN(maDV)))), 0) + 1 AS nextNumber "
+                   + "FROM DichVu "
+                   + "WHERE UPPER(LEFT(maDV, 2)) = 'DV' "
+                   + "AND TRY_CONVERT(BIGINT, SUBSTRING(maDV, 3, LEN(maDV))) IS NOT NULL";
+
+        try (PreparedStatement stmt = con.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                long soTiepTheo = rs.getLong("nextNumber");
+                return String.format(java.util.Locale.ROOT, "DV%03d", soTiepTheo);
+            }
+        }
+
+        throw new SQLException("Không lấy được mã dịch vụ tiếp theo.");
     }
 
     // 1. Lấy tất cả dịch vụ
@@ -70,40 +97,33 @@ public class DichVuDAO {
         ConnectDB.GetInstance();
         Connection con = ConnectDB.getConnection();
 
-        int n = 0;
+        if (con == null) {
+            return false;
+        }
 
         String sql = "INSERT INTO DichVu "
-                   + "(tenDV, moTa, donGia, trangThai) "
-                   + "VALUES (?, ?, ?, ?)";
+                   + "(maDV, tenDV, moTa, donGia, trangThai) "
+                   + "VALUES (?, ?, ?, ?, ?)";
 
-        try (PreparedStatement stmt = con.prepareStatement(
-                sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = con.prepareStatement(sql)) {
 
-            stmt.setString(1, dv.getTenDV());
-            stmt.setString(2, dv.getMota());
-            stmt.setBigDecimal(3, dv.getDongia());
+            stmt.setString(1, dv.getMaDV());
+            stmt.setString(2, dv.getTenDV());
+            stmt.setString(3, dv.getMota());
+            stmt.setBigDecimal(4, dv.getDongia());
 
             if (dv.getTrangthai() != null) {
-                stmt.setString(4, dv.getTrangthai().name());
+                stmt.setString(5, dv.getTrangthai().name());
             } else {
-                stmt.setNull(4, Types.NVARCHAR);
+                stmt.setNull(5, Types.NVARCHAR);
             }
 
-            n = stmt.executeUpdate();
-
-            if (n > 0) {
-                try (ResultSet rs = stmt.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        dv.setMaDV(rs.getString(1));
-                    }
-                }
-            }
+            return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
-
-        return n > 0;
     }
 
     // 3. Cập nhật dịch vụ
@@ -133,11 +153,11 @@ public class DichVuDAO {
                 stmt.setNull(4, Types.NVARCHAR);
             }
 
-            stmt.setInt(5, Integer.parseInt(dv.getMaDV()));
+            stmt.setString(5, dv.getMaDV());
 
             n = stmt.executeUpdate();
 
-        } catch (SQLException | NumberFormatException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
 
@@ -158,11 +178,11 @@ public class DichVuDAO {
         try (PreparedStatement stmt = con.prepareStatement(sql)) {
 
             stmt.setString(1, trangthai_dichvu.NGUNGAPDUNG.name());
-            stmt.setInt(2, Integer.parseInt(maDV));
+            stmt.setString(2, maDV);
 
             n = stmt.executeUpdate();
 
-        } catch (SQLException | NumberFormatException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         }
 

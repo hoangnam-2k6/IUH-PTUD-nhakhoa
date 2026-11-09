@@ -23,6 +23,9 @@ public class Regex_BenhNhan {
             );
 
     // Số điện thoại: bắt đầu bằng 0 hoặc +84
+    private static final Pattern REGEX_SDT_INPUT =
+            Pattern.compile("^[0-9]{0,20}$");
+
     private static final Pattern REGEX_SDT =
             Pattern.compile(
                 "^(?:0[0-9]{9,10}|\\+84[0-9]{9,10})$"
@@ -146,6 +149,11 @@ public class Regex_BenhNhan {
 
         return kiemTraDoDai(sdt, 20)
                 && REGEX_SDT.matcher(sdt.trim()).matches();
+    }
+
+    // Kiểm tra dữ liệu tạm thời khi đang nhập số điện thoại.
+    public static boolean isValidSDTInput(String sdt) {
+        return sdt != null && REGEX_SDT_INPUT.matcher(sdt).matches();
     }
 
 

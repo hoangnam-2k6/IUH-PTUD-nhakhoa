@@ -31,6 +31,9 @@ public class Regex_DichVu {
             );
 
     // Đơn giá: tối đa 16 chữ số nguyên và 2 chữ số thập phân
+    private static final Pattern REGEX_DONGIA_INPUT =
+            Pattern.compile("^[0-9]{1,16}([.,][0-9]{0,2})?$");
+
     private static final Pattern REGEX_DONGIA =
             Pattern.compile("^[0-9]{1,16}(\\.[0-9]{1,2})?$");
 
@@ -123,6 +126,17 @@ public class Regex_DichVu {
         } catch (NumberFormatException e) {
             return false;
         }
+    }
+
+    // Kiểm tra chuỗi tạm thời trong lúc người dùng đang nhập đơn giá.
+    // Cho phép chuỗi rỗng và phần thập phân chưa hoàn chỉnh (ví dụ: 1200.).
+    public static boolean isValidDonGiaInput(String donGia) {
+        if (donGia == null) {
+            return false;
+        }
+
+        return donGia.isEmpty()
+                || REGEX_DONGIA_INPUT.matcher(donGia).matches();
     }
 
     // Kiểm tra khi dữ liệu đã chuyển sang BigDecimal

@@ -16,6 +16,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -24,6 +28,7 @@ import DAO.NhanVienDAO;
 import Entity.NhanVien;
 import enums.gioitinh;
 import enums.trangthai_NhanVien;
+import validation.Regex_NhanVien;
 
 @SuppressWarnings("serial")
 public class SuaNhanVienPanel extends JPanel implements ActionListener {
@@ -74,6 +79,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         txtHoTen = taoTextField();
         txtNgaySinh = taoTextField();
         txtSDT = taoTextField();
+        chiChoNhapSo(txtSDT);
         txtEmail = taoTextField();
         txtChucVu = taoTextField();
         txtMaTK = taoTextField();
@@ -182,6 +188,33 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         b.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
+    // Lọc ký tự nhập vào; quy tắc chữ số được lấy từ validation.Regex_NhanVien.
+    private void chiChoNhapSo(JTextField textField) {
+        ((AbstractDocument) textField.getDocument()).setDocumentFilter(new DocumentFilter() {
+            private boolean hopLe(String text) {
+                return Regex_NhanVien.isValidSDTInput(text);
+            }
+
+            @Override
+            public void insertString(FilterBypass fb, int offset, String text,
+                    AttributeSet attr) throws BadLocationException {
+                if (text == null) return;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + text + old.substring(offset);
+                if (hopLe(next)) super.insertString(fb, offset, text, attr);
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text,
+                    AttributeSet attrs) throws BadLocationException {
+                String insert = text == null ? "" : text;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + insert + old.substring(offset + length);
+                if (hopLe(next)) super.replace(fb, offset, length, insert, attrs);
+            }
+        });
+    }
+
     private void taiThongTinNhanVien() {
         try {
             NhanVien nv = nvDAO.getNhanVienByMaNV(maNV);
@@ -221,22 +254,68 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
     private void xuLySua() {
         try {
             String hoTen = txtHoTen.getText().trim();
-            if (hoTen.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Họ tên không được để trống!");
-                txtHoTen.requestFocusInWindow();
-                return;
-            }
-
             String ngay = txtNgaySinh.getText().trim();
             LocalDate ngaySinh = ngay.isEmpty() ? null : LocalDate.parse(ngay);
+            String sdt = txtSDT.getText().trim();
+            String email = txtEmail.getText().trim();
+            String diaChi = txtDiaChi.getText().trim();
+            String chucVu = txtChucVu.getText().trim();
+            String maTK = txtMaTK.getText().trim();
+
             gioitinh gt = (gioitinh) cboGioiTinh.getSelectedItem();
             trangthai_NhanVien tt = (trangthai_NhanVien) cboTrangThai.getSelectedItem();
 
+            if (!Regex_NhanVien.isValidMaNV(maNV)) {
+                JOptionPane.showMessageDialog(this, "Mã nhân viên không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.isValidHoTen(hoTen)) {
+                JOptionPane.showMessageDialog(this, "Họ tên không hợp lệ hoặc bị để trống!");
+                txtHoTen.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidNgaySinh(ngaySinh)) {
+                JOptionPane.showMessageDialog(this, "Ngày sinh không được lớn hơn ngày hiện tại!");
+                txtNgaySinh.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidGioiTinh(gt == null ? null : gt.name())) {
+                JOptionPane.showMessageDialog(this, "Giới tính không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.isValidSDT(sdt)) {
+                JOptionPane.showMessageDialog(this, "Số điện thoại không đúng định dạng!");
+                txtSDT.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidEmail(email)) {
+                JOptionPane.showMessageDialog(this, "Email không đúng định dạng!");
+                txtEmail.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidDiaChi(diaChi)) {
+                JOptionPane.showMessageDialog(this, "Địa chỉ không hợp lệ!");
+                txtDiaChi.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidChucVu(chucVu)) {
+                JOptionPane.showMessageDialog(this, "Chức vụ không hợp lệ!");
+                txtChucVu.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidTrangThai(tt == null ? null : tt.name())) {
+                JOptionPane.showMessageDialog(this, "Trạng thái nhân viên không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.isValidMaTK(maTK)) {
+                JOptionPane.showMessageDialog(this, "Mã tài khoản không hợp lệ!");
+                txtMaTK.requestFocusInWindow();
+                return;
+            }
+
             NhanVien nv = new NhanVien(
-                maNV, hoTen, ngaySinh, gt,
-                txtSDT.getText().trim(), txtEmail.getText().trim(),
-                txtDiaChi.getText().trim(), txtChucVu.getText().trim(),
-                tt, txtMaTK.getText().trim()
+                maNV, hoTen, ngaySinh, gt, sdt, email,
+                diaChi, chucVu, tt, maTK
             );
 
             boolean ketQua = nvDAO.update(nv);
@@ -245,6 +324,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+
             JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!");
             suaThanhCong();
 

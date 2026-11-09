@@ -15,6 +15,10 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -22,6 +26,7 @@ import javax.swing.border.LineBorder;
 import DAO.DichVuDAO;
 import Entity.DichVu;
 import enums.trangthai_dichvu;
+import validation.Regex_DichVu;
 
 @SuppressWarnings("serial")
 public class SuaDichVuPanel extends JPanel implements ActionListener {
@@ -83,6 +88,7 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         txtMaDV = taoTextField();
         txtTenDV = taoTextField();
         txtDonGia = taoTextField();
+        chiChoNhapDonGia(txtDonGia);
 
         txtMaDV.setEditable(false);
         txtMaDV.setBackground(new Color(241, 245, 249));
@@ -226,22 +232,44 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
+    // Lọc dữ liệu nhập tạm thời; biểu thức cho đơn giá nằm trong Regex_DichVu.
+    private void chiChoNhapDonGia(JTextField textField) {
+        ((AbstractDocument) textField.getDocument()).setDocumentFilter(new DocumentFilter() {
+            private boolean hopLe(String text) {
+                return Regex_DichVu.isValidDonGiaInput(text);
+            }
+
+            @Override
+            public void insertString(FilterBypass fb, int offset, String text,
+                    AttributeSet attr) throws BadLocationException {
+                if (text == null) return;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + text + old.substring(offset);
+                if (hopLe(next)) super.insertString(fb, offset, text, attr);
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text,
+                    AttributeSet attrs) throws BadLocationException {
+                String insert = text == null ? "" : text;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + insert + old.substring(offset + length);
+                if (hopLe(next)) super.replace(fb, offset, length, insert, attrs);
+            }
+        });
+    }
+
     private BigDecimal docDonGia() {
         String gia = txtDonGia.getText().trim().replace(",", ".");
 
-        if (!gia.matches("[0-9]{1,16}(\\.[0-9]{1,2})?")) {
+        if (!Regex_DichVu.isValidDonGia(gia)) {
             throw new IllegalArgumentException(
-                "Đơn giá phải là số không âm và có tối đa 2 chữ số thập phân!"
+                "Đơn giá phải là số không âm, tối đa 16 chữ số nguyên "
+                    + "và 2 chữ số thập phân!"
             );
         }
 
-        BigDecimal donGia = new BigDecimal(gia);
-
-        if (donGia.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Đơn giá không được âm!");
-        }
-
-        return donGia;
+        return new BigDecimal(gia);
     }
 
     // Lấy thông tin dịch vụ theo mã
@@ -297,72 +325,50 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         try {
             String tenDV = txtTenDV.getText().trim();
             String mota = txtMoTa.getText().trim();
+            trangthai_dichvu tt = (trangthai_dichvu) cboTrangThai.getSelectedItem();
 
-            if (tenDV.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Tên dịch vụ không được để trống!"
-                );
+            if (!Regex_DichVu.isValidMaDV(maDV)) {
+                JOptionPane.showMessageDialog(this, "Mã dịch vụ không hợp lệ!");
+                return;
+            }
+            if (!Regex_DichVu.isValidTenDV(tenDV)) {
+                JOptionPane.showMessageDialog(this, "Tên dịch vụ không hợp lệ hoặc bị để trống!");
                 txtTenDV.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_DichVu.isValidMoTa(mota)) {
+                JOptionPane.showMessageDialog(this, "Mô tả dịch vụ không hợp lệ!");
+                txtMoTa.requestFocusInWindow();
                 return;
             }
 
             BigDecimal donGia = docDonGia();
 
-            trangthai_dichvu tt =
-                (trangthai_dichvu) cboTrangThai.getSelectedItem();
-
-            if (tt == null) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Vui lòng chọn trạng thái dịch vụ!"
-                );
+            if (!Regex_DichVu.isValidTrangThai(tt == null ? null : tt.name())) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn trạng thái dịch vụ hợp lệ!");
                 return;
             }
 
-            DichVu dv = new DichVu(
-                maDV,
-                tenDV,
-                mota,
-                donGia,
-                tt
-            );
-
+            DichVu dv = new DichVu(maDV, tenDV, mota, donGia, tt);
             boolean ketQua = dvDAO.update(dv);
 
             if (!ketQua) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Cập nhật dịch vụ thất bại!",
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-                );
+                JOptionPane.showMessageDialog(this, "Cập nhật dịch vụ thất bại!",
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Cập nhật dịch vụ thành công!",
-                "Thông báo",
-                JOptionPane.INFORMATION_MESSAGE
-            );
-
+            JOptionPane.showMessageDialog(this, "Cập nhật dịch vụ thành công!",
+                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             suaThanhCong();
 
         } catch (IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(
-                this,
-                ex.getMessage(),
-                "Dữ liệu không hợp lệ",
-                JOptionPane.WARNING_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                this,
+            JOptionPane.showMessageDialog(this,
                 "Không thể cập nhật dịch vụ: " + ex.getMessage(),
-                "Lỗi",
-                JOptionPane.ERROR_MESSAGE
-            );
+                "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 

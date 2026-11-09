@@ -21,6 +21,9 @@ public class Regex_NhanVien {
             Pattern.compile("^[\\p{L}\\p{M}]+(?:[ '\\-][\\p{L}\\p{M}]+)*$");
 
     // Số điện thoại: số Việt Nam bắt đầu bằng 0 hoặc +84
+    private static final Pattern REGEX_SDT_INPUT =
+            Pattern.compile("^[0-9]{0,20}$");
+
     private static final Pattern REGEX_SDT =
             Pattern.compile("^(?:0[0-9]{9,10}|\\+84[0-9]{9,10})$");
 
@@ -53,17 +56,17 @@ public class Regex_NhanVien {
         return value != null && value.trim().length() <= maxLength;
     }
 
-    private static boolean kiemTraEnum(
-            Class<? extends Enum<?>> enumClass, String value) {
+    private static <E extends Enum<E>> boolean kiemTraEnum(
+            Class<E> enumClass, String value) {
+
+        if (value == null) {
+            return false;
+        }
 
         try {
-            Enum.valueOf(
-                enumClass.asSubclass(Enum.class),
-                value.trim()
-            );
+            Enum.valueOf(enumClass, value.trim());
             return true;
-
-        } catch (IllegalArgumentException | NullPointerException e) {
+        } catch (IllegalArgumentException e) {
             return false;
         }
     }
@@ -143,6 +146,13 @@ public class Regex_NhanVien {
 
         return kiemTraDoDai(sdt, 20)
                 && REGEX_SDT.matcher(sdt.trim()).matches();
+    }
+
+    // Kiểm tra chuỗi đang nhập trong JTextField (cho phép chuỗi rỗng,
+    // chỉ gồm chữ số và tối đa 20 ký tự). Đây là kiểm tra từng bước nhập,
+    // khác với isValidSDT() dùng để xác nhận số điện thoại hoàn chỉnh.
+    public static boolean isValidSDTInput(String sdt) {
+        return sdt != null && REGEX_SDT_INPUT.matcher(sdt).matches();
     }
 
 

@@ -82,6 +82,31 @@ public class NhanVienDAO {
         return dsnv;
     }
 
+    // Lấy mã nhân viên tiếp theo theo định dạng NV001, NV002, ...
+    // Chỉ xét các mã có tiền tố NV và phần sau là chữ số.
+    public String getMaNhanVienTiepTheo() throws SQLException {
+
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
+
+        String sql = "SELECT COALESCE(MAX(TRY_CONVERT(BIGINT, "
+                   + "SUBSTRING(maNV, 3, LEN(maNV)))), 0) + 1 AS nextNumber "
+                   + "FROM NhanVien "
+                   + "WHERE UPPER(LEFT(maNV, 2)) = 'NV' "
+                   + "AND TRY_CONVERT(BIGINT, SUBSTRING(maNV, 3, LEN(maNV))) IS NOT NULL";
+
+        try (PreparedStatement stmt = con.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                long soTiepTheo = rs.getLong("nextNumber");
+                return String.format(java.util.Locale.ROOT, "NV%03d", soTiepTheo);
+            }
+        }
+
+        throw new SQLException("Không lấy được mã nhân viên tiếp theo.");
+    }
+
     // 2. Thêm nhân viên
     public boolean create(NhanVien nv) {
 

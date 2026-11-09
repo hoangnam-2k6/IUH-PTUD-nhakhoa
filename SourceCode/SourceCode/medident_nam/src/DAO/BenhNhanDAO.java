@@ -25,6 +25,34 @@ public class BenhNhanDAO {
         bn = new BenhNhan();
     }
 
+    // Lấy mã bệnh nhân tiếp theo theo định dạng BN001, BN002, ...
+    public String getMaBenhNhanTiepTheo() throws SQLException {
+
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
+
+        if (con == null) {
+            throw new SQLException("Chưa kết nối SQL Server!");
+        }
+
+        String sql = "SELECT COALESCE(MAX(TRY_CONVERT(BIGINT, "
+                   + "SUBSTRING(maBN, 3, LEN(maBN)))), 0) + 1 AS nextNumber "
+                   + "FROM BenhNhan "
+                   + "WHERE UPPER(LEFT(maBN, 2)) = 'BN' "
+                   + "AND TRY_CONVERT(BIGINT, SUBSTRING(maBN, 3, LEN(maBN))) IS NOT NULL";
+
+        try (PreparedStatement stmt = con.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            if (rs.next()) {
+                long soTiepTheo = rs.getLong("nextNumber");
+                return String.format(java.util.Locale.ROOT, "BN%03d", soTiepTheo);
+            }
+        }
+
+        throw new SQLException("Không lấy được mã bệnh nhân tiếp theo.");
+    }
+
     // 1. Lấy tất cả bệnh nhân
     public ArrayList<BenhNhan> getallbenhnhan() {
 

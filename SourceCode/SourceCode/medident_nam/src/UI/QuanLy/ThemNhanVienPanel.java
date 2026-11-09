@@ -3,18 +3,28 @@ package UI.QuanLy;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Cursor;
+import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
+import java.util.Locale;
 
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -23,6 +33,7 @@ import DAO.NhanVienDAO;
 import Entity.NhanVien;
 import enums.gioitinh;
 import enums.trangthai_NhanVien;
+import validation.Regex_NhanVien;
 
 @SuppressWarnings("serial")
 public class ThemNhanVienPanel extends JPanel implements ActionListener {
@@ -37,7 +48,8 @@ public class ThemNhanVienPanel extends JPanel implements ActionListener {
     private final Color SUBTEXT = new Color(100, 116, 139);
     private final Color BORDER = new Color(220, 227, 236);
 
-    private JTextField txtMaNV, txtHoTen, txtNgaySinh, txtSDT, txtEmail, txtChucVu, txtMaTK;
+    private JTextField txtMaNV, txtHoTen, txtSDT, txtEmail, txtChucVu, txtMaTK;
+    private DatePickerField dateNgaySinh;
     private JComboBox<gioitinh> cboGioiTinh;
     private JComboBox<trangthai_NhanVien> cboTrangThai;
     private JTextArea txtDiaChi;
@@ -53,6 +65,7 @@ public class ThemNhanVienPanel extends JPanel implements ActionListener {
         setBackground(BACKGROUND);
         setBorder(new EmptyBorder(25, 30, 25, 30));
         khoiTaoGiaoDien();
+        taoMaNhanVienTuDong();
     }
 
     private void khoiTaoGiaoDien() {
@@ -69,9 +82,16 @@ public class ThemNhanVienPanel extends JPanel implements ActionListener {
         add(header, BorderLayout.NORTH);
 
         txtMaNV = taoTextField();
+        txtMaNV.setEditable(false);
+        txtMaNV.setFocusable(false);
+        txtMaNV.setBackground(new Color(241, 245, 249));
+        txtMaNV.setForeground(SUBTEXT);
+        txtMaNV.setToolTipText("Mã nhân viên được tạo tự động theo mã lớn nhất hiện có.");
         txtHoTen = taoTextField();
-        txtNgaySinh = taoTextField();
+        dateNgaySinh = new DatePickerField();
         txtSDT = taoTextField();
+        chiChoNhapSo(txtSDT);
+        txtSDT.setToolTipText("Số điện thoại chỉ gồm chữ số.");
         txtEmail = taoTextField();
         txtChucVu = taoTextField();
         txtMaTK = taoTextField();
@@ -86,7 +106,7 @@ public class ThemNhanVienPanel extends JPanel implements ActionListener {
         JPanel form = taoPanelForm();
         themTruong(form, "Mã nhân viên *", txtMaNV, 0, 0);
         themTruong(form, "Họ và tên *", txtHoTen, 1, 0);
-        themTruong(form, "Ngày sinh (yyyy-MM-dd)", txtNgaySinh, 0, 1);
+        themTruong(form, "Ngày sinh", dateNgaySinh, 0, 1);
         themTruong(form, "Giới tính", cboGioiTinh, 1, 1);
         themTruong(form, "Số điện thoại", txtSDT, 0, 2);
         themTruong(form, "Email", txtEmail, 1, 2);
@@ -182,6 +202,75 @@ public class ThemNhanVienPanel extends JPanel implements ActionListener {
         b.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
+    // Chỉ cho phép nhập chữ số vào ô số điện thoại.
+    // Giới hạn 20 ký tự theo độ dài cột NVARCHAR(20); kiểm tra định dạng
+    // số điện thoại hợp lệ sẽ được thực hiện khi bấm Thêm.
+    private void chiChoNhapSo(JTextField textField) {
+        ((AbstractDocument) textField.getDocument()).setDocumentFilter(
+            new DocumentFilter() {
+                private boolean laChuoiSoHopLe(String text) {
+                    return Regex_NhanVien.isValidSDTInput(text);
+                }
+
+                @Override
+                public void insertString(FilterBypass fb, int offset,
+                        String text, AttributeSet attr) throws BadLocationException {
+                    if (text == null) {
+                        return;
+                    }
+                    String hienTai = fb.getDocument().getText(
+                        0, fb.getDocument().getLength()
+                    );
+                    String moi = hienTai.substring(0, offset)
+                        + text + hienTai.substring(offset);
+                    if (laChuoiSoHopLe(moi)) {
+                        super.insertString(fb, offset, text, attr);
+                    }
+                }
+
+                @Override
+                public void replace(FilterBypass fb, int offset, int length,
+                        String text, AttributeSet attrs) throws BadLocationException {
+                    String chen = text == null ? "" : text;
+                    String hienTai = fb.getDocument().getText(
+                        0, fb.getDocument().getLength()
+                    );
+                    String moi = hienTai.substring(0, offset)
+                        + chen + hienTai.substring(offset + length);
+                    if (laChuoiSoHopLe(moi)) {
+                        super.replace(fb, offset, length, chen, attrs);
+                    }
+                }
+
+                @Override
+                public void remove(FilterBypass fb, int offset, int length)
+                        throws BadLocationException {
+                    super.remove(fb, offset, length);
+                }
+            }
+        );
+    }
+
+    // Tự động lấy mã NV lớn nhất trong database và tăng lên 1.
+    private void taoMaNhanVienTuDong() {
+        try {
+            String maMoi = nvDAO.getMaNhanVienTiepTheo();
+            txtMaNV.setText(maMoi);
+        } catch (Exception ex) {
+            txtMaNV.setText("");
+            btnThem.setEnabled(false);
+
+            JOptionPane.showMessageDialog(
+                this,
+                "Không thể tạo mã nhân viên tự động. "
+                    + "Vui lòng kiểm tra kết nối cơ sở dữ liệu.\n"
+                    + ex.getMessage(),
+                "Lỗi lấy mã nhân viên",
+                JOptionPane.ERROR_MESSAGE
+            );
+        }
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == btnHuy) {
@@ -195,21 +284,72 @@ public class ThemNhanVienPanel extends JPanel implements ActionListener {
         try {
             String maNV = txtMaNV.getText().trim();
             String hoTen = txtHoTen.getText().trim();
-            if (maNV.isEmpty() || hoTen.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Mã nhân viên và họ tên không được để trống!");
+            String sdt = txtSDT.getText().trim();
+            String email = txtEmail.getText().trim();
+            String diaChi = txtDiaChi.getText().trim();
+            String chucVu = txtChucVu.getText().trim();
+            String maTK = txtMaTK.getText().trim();
+
+            if (!Regex_NhanVien.isValidMaNV(maNV)) {
+                JOptionPane.showMessageDialog(this, "Mã nhân viên không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.isValidHoTen(hoTen)) {
+                JOptionPane.showMessageDialog(this, "Họ tên không hợp lệ hoặc bị để trống!");
+                txtHoTen.requestFocusInWindow();
                 return;
             }
 
-            String ngay = txtNgaySinh.getText().trim();
-            LocalDate ngaySinh = ngay.isEmpty() ? null : LocalDate.parse(ngay);
+            LocalDate ngaySinh = dateNgaySinh.getDate();
+            if (!Regex_NhanVien.isValidNgaySinh(ngaySinh)) {
+                JOptionPane.showMessageDialog(this,
+                    "Ngày sinh không được lớn hơn ngày hiện tại!",
+                    "Ngày sinh không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
             gioitinh gt = (gioitinh) cboGioiTinh.getSelectedItem();
             trangthai_NhanVien tt = (trangthai_NhanVien) cboTrangThai.getSelectedItem();
 
+            if (!Regex_NhanVien.isValidGioiTinh(gt == null ? null : gt.name())) {
+                JOptionPane.showMessageDialog(this, "Giới tính không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.isValidSDT(sdt)) {
+                JOptionPane.showMessageDialog(this,
+                    "Số điện thoại phải bắt đầu bằng 0 và có 10 hoặc 11 chữ số!",
+                    "Số điện thoại không hợp lệ", JOptionPane.WARNING_MESSAGE);
+                txtSDT.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidEmail(email)) {
+                JOptionPane.showMessageDialog(this, "Email không đúng định dạng!");
+                txtEmail.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidDiaChi(diaChi)) {
+                JOptionPane.showMessageDialog(this, "Địa chỉ không hợp lệ!");
+                txtDiaChi.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidChucVu(chucVu)) {
+                JOptionPane.showMessageDialog(this, "Chức vụ không hợp lệ!");
+                txtChucVu.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.isValidTrangThai(tt == null ? null : tt.name())) {
+                JOptionPane.showMessageDialog(this, "Trạng thái nhân viên không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.isValidMaTK(maTK)) {
+                JOptionPane.showMessageDialog(this, "Mã tài khoản không hợp lệ!");
+                txtMaTK.requestFocusInWindow();
+                return;
+            }
+
             NhanVien nv = new NhanVien(
                 maNV, hoTen, ngaySinh, gt,
-                txtSDT.getText().trim(), txtEmail.getText().trim(),
-                txtDiaChi.getText().trim(), txtChucVu.getText().trim(),
-                tt, txtMaTK.getText().trim()
+                sdt, email, diaChi, chucVu, tt, maTK
             );
 
             boolean ketQua = nvDAO.create(nv);
@@ -218,16 +358,14 @@ public class ThemNhanVienPanel extends JPanel implements ActionListener {
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+
             JOptionPane.showMessageDialog(this, "Thêm nhân viên thành công!");
             themThanhCong();
 
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this,
-                "Ngày sinh không hợp lệ! Định dạng yyyy-MM-dd, ví dụ 2003-05-20");
-            txtNgaySinh.requestFocusInWindow();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
-                "Không thể thêm nhân viên: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                "Không thể thêm nhân viên: " + ex.getMessage(),
+                "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -250,5 +388,177 @@ public class ThemNhanVienPanel extends JPanel implements ActionListener {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new ThemNhanVienPanel().moframe());
+    }
+
+    /**
+     * Bộ chọn ngày tự tạo bằng Swing, không cần cài thêm thư viện ngoài.
+     * Giá trị trả về là LocalDate để truyền thẳng vào Entity NhanVien.
+     */
+    private class DatePickerField extends JPanel {
+        private static final DateTimeFormatter FORMATTER =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        private final JTextField txtHienThi;
+        private LocalDate selectedDate;
+
+        DatePickerField() {
+            setLayout(new BorderLayout(6, 0));
+            setOpaque(false);
+            setPreferredSize(new Dimension(250, 40));
+
+            txtHienThi = new JTextField();
+            txtHienThi.setEditable(false);
+            txtHienThi.setFocusable(false);
+            txtHienThi.setFont(new Font("Arial", Font.PLAIN, 14));
+            txtHienThi.setBackground(WHITE);
+            txtHienThi.setForeground(TEXT);
+            txtHienThi.setBorder(new CompoundBorder(
+                new LineBorder(BORDER, 1, true),
+                new EmptyBorder(8, 10, 8, 10)
+            ));
+            txtHienThi.setText("Chưa chọn ngày sinh");
+
+            JButton btnChonNgay = new JButton("Chọn lịch");
+            btnChonNgay.setFont(new Font("Arial", Font.PLAIN, 12));
+            btnChonNgay.setBackground(WHITE);
+            btnChonNgay.setForeground(PRIMARY);
+            btnChonNgay.setFocusPainted(false);
+            btnChonNgay.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnChonNgay.addActionListener(e -> moLich());
+
+            add(txtHienThi, BorderLayout.CENTER);
+            add(btnChonNgay, BorderLayout.EAST);
+        }
+
+        LocalDate getDate() {
+            return selectedDate;
+        }
+
+        void setDate(LocalDate date) {
+            selectedDate = date;
+            txtHienThi.setText(date == null
+                ? "Chưa chọn ngày sinh"
+                : FORMATTER.format(date));
+        }
+
+        private void moLich() {
+            Window owner = SwingUtilities.getWindowAncestor(this);
+            JDialog dialog = new JDialog(
+                owner, "Chọn ngày sinh", Dialog.ModalityType.APPLICATION_MODAL);
+            dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+            dialog.setLayout(new BorderLayout(8, 8));
+
+            YearMonth thangDangXem = selectedDate == null
+                ? YearMonth.now() : YearMonth.from(selectedDate);
+            final YearMonth[] thang = { thangDangXem };
+
+            JButton btnThangTruoc = new JButton("<");
+            JButton btnThangSau = new JButton(">");
+            JLabel lblThangNam = new JLabel("", SwingConstants.CENTER);
+            lblThangNam.setFont(new Font("Arial", Font.BOLD, 16));
+
+            JPanel header = new JPanel(new BorderLayout(8, 0));
+            header.setBorder(new EmptyBorder(10, 10, 0, 10));
+            header.add(btnThangTruoc, BorderLayout.WEST);
+            header.add(lblThangNam, BorderLayout.CENTER);
+            header.add(btnThangSau, BorderLayout.EAST);
+
+            JPanel lich = new JPanel(new GridLayout(0, 7, 4, 4));
+            lich.setBorder(new EmptyBorder(8, 10, 8, 10));
+
+            Runnable capNhatLich = () -> {
+                lich.removeAll();
+
+                String[] tenNgay = { "T2", "T3", "T4", "T5", "T6", "T7", "CN" };
+                for (String ten : tenNgay) {
+                    JLabel lbl = new JLabel(ten, SwingConstants.CENTER);
+                    lbl.setFont(new Font("Arial", Font.BOLD, 12));
+                    lich.add(lbl);
+                }
+
+                String tenThang = thang[0].getMonth()
+                    .getDisplayName(TextStyle.FULL, new Locale("vi", "VN"));
+                tenThang = tenThang.substring(0, 1).toUpperCase(new Locale("vi", "VN"))
+                    + tenThang.substring(1);
+                lblThangNam.setText(tenThang + " " + thang[0].getYear());
+
+                int lech = thang[0].atDay(1).getDayOfWeek().getValue() - 1;
+                int soNgay = thang[0].lengthOfMonth();
+
+                for (int i = 0; i < lech; i++) {
+                    lich.add(new JLabel(""));
+                }
+
+                for (int ngay = 1; ngay <= soNgay; ngay++) {
+                    LocalDate ngayChon = thang[0].atDay(ngay);
+                    JButton btnNgay = new JButton(String.valueOf(ngay));
+                    btnNgay.setMargin(new Insets(4, 4, 4, 4));
+                    btnNgay.setFocusPainted(false);
+                    btnNgay.setFont(new Font("Arial", Font.PLAIN, 12));
+
+                    if (ngayChon.isAfter(LocalDate.now())) {
+                        btnNgay.setEnabled(false);
+                    }
+                    if (ngayChon.equals(selectedDate)) {
+                        btnNgay.setBackground(PRIMARY);
+                        btnNgay.setForeground(WHITE);
+                    }
+
+                    btnNgay.addActionListener(e -> {
+                        setDate(ngayChon);
+                        dialog.dispose();
+                    });
+                    lich.add(btnNgay);
+                }
+
+                // Giữ lịch có chiều cao ổn định (đủ 6 hàng ngày).
+                int soOConThieu = 42 - (lech + soNgay);
+                for (int i = 0; i < soOConThieu; i++) {
+                    lich.add(new JLabel(""));
+                }
+
+                lich.revalidate();
+                lich.repaint();
+            };
+
+            btnThangTruoc.addActionListener(e -> {
+                thang[0] = thang[0].minusMonths(1);
+                capNhatLich.run();
+            });
+            btnThangSau.addActionListener(e -> {
+                // Không cho chuyển lịch sang tháng tương lai.
+                if (thang[0].isBefore(YearMonth.now())) {
+                    thang[0] = thang[0].plusMonths(1);
+                    capNhatLich.run();
+                }
+            });
+
+            JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton btnHomNay = new JButton("Hôm nay");
+            JButton btnXoaNgay = new JButton("Xóa ngày");
+            JButton btnDong = new JButton("Đóng");
+
+            btnHomNay.addActionListener(e -> {
+                setDate(LocalDate.now());
+                dialog.dispose();
+            });
+            btnXoaNgay.addActionListener(e -> {
+                setDate(null);
+                dialog.dispose();
+            });
+            btnDong.addActionListener(e -> dialog.dispose());
+
+            footer.add(btnXoaNgay);
+            footer.add(btnHomNay);
+            footer.add(btnDong);
+
+            capNhatLich.run();
+            dialog.add(header, BorderLayout.NORTH);
+            dialog.add(lich, BorderLayout.CENTER);
+            dialog.add(footer, BorderLayout.SOUTH);
+            dialog.setSize(360, 390);
+            dialog.setLocationRelativeTo(this);
+            dialog.setVisible(true);
+        }
     }
 }
