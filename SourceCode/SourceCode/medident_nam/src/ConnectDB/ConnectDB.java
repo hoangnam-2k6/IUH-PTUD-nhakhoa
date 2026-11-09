@@ -1,32 +1,83 @@
+
 package ConnectDB;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Properties;
 
-/** Kết nối JDBC SQL Server. Mỗi DAO tự đóng Connection sau khi truy vấn. */
-public final class ConnectDB {
-    private ConnectDB() { }
+public class ConnectDB {
 
-    public static Connection mo() throws SQLException {
-        // Đọc cấu hình thay vì ghi cứng tên database/mật khẩu trong mã Java.
-        Properties cauHinh = new Properties();
-        try (InputStream tep = ConnectDB.class.getResourceAsStream("/db.properties")) {
-            if (tep == null) throw new SQLException("Không tìm thấy db.properties.");
-            cauHinh.load(tep);
-        } catch (IOException e) {
-            throw new SQLException("Không đọc được db.properties.", e);
+    public static Connection con;
+    public static ConnectDB instance = new ConnectDB();
+
+    private ConnectDB() {
+    }
+
+    // Lấy instance và tự động kết nối nếu chưa kết nối
+    public static ConnectDB GetInstance() {
+        try {
+            if (con == null || con.isClosed()) {
+                instance.connect();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
-        String url = cauHinh.getProperty("db.url", "").trim();
-        String taiKhoan = cauHinh.getProperty("db.user", "").trim();
-        String matKhau = cauHinh.getProperty("db.password", "");
-        if (url.isEmpty() || taiKhoan.isEmpty() || matKhau.isEmpty()
-                || "CHANGE_ME".equals(matKhau)) {
-            throw new SQLException("Cấu hình db.url, db.user và db.password trong resources/db.properties.");
+
+        return instance;
+    }
+
+    // Kết nối SQL Server
+    public void connect() {
+
+        String url =
+                "jdbc:sqlserver://localhost:1433;"
+                + "databaseName=MediDent;"
+                + "encrypt=true;"
+                + "trustServerCertificate=true";
+
+        String user = "sa";
+        String password = "sapassword";
+
+        try {
+            con = DriverManager.getConnection(url, user, password);
+
+            System.out.println("Kết nối SQL Server thành công!");
+
+        } catch (SQLException e) {
+            con = null;
+
+            System.out.println("Kết nối SQL Server thất bại!");
+            e.printStackTrace();
         }
-        return DriverManager.getConnection(url, taiKhoan, matKhau);
+    }
+
+    // Đóng kết nối
+    public static void disconnect() {
+
+        if (con != null) {
+            try {
+                con.close();
+                con = null;
+
+                System.out.println("Đã đóng kết nối SQL Server!");
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    // Lấy Connection
+    public static Connection getConnection() {
+
+        GetInstance();
+
+        if (con == null) {
+            throw new IllegalStateException(
+                "Connection đang null! Không thể kết nối SQL Server."
+            );
+        }
+
+        return con;
     }
 }

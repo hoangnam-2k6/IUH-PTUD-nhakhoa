@@ -14,7 +14,7 @@ USE [MediDent];
 GO
 
 /* ============================================================
-   SQL Server - Tao 3 bang: NhanVien, BenhNhan, DichVu
+   SQL Server - Tao 5 bang: NhanVien, BenhNhan, DichVu, HoaDon, LichHen
    Muc dich: phu hop voi cac thuoc tinh Entity Java dang su dung.
 
    Gia dinh theo code hien tai:
@@ -89,7 +89,42 @@ BEGIN
 END;
 GO
 
--- 4. INDEX ho tro tim kiem thuong dung (chi tao neu chua ton tai)
+-- 4. BANG HOADON (chua co rang buoc PK/FK/CHECK)
+-- maHD tu tang vi HoaDonDAO.themHoaDon() khong truyen maHD.
+-- ngayLap co gia tri mac dinh vi HoaDonDAO.themHoaDon() khong truyen ngayLap.
+IF OBJECT_ID(N'dbo.HoaDon', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.HoaDon
+    (
+        maHD      INT IDENTITY(1,1) NOT NULL,
+        maTT      INT               NOT NULL,
+        maPK      INT               NOT NULL,
+        ngayLap   DATETIME2(0)      NOT NULL DEFAULT SYSDATETIME(),
+        tongTien  DECIMAL(18,2)     NOT NULL,
+        trangthai NVARCHAR(50)      NOT NULL
+    );
+END;
+GO
+
+-- 5. BANG LICHHEN (chua co rang buoc PK/FK/CHECK)
+-- maBN, maNV dung NVARCHAR(20) giong BenhNhan.maBN va NhanVien.maNV.
+IF OBJECT_ID(N'dbo.LichHen', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.LichHen
+    (
+        maLichHen     INT IDENTITY(1,1) NOT NULL,
+        maBN          NVARCHAR(20)      NOT NULL,
+        maNV          NVARCHAR(20)      NULL,
+        ngayHen       DATE              NOT NULL,
+        gioHen        TIME(0)           NOT NULL,
+        thoiLuongPhut INT               NOT NULL DEFAULT 60,
+        phongKham     NVARCHAR(50)      NULL,
+        trangthai     NVARCHAR(50)      NOT NULL
+    );
+END;
+GO
+
+-- 6. INDEX ho tro tim kiem thuong dung (chi tao neu chua ton tai)
 IF NOT EXISTS
 (
     SELECT 1 FROM sys.indexes
@@ -142,6 +177,13 @@ GO
 
    DichVu:
      maDV, tenDV, mota, dongia, trangthai
+
+   HoaDon:
+     maHD, maTT, maPK, ngayLap, tongTien, trangthai
+
+   LichHen:
+     maLichHen, maBN, maNV, ngayHen, gioHen,
+     thoiLuongPhut, phongKham, trangthai
 
    Enum can luu dung ten hang enum (phan biet chu hoa/thuong
    khi Java goi Enum.valueOf()).

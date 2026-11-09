@@ -1,4 +1,3 @@
-
 package UI.QuanLy;
 
 import DAO.HoaDonDAO;
@@ -41,7 +40,6 @@ public class QuanLyHoaDonPanel extends JPanel {
     };
 
     private JTable bangHoaDon = new JTable(moHinhBang);
-    private int lanTaiDuLieu = 0;
 
     public QuanLyHoaDonPanel() {
         taoGiaoDien();
@@ -203,7 +201,13 @@ public class QuanLyHoaDonPanel extends JPanel {
         });
     }
 
-    // Lay danh sach hoa don tu SQL Server
+    // =====================================================
+    // TAI DU LIEU TU DAO
+    // Goi truc tiep HoaDonDAO tren luong giao dien (EDT) vi
+    // ConnectDB dung 1 Connection Singleton dung chung, khong
+    // an toan khi nhieu luong cung dung (transaction cua nut
+    // Lap hoa don / Xac nhan thu doi autoCommit tren cung ket noi).
+    // =====================================================
     public void taiDuLieu() {
         try {
             int thang = chonThang.getSelectedIndex();
@@ -218,29 +222,19 @@ public class QuanLyHoaDonPanel extends JPanel {
             }
 
             String tuKhoa = oTimKiem.getText().trim();
-            Integer namLoc = nam;
-            int maLanTai = ++lanTaiDuLieu;
+            Integer thangLoc = thang == 0 ? null : thang;
+
             nhanTrangThai.setText("Đang tải hóa đơn...");
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 
-            new SwingWorker<List<HoaDonDAO.DongHoaDon>, Void>() {
-                @Override
-                protected List<HoaDonDAO.DongHoaDon> doInBackground() throws Exception {
-                    return hoaDonDAO.danhSach(tuKhoa, thang == 0 ? null : thang, namLoc);
-                }
+            try {
+                danhSachHoaDon = layDanhSachTuDAO(tuKhoa, thangLoc, nam);
+            } finally {
+                setCursor(Cursor.getDefaultCursor());
+            }
 
-                @Override
-                protected void done() {
-                    if (maLanTai != lanTaiDuLieu) return;
-
-                    try {
-                        danhSachHoaDon = get();
-                        hienThiDanhSach();
-                        nhanTrangThai.setText("Đã tải " + danhSachHoaDon.size() + " hóa đơn.");
-                    } catch (Exception loi) {
-                        baoLoi(loi);
-                    }
-                }
-            }.execute();
+            hienThiDanhSach();
+            nhanTrangThai.setText("Đã tải " + danhSachHoaDon.size() + " hóa đơn.");
 
         } catch (NumberFormatException loi) {
             JOptionPane.showMessageDialog(this, "Năm phải là số nguyên.");
@@ -249,14 +243,34 @@ public class QuanLyHoaDonPanel extends JPanel {
         }
     }
 
+    // Chon ham DAO phu hop: khong loc -> getallhoadon(), co loc -> timHoaDon()
+    private List<HoaDonDAO.DongHoaDon> layDanhSachTuDAO(
+            String tuKhoa,
+            Integer thang,
+            Integer nam) throws Exception {
+
+        boolean khongLoc = tuKhoa.isEmpty() && thang == null && nam == null;
+
+        if (khongLoc) {
+            return hoaDonDAO.getallhoadon();
+        }
+
+        return hoaDonDAO.timHoaDon(tuKhoa, thang, nam);
+    }
+
     // Hien thi danh sach hoa don len JTable
     private void hienThiDanhSach() {
         moHinhBang.setRowCount(0);
 
         for (HoaDonDAO.DongHoaDon hoaDon : danhSachHoaDon) {
             moHinhBang.addRow(new Object[]{
-                hoaDon.maHD, hoaDon.maPK, hoaDon.ngayLap, hoaDon.soTien,
-                hoaDon.phuongThuc, hoaDon.trangThai, hoaDon.maTT
+                hoaDon.getMaHD(),
+                hoaDon.getMaPK(),
+                hoaDon.getNgayLap(),
+                hoaDon.getSoTien(),
+                hoaDon.getPhuongThuc(),
+                hoaDon.getTrangThai(),
+                hoaDon.getMaTT()
             });
         }
     }
@@ -316,12 +330,12 @@ public class QuanLyHoaDonPanel extends JPanel {
         try {
             HoaDonDAO.DongHoaDon hoaDon = layHoaDonDangChon();
 
-            String noiDung = "Đã nhận " + hoaDon.soTien + " VNĐ cho hóa đơn " + hoaDon.maHD + "?";
+            String noiDung = "Đã nhận " + hoaDon.getSoTien() + " VNĐ cho hóa đơn " + hoaDon.getMaHD() + "?";
             int luaChon = JOptionPane.showConfirmDialog(this, noiDung, "Xác nhận thực thu", JOptionPane.YES_NO_OPTION);
 
             if (luaChon != JOptionPane.YES_OPTION) return;
 
-            hoaDonDAO.xacNhanDaThu(hoaDon.maHD);
+            hoaDonDAO.xacNhanDaThu(hoaDon.getMaHD());
             JOptionPane.showMessageDialog(this, "Đã xác nhận thanh toán thành công.");
             taiDuLieu();
 
@@ -334,11 +348,11 @@ public class QuanLyHoaDonPanel extends JPanel {
     private void guiYeuCauHuy() {
         try {
             HoaDonDAO.DongHoaDon hoaDon = layHoaDonDangChon();
-            String lyDo = JOptionPane.showInputDialog(this, "Lý do muốn hủy hóa đơn " + hoaDon.maHD + ":");
+            String lyDo = JOptionPane.showInputDialog(this, "Lý do muốn hủy hóa đơn " + hoaDon.getMaHD() + ":");
 
             if (lyDo == null) return;
 
-            hoaDonDAO.guiYeuCauHuy(hoaDon.maHD, lyDo.trim());
+            hoaDonDAO.guiYeuCauHuy(hoaDon.getMaHD(), lyDo.trim());
             JOptionPane.showMessageDialog(this, "Đã gửi yêu cầu hủy để quản lý duyệt.");
 
         } catch (Exception loi) {
@@ -380,8 +394,14 @@ public class QuanLyHoaDonPanel extends JPanel {
 
     // Hien thi thong bao loi
     private void baoLoi(Exception loi) {
+        setCursor(Cursor.getDefaultCursor());
+
         Throwable nguyenNhan = loi.getCause() == null ? loi : loi.getCause();
         String noiDung = nguyenNhan.getMessage();
+
+        if (noiDung == null || noiDung.isBlank()) {
+            noiDung = nguyenNhan.getClass().getSimpleName();
+        }
 
         nhanTrangThai.setText("Lỗi: " + noiDung);
         JOptionPane.showMessageDialog(this, noiDung, "Lỗi hóa đơn", JOptionPane.ERROR_MESSAGE);

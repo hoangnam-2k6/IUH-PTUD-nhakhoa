@@ -24,12 +24,12 @@ public class DichVuDAO {
     }
 
     // 1. Lấy tất cả dịch vụ
-    public ArrayList<DichVu> getalldichvu() throws SQLException {
+    public ArrayList<DichVu> getalldichvu() {
 
         dsdv = new ArrayList<>();
 
-        ConnectDB.mo();
-        Connection con = ConnectDB.mo();
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
 
         String sql = "SELECT maDV, tenDV, moTa, donGia, trangThai "
                    + "FROM DichVu";
@@ -65,10 +65,10 @@ public class DichVuDAO {
     }
 
     // 2. Thêm dịch vụ
-    public boolean create(DichVu dv) throws SQLException {
+    public boolean create(DichVu dv) {
 
-        ConnectDB.mo();
-        Connection con = ConnectDB.mo();
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
 
         int n = 0;
 
@@ -107,10 +107,10 @@ public class DichVuDAO {
     }
 
     // 3. Cập nhật dịch vụ
-    public boolean update(DichVu dv) throws SQLException {
+    public boolean update(DichVu dv) {
 
-        ConnectDB.mo();
-        Connection con = ConnectDB.mo();
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
 
         int n = 0;
 
@@ -145,10 +145,10 @@ public class DichVuDAO {
     }
 
     // 4. Ngừng áp dụng dịch vụ
-    public boolean delete(String maDV) throws SQLException {
+    public boolean delete(String maDV) {
 
-        ConnectDB.mo();
-        Connection con = ConnectDB.mo();
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
 
         int n = 0;
 
@@ -173,7 +173,7 @@ public class DichVuDAO {
 	        String tuKhoa,
 	        BigDecimal giaTu,
 	        BigDecimal giaDen,
-	        trangthai_dichvu tt) throws SQLException {
+	        trangthai_dichvu tt) {
 	
 	    ArrayList<DichVu> dsdv = new ArrayList<>();
 	
@@ -185,8 +185,8 @@ public class DichVuDAO {
 	        );
 	    }
 	
-	    ConnectDB.mo();
-	    Connection con = ConnectDB.mo();
+	    ConnectDB.GetInstance();
+	    Connection con = ConnectDB.getConnection();
 	
 	    StringBuilder sql = new StringBuilder(
 	        "SELECT maDV, tenDV, moTa, donGia, trangThai "
@@ -271,9 +271,9 @@ public class DichVuDAO {
 	}
 	public DichVu getDichVuByMaDV(String maDV) throws SQLException {
 
-	    ConnectDB.mo();
+	    ConnectDB.GetInstance();
 
-	    Connection con = ConnectDB.mo();
+	    Connection con = ConnectDB.getConnection();
 
 	    if (con == null) {
 	        throw new SQLException("Chưa kết nối SQL Server!");

@@ -26,12 +26,12 @@ public class BenhNhanDAO {
     }
 
     // 1. Lấy tất cả bệnh nhân
-    public ArrayList<BenhNhan> getallbenhnhan() throws SQLException {
+    public ArrayList<BenhNhan> getallbenhnhan() {
 
         dsbn = new ArrayList<BenhNhan>();
 
-        ConnectDB.mo();
-        Connection con = ConnectDB.mo();
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
 
         String sql = "SELECT maBN, hoten, ngaysinh, gioitinh, "
                    + "sdt, email, diachi, tiensubenh, trangthai "
@@ -84,10 +84,10 @@ public class BenhNhanDAO {
     }
 
     // 2. Thêm bệnh nhân
-    public boolean create(BenhNhan bn) throws SQLException {
+    public boolean create(BenhNhan bn) {
 
-        ConnectDB.mo();
-        Connection con = ConnectDB.mo();
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
 
         int n = 0;
 
@@ -134,10 +134,10 @@ public class BenhNhanDAO {
     }
 
     // 3. Cập nhật bệnh nhân
-    public boolean update(BenhNhan bn) throws SQLException {
+    public boolean update(BenhNhan bn) {
 
-        ConnectDB.mo();
-        Connection con = ConnectDB.mo();
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
 
         int n = 0;
 
@@ -191,10 +191,10 @@ public class BenhNhanDAO {
     }
 
     // 4. Xóa bệnh nhân
-    public boolean delete(String maBN) throws SQLException {
+    public boolean delete(String maBN) {
 
-        ConnectDB.mo();
-        Connection con = ConnectDB.mo();
+        ConnectDB.GetInstance();
+        Connection con = ConnectDB.getConnection();
 
         int n = 0;
 
@@ -216,12 +216,12 @@ public class BenhNhanDAO {
 	public ArrayList<BenhNhan> timBenhNhan(
 	        String tuKhoa,
 	        gioitinh gt,
-	        trangthaidieutri tt) throws SQLException {
+	        trangthaidieutri tt) {
 	
 	    ArrayList<BenhNhan> dsbn = new ArrayList<>();
 	
-	    ConnectDB.mo();
-	    Connection con = ConnectDB.mo();
+	    ConnectDB.GetInstance();
+	    Connection con = ConnectDB.getConnection();
 	
 	    StringBuilder sql = new StringBuilder(
 	        "SELECT maBN, hoten, ngaysinh, gioitinh, "
@@ -308,9 +308,9 @@ public class BenhNhanDAO {
 	// Lấy một bệnh nhân theo mã
 	public BenhNhan getBenhNhanByMaBN(String maBN) throws SQLException {
 
-	    ConnectDB.mo();
+	    ConnectDB.GetInstance();
 
-	    Connection con = ConnectDB.mo();
+	    Connection con = ConnectDB.getConnection();
 
 	    if (con == null) {
 	        throw new SQLException("Chưa kết nối SQL Server!");

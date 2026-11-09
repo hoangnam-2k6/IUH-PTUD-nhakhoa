@@ -1,4 +1,3 @@
-
 package UI.QuanLy;
 
 import DAO.LichHenDAO;
@@ -40,7 +39,6 @@ public class QuanLyLichHenPanel extends JPanel {
     };
 
     private JTable bangLichHen = new JTable(moHinhBang);
-    private int lanTaiDuLieu = 0;
 
     public QuanLyLichHenPanel() {
         taoGiaoDien();
@@ -170,31 +168,41 @@ public class QuanLyLichHenPanel extends JPanel {
         });
     }
 
-    // Lay danh sach lich hen tu SQL Server
+    // =====================================================
+    // TAI DU LIEU TU DAO
+    // Goi truc tiep LichHenDAO tren luong giao dien (EDT) vi
+    // ConnectDB dung 1 Connection Singleton dung chung, khong
+    // an toan khi nhieu luong cung dung (transaction cua nut
+    // Them/Sua lich doi autoCommit tren cung ket noi).
+    // =====================================================
     public void taiDuLieu() {
-        String tuKhoa = oTimKiem.getText().trim();
-        int maLanTai = ++lanTaiDuLieu;
-        nhanTrangThai.setText("Đang tải lịch hẹn...");
+        try {
+            String tuKhoa = oTimKiem.getText().trim();
 
-        new SwingWorker<List<LichHen>, Void>() {
-            @Override
-            protected List<LichHen> doInBackground() throws Exception {
-                return lichHenDAO.danhSach(tuKhoa);
+            nhanTrangThai.setText("Đang tải lịch hẹn...");
+            setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+
+            try {
+                danhSachLich = layDanhSachTuDAO(tuKhoa);
+            } finally {
+                setCursor(Cursor.getDefaultCursor());
             }
 
-            @Override
-            protected void done() {
-                if (maLanTai != lanTaiDuLieu) return;
+            hienThiDanhSach();
+            nhanTrangThai.setText("Đã tải " + danhSachLich.size() + " lịch hẹn.");
 
-                try {
-                    danhSachLich = get();
-                    hienThiDanhSach();
-                    nhanTrangThai.setText("Đã tải " + danhSachLich.size() + " lịch hẹn.");
-                } catch (Exception loi) {
-                    baoLoi(loi);
-                }
-            }
-        }.execute();
+        } catch (Exception loi) {
+            baoLoi(loi);
+        }
+    }
+
+    // Chon ham DAO phu hop: khong tu khoa -> getalllichhen(), co tu khoa -> timLichHen()
+    private List<LichHen> layDanhSachTuDAO(String tuKhoa) throws Exception {
+        if (tuKhoa.isEmpty()) {
+            return lichHenDAO.getalllichhen();
+        }
+
+        return lichHenDAO.timLichHen(tuKhoa);
     }
 
     // Hien thi du lieu len JTable
@@ -323,8 +331,14 @@ public class QuanLyLichHenPanel extends JPanel {
 
     // Hien thi thong bao loi
     private void baoLoi(Exception loi) {
+        setCursor(Cursor.getDefaultCursor());
+
         Throwable nguyenNhan = loi.getCause() == null ? loi : loi.getCause();
         String noiDung = nguyenNhan.getMessage();
+
+        if (noiDung == null || noiDung.isBlank()) {
+            noiDung = nguyenNhan.getClass().getSimpleName();
+        }
 
         nhanTrangThai.setText("Lỗi: " + noiDung);
         JOptionPane.showMessageDialog(this, noiDung, "Lỗi lịch hẹn", JOptionPane.ERROR_MESSAGE);
