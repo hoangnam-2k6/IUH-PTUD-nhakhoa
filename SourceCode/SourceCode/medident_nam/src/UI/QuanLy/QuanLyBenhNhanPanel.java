@@ -28,6 +28,7 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
     private Runnable callbackThem;
     private Consumer<String> callbackSua;
     private final BenhNhanDAO bnDAO = new BenhNhanDAO();
+	private JButton btntailai;
 
     public QuanLyBenhNhanPanel() {
         this(null, null);
@@ -73,6 +74,7 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         loccombo = new JComboBox<>(colsBN);
 
         btntim = taoNut("Tìm");
+        btntailai = taoNut("tải lại");
         btnthem = taoNut("+ Thêm bệnh nhân");
         btnsua = taoNut("Chỉnh sửa");
         btnxoa = taoNut("Xóa");
@@ -83,6 +85,7 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         pbtn.add(txttimnhanh);
         pbtn.add(loccombo);
         pbtn.add(btntim);
+        pbtn.add(btntailai);
         pbtn.add(btnthem);
         pbtn.add(btnsua);
         pbtn.add(btnxoa);
@@ -126,6 +129,7 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
     private void ganSuKien() {
         txttimnhanh.addActionListener(e -> timBenhNhan());
         btntim.addActionListener(this);
+        btntailai.addActionListener(this);
         btnthem.addActionListener(this);
         btnsua.addActionListener(this);
         btnxoa.addActionListener(this);
@@ -138,7 +142,16 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
 
         if (nut == btntim) {
             timBenhNhan();
-        } else if (nut == btnthem) {
+        } else if (nut == btntailai) {
+			try {
+				loadbenhnhan();
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			txttimnhanh.setText("");
+			loccombo.setSelectedIndex(0);
+		} else if (nut == btnthem) {
             themBenhNhan();
         } else if (nut == btnsua) {
             suaBenhNhan();

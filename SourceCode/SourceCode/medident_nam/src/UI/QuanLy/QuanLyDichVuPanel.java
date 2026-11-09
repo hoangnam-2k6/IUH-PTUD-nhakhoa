@@ -30,6 +30,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
 
     private final DichVuDAO dvDAO = new DichVuDAO();
     private TableRowSorter<DefaultTableModel> sorterDV;
+	private JButton btntailai;
 
     public QuanLyDichVuPanel() {
         this(null, null);
@@ -70,6 +71,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         loccombo = new JComboBox<>(colsDV);
 
         btntim = taoNut("Tìm");
+        btntailai = taoNut("tải lại");
         btnthem = taoNut("+ Thêm dịch vụ");
         btnsua = taoNut("Chỉnh sửa");
         btnxoa = taoNut("Xóa");
@@ -80,6 +82,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         pbtn.add(txttimnhanh);
         pbtn.add(loccombo);
         pbtn.add(btntim);
+        pbtn.add(btntailai);
         pbtn.add(btnthem);
         pbtn.add(btnsua);
         pbtn.add(btnxoa);
@@ -126,6 +129,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
     private void ganSuKien() {
         txttimnhanh.addActionListener(e -> timDichVu());
         btntim.addActionListener(this);
+        btntailai.addActionListener(this);
         btnthem.addActionListener(this);
         btnsua.addActionListener(this);
         btnxoa.addActionListener(this);
@@ -138,7 +142,11 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
 
         if (nut == btntim) {
             timDichVu();
-        } else if (nut == btnthem) {
+        } else if (nut == btntailai) {
+			loaddichvu();
+			txttimnhanh.setText("");
+			loccombo.setSelectedIndex(0);
+		} else if (nut == btnthem) {
             moFormThemDichVu();
         } else if (nut == btnsua) {
             moFormSuaDichVu();

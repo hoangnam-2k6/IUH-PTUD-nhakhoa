@@ -13,7 +13,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;
@@ -28,6 +27,7 @@ import DAO.BenhNhanDAO;
 import Entity.BenhNhan;
 import enums.gioitinh;
 import enums.trangthaidieutri;
+import util.BangChonLich;
 import validation.Regex_BenhNhan;
 
 @SuppressWarnings("serial")
@@ -46,7 +46,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
 
     private JTextField txtMaBN;
     private JTextField txtHoTen;
-    private JTextField txtNgaySinh;
+    private BangChonLich dateNgaySinh;
     private JComboBox<gioitinh> cboGioiTinh;
     private JTextField txtSDT;
     private JTextField txtEmail;
@@ -83,7 +83,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
         txtMaBN.setEditable(false);
         txtMaBN.setBackground(new Color(241, 245, 249));
         txtHoTen = taoTextField();
-        txtNgaySinh = taoTextField();
+        dateNgaySinh = new BangChonLich();
         txtSDT = taoTextField();
         chiChoNhapSo(txtSDT);
         txtEmail = taoTextField();
@@ -98,7 +98,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
         JPanel form = taoPanelForm();
         themTruong(form, "Mã bệnh nhân", txtMaBN, 0, 0, 1);
         themTruong(form, "Họ và tên *", txtHoTen, 1, 0, 1);
-        themTruong(form, "Ngày sinh (yyyy-MM-dd)", txtNgaySinh, 0, 1, 1);
+        themTruong(form, "Ngày sinh", dateNgaySinh, 0, 1, 1);
         themTruong(form, "Giới tính", cboGioiTinh, 1, 1, 1);
         themTruong(form, "Số điện thoại", txtSDT, 0, 2, 1);
         themTruong(form, "Email", txtEmail, 1, 2, 1);
@@ -234,7 +234,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
             }
             txtMaBN.setText(bn.getMaBN());
             txtHoTen.setText(bn.getHoten());
-            txtNgaySinh.setText(bn.getNgaysinh() == null ? "" : bn.getNgaysinh().toString());
+            dateNgaySinh.setDate(bn.getNgaysinh());
             cboGioiTinh.setSelectedItem(bn.getGioitinh());
             txtSDT.setText(bn.getSdt());
             txtEmail.setText(bn.getEmail());
@@ -261,8 +261,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
     private void xuLySua() {
         try {
             String hoTen = txtHoTen.getText().trim();
-            String ngay = txtNgaySinh.getText().trim();
-            LocalDate ngaySinh = ngay.isEmpty() ? null : LocalDate.parse(ngay);
+            LocalDate ngaySinh = dateNgaySinh.getDate();
             String sdt = txtSDT.getText().trim();
             String email = txtEmail.getText().trim();
             String diaChi = txtDiaChi.getText().trim();
@@ -282,7 +281,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
             }
             if (!Regex_BenhNhan.isValidNgaySinh(ngaySinh)) {
                 JOptionPane.showMessageDialog(this, "Ngày sinh không được lớn hơn ngày hiện tại!");
-                txtNgaySinh.requestFocusInWindow();
+                dateNgaySinh.requestFocusInWindow();
                 return;
             }
             if (!Regex_BenhNhan.isValidGioiTinh(gt == null ? null : gt.name())) {
@@ -329,10 +328,6 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
             JOptionPane.showMessageDialog(this, "Cập nhật bệnh nhân thành công!");
             suaThanhCong();
 
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this,
-                "Ngày sinh không hợp lệ! Định dạng yyyy-MM-dd, ví dụ 2003-05-20");
-            txtNgaySinh.requestFocusInWindow();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
                 "Không thể cập nhật bệnh nhân: " + ex.getMessage(),
@@ -360,4 +355,6 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new SuaBenhNhanPanel("BN001", null).moframe());
     }
+
+    // Bộ chọn ngày sinh dùng giống form Thêm bệnh nhân.
 }

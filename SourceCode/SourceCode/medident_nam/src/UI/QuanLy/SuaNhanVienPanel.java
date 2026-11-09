@@ -13,7 +13,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;
@@ -28,6 +27,7 @@ import DAO.NhanVienDAO;
 import Entity.NhanVien;
 import enums.gioitinh;
 import enums.trangthai_NhanVien;
+import util.BangChonLich;
 import validation.Regex_NhanVien;
 
 @SuppressWarnings("serial")
@@ -44,7 +44,8 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
     private final Color SUBTEXT = new Color(100, 116, 139);
     private final Color BORDER = new Color(220, 227, 236);
 
-    private JTextField txtMaNV, txtHoTen, txtNgaySinh, txtSDT, txtEmail, txtChucVu, txtMaTK;
+    private JTextField txtMaNV, txtHoTen, txtSDT, txtEmail, txtChucVu, txtMaTK;
+    private BangChonLich dateNgaySinh;
     private JComboBox<gioitinh> cboGioiTinh;
     private JComboBox<trangthai_NhanVien> cboTrangThai;
     private JTextArea txtDiaChi;
@@ -77,7 +78,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         txtMaNV.setEditable(false);
         txtMaNV.setBackground(new Color(241, 245, 249));
         txtHoTen = taoTextField();
-        txtNgaySinh = taoTextField();
+        dateNgaySinh = new BangChonLich();
         txtSDT = taoTextField();
         chiChoNhapSo(txtSDT);
         txtEmail = taoTextField();
@@ -92,7 +93,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         JPanel form = taoPanelForm();
         themTruong(form, "Mã nhân viên", txtMaNV, 0, 0);
         themTruong(form, "Họ và tên *", txtHoTen, 1, 0);
-        themTruong(form, "Ngày sinh (yyyy-MM-dd)", txtNgaySinh, 0, 1);
+        themTruong(form, "Ngày sinh", dateNgaySinh, 0, 1);
         themTruong(form, "Giới tính", cboGioiTinh, 1, 1);
         themTruong(form, "Số điện thoại", txtSDT, 0, 2);
         themTruong(form, "Email", txtEmail, 1, 2);
@@ -226,7 +227,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
             }
             txtMaNV.setText(nv.getMaNV());
             txtHoTen.setText(nv.getHoten());
-            txtNgaySinh.setText(nv.getNgaysinh() == null ? "" : nv.getNgaysinh().toString());
+            dateNgaySinh.setDate(nv.getNgaysinh());
             cboGioiTinh.setSelectedItem(nv.getGioitinh());
             txtSDT.setText(nv.getSdt());
             txtEmail.setText(nv.getEmail());
@@ -254,8 +255,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
     private void xuLySua() {
         try {
             String hoTen = txtHoTen.getText().trim();
-            String ngay = txtNgaySinh.getText().trim();
-            LocalDate ngaySinh = ngay.isEmpty() ? null : LocalDate.parse(ngay);
+            LocalDate ngaySinh = dateNgaySinh.getDate();
             String sdt = txtSDT.getText().trim();
             String email = txtEmail.getText().trim();
             String diaChi = txtDiaChi.getText().trim();
@@ -276,7 +276,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
             }
             if (!Regex_NhanVien.isValidNgaySinh(ngaySinh)) {
                 JOptionPane.showMessageDialog(this, "Ngày sinh không được lớn hơn ngày hiện tại!");
-                txtNgaySinh.requestFocusInWindow();
+                dateNgaySinh.requestFocusInWindow();
                 return;
             }
             if (!Regex_NhanVien.isValidGioiTinh(gt == null ? null : gt.name())) {
@@ -328,10 +328,6 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
             JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!");
             suaThanhCong();
 
-        } catch (DateTimeParseException ex) {
-            JOptionPane.showMessageDialog(this,
-                "Ngày sinh không hợp lệ! Định dạng yyyy-MM-dd, ví dụ 2003-05-20");
-            txtNgaySinh.requestFocusInWindow();
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(this,
                 "Không thể cập nhật nhân viên: " + ex.getMessage(),
@@ -359,4 +355,6 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new SuaNhanVienPanel("NV001", null).moframe());
     }
+
+    // Bộ chọn ngày sinh dùng giống form Thêm nhân viên.
 }
