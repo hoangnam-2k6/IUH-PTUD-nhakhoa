@@ -1,5 +1,6 @@
 package UI.QuanLy;
 
+import util.BangStyle;
 import DAO.HoaDonDAO;
 import java.awt.*;
 import java.math.BigDecimal;
@@ -144,10 +145,13 @@ public class QuanLyHoaDonPanel extends JPanel {
 
         // Giu nguyen JTable
         bangHoaDon.setRowHeight(27);
+        BangStyle.apDung(bangHoaDon);
         bangHoaDon.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         bangHoaDon.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
-        add(new JScrollPane(bangHoaDon), BorderLayout.CENTER);
+        JScrollPane scrollBang = new JScrollPane(bangHoaDon);
+        BangStyle.apDungScrollPane(scrollBang);
+        add(scrollBang, BorderLayout.CENTER);
         add(nhanTrangThai, BorderLayout.SOUTH);
     }
 

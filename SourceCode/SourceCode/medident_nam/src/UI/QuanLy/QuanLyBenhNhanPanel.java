@@ -1,6 +1,7 @@
 
 package UI.QuanLy;
 
+import util.BangStyle;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -77,7 +78,7 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         btntailai = taoNut("tải lại");
         btnthem = taoNut("+ Thêm bệnh nhân");
         btnsua = taoNut("Chỉnh sửa");
-        btnxoa = taoNut("Xóa");
+        btnxoa = taoNut("Ngừng hoạt động");
 
         pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
         pbtn.setBackground(Color.WHITE);
@@ -107,11 +108,13 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
 
         tableBN = new JTable(modelBN);
         tableBN.setRowHeight(25);
+        BangStyle.apDung(tableBN);
         tableBN.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         tableBN.setFillsViewportHeight(true);
         tableBN.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         scrollBN = new JScrollPane(tableBN);
+        BangStyle.apDungScrollPane(scrollBN);
         benhnhan_center.add(scrollBN, BorderLayout.CENTER);
         add(benhnhan_center, BorderLayout.CENTER);
     }
@@ -224,25 +227,49 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         }
     }
 
-    // Xoa benh nhan
+    // Ngừng hoạt động bệnh nhân bằng trạng thái enum, giữ nguyên lịch sử liên quan.
     private void xoaBenhNhan() throws SQLException {
         String maBN = layMaBenhNhan();
 
         if (maBN == null) return;
 
-        String thongBao = "Bạn có chắc chắn muốn xóa bệnh nhân " + maBN + " không?";
-        int luaChon = JOptionPane.showConfirmDialog(this, thongBao, "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
+        int dongChon = tableBN.getSelectedRow();
+        int dongModel = tableBN.convertRowIndexToModel(dongChon);
+        Object giaTriTrangThai = modelBN.getValueAt(dongModel, 9);
+
+        if (trangThaiDaNgung(giaTriTrangThai)) {
+            JOptionPane.showMessageDialog(this,
+                "Bệnh nhân này đã ở trạng thái NGUNGHOATDONG.",
+                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        String thongBao = "Chuyển hồ sơ bệnh nhân " + maBN
+                + " sang trạng thái NGUNGHOATDONG?\n"
+                + "Lịch hẹn, phiếu khám và hóa đơn cũ sẽ được giữ nguyên.";
+        int luaChon = JOptionPane.showConfirmDialog(
+            this, thongBao, "Xác nhận ngừng hoạt động",
+            JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (luaChon != JOptionPane.YES_OPTION) return;
 
         boolean ketQua = bnDAO.delete(maBN);
 
         if (ketQua) {
-            JOptionPane.showMessageDialog(this, "Xóa bệnh nhân thành công!");
+            JOptionPane.showMessageDialog(this,
+                "Đã chuyển hồ sơ bệnh nhân sang NGUNGHOATDONG.\n"
+                + "Dữ liệu lịch sử vẫn được giữ nguyên.");
             loadbenhnhan();
         } else {
-            JOptionPane.showMessageDialog(this, "Xóa bệnh nhân thất bại!");
+            JOptionPane.showMessageDialog(this,
+                "Không thể cập nhật trạng thái bệnh nhân. Vui lòng kiểm tra lại dữ liệu.",
+                "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private boolean trangThaiDaNgung(Object trangThai) {
+        return trangThai != null
+                && "NGUNGHOATDONG".equalsIgnoreCase(trangThai.toString().trim());
     }
 
     // Tim kiem benh nhan theo cot duoc chon

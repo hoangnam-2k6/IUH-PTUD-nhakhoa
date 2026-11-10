@@ -1,6 +1,7 @@
 
 package UI.QuanLy;
 
+import util.BangStyle;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -102,11 +103,13 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
 
         tableNV = new JTable(modelNV);
         tableNV.setRowHeight(25);
+        BangStyle.apDung(tableNV);
         tableNV.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         tableNV.setFillsViewportHeight(true);
         tableNV.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         scrollNV = new JScrollPane(tableNV);
+        BangStyle.apDungScrollPane(scrollNV);
         nhanvien_center.add(scrollNV, BorderLayout.CENTER);
         add(nhanvien_center, BorderLayout.CENTER);
     }

@@ -1,5 +1,6 @@
 package UI.QuanLy;
 
+import util.BangStyle;
 import DAO.LichHenDAO;
 import Entity.LichHen;
 import java.awt.*;
@@ -112,10 +113,13 @@ public class QuanLyLichHenPanel extends JPanel {
 
         // Giu nguyen JTable
         bangLichHen.setRowHeight(27);
+        BangStyle.apDung(bangLichHen);
         bangLichHen.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         bangLichHen.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
-        add(new JScrollPane(bangLichHen), BorderLayout.CENTER);
+        JScrollPane scrollBang = new JScrollPane(bangLichHen);
+        BangStyle.apDungScrollPane(scrollBang);
+        add(scrollBang, BorderLayout.CENTER);
         add(nhanTrangThai, BorderLayout.SOUTH);
     }
 

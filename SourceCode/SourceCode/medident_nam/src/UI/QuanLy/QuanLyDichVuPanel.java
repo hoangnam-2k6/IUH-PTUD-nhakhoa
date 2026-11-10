@@ -1,6 +1,7 @@
 
 package UI.QuanLy;
 
+import util.BangStyle;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -104,6 +105,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
 
         tableDV = new JTable(modelDV);
         tableDV.setRowHeight(25);
+        BangStyle.apDung(tableDV);
         tableDV.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         tableDV.setFillsViewportHeight(true);
         tableDV.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -112,6 +114,7 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         tableDV.setRowSorter(sorterDV);
 
         scrollDV = new JScrollPane(tableDV);
+        BangStyle.apDungScrollPane(scrollDV);
         dichvu_center.add(scrollDV, BorderLayout.CENTER);
         add(dichvu_center, BorderLayout.CENTER);
     }

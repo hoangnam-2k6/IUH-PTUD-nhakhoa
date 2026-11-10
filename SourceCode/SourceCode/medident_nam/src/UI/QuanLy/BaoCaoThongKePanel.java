@@ -1,6 +1,7 @@
 
 package UI.QuanLy;
 
+import util.BangStyle;
 import DAO.HoaDonDAO;
 import DAO.LichHenDAO;
 import java.awt.*;
@@ -121,8 +122,11 @@ private void taoGiaoDien() {
 
     // Giu nguyen JTable
     bang.setRowHeight(27);
+        BangStyle.apDung(bang);
     bang.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-    add(new JScrollPane(bang), BorderLayout.CENTER);
+    JScrollPane scrollBang = new JScrollPane(bang);
+        BangStyle.apDungScrollPane(scrollBang);
+        add(scrollBang, BorderLayout.CENTER);
 
     JPanel chanTrang = new JPanel(new GridLayout(2, 1));
     chanTrang.add(tongKet);

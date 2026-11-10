@@ -1,6 +1,0 @@
-# Khong commit thong tin ket noi that
-/db.properties
-/src/Resource/db.properties
-/build/
-/target/
-*.log

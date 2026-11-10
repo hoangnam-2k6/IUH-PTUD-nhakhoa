@@ -46,11 +46,11 @@ public class ThemBenhNhanPanel extends JPanel implements ActionListener {
     private JTextField txtHoTen;
     private BangChonLich dateNgaySinh;
     private JComboBox<gioitinh> cboGioiTinh;
+    private JComboBox<trangthaidieutri> cboTrangThai;
     private JTextField txtSDT;
     private JTextField txtEmail;
     private JTextArea txtDiaChi;
     private JTextArea txtTienSuBenh;
-    private JComboBox<trangthaidieutri> cboTrangThai;
 
     private JButton btnThem;
     private JButton btnHuy;
@@ -114,8 +114,10 @@ public class ThemBenhNhanPanel extends JPanel implements ActionListener {
         themTruong(pnlForm, "Số điện thoại", txtSDT, 0, 2, 1);
         themTruong(pnlForm, "Email", txtEmail, 1, 2, 1);
         themTruong(pnlForm, "Địa chỉ", taoScrollPane(txtDiaChi), 0, 3, 1);
-        themTruong(pnlForm, "Tiền sử bệnh", taoScrollPane(txtTienSuBenh), 1, 3, 1);
-        themTruong(pnlForm, "Trạng thái điều trị", cboTrangThai, 0, 4, 2);
+        themTruong(pnlForm, "Trạng thái điều trị", cboTrangThai, 1, 3, 1);
+        JScrollPane scrollTienSuBenh = taoScrollPane(txtTienSuBenh);
+        scrollTienSuBenh.setPreferredSize(new Dimension(250, 105));
+        themTruong(pnlForm, "Tiền sử bệnh", scrollTienSuBenh, 0, 4, 2);
         add(pnlForm, BorderLayout.CENTER);
 
         btnHuy = new JButton("Hủy");
@@ -357,9 +359,9 @@ public class ThemBenhNhanPanel extends JPanel implements ActionListener {
             }
             if (!Regex_BenhNhan.isValidTrangThai(tt == null ? null : tt.name())) {
                 JOptionPane.showMessageDialog(this, "Trạng thái điều trị không hợp lệ!");
+                cboTrangThai.requestFocusInWindow();
                 return;
             }
-
             BenhNhan bn = new BenhNhan(
                 maBN, hoTen, ngaySinh, gt, sdt, email,
                 diaChi, tienSuBenh, tt

@@ -114,6 +114,11 @@ public class BenhNhanDAO {
     // 2. Thêm bệnh nhân
     public boolean create(BenhNhan bn) {
 
+        // Không tạo hồ sơ mới ở trạng thái ngừng hoạt động.
+        if (bn == null || bn.getTrangthai() == trangthaidieutri.NGUNGHOATDONG) {
+            return false;
+        }
+
         ConnectDB.GetInstance();
         Connection con = ConnectDB.getConnection();
 
@@ -218,27 +223,33 @@ public class BenhNhanDAO {
         return n > 0;
     }
 
-    // 4. Xóa bệnh nhân
+    // 4. Ngừng hoạt động bệnh nhân (xóa mềm bằng enum, không xóa vật lý).
+    // Giữ tên delete() để không làm ảnh hưởng lời gọi hiện tại từ giao diện.
     public boolean delete(String maBN) {
+
+        if (maBN == null || maBN.trim().isEmpty()) {
+            return false;
+        }
 
         ConnectDB.GetInstance();
         Connection con = ConnectDB.getConnection();
 
-        int n = 0;
-
-        String sql = "DELETE FROM BenhNhan WHERE maBN = ?";
+        String sql = "UPDATE BenhNhan SET trangthai = ? "
+                   + "WHERE maBN = ? "
+                   + "AND (trangthai IS NULL OR trangthai <> ?)";
 
         try (PreparedStatement stmt = con.prepareStatement(sql)) {
 
-            stmt.setString(1, maBN);
+            stmt.setString(1, trangthaidieutri.NGUNGHOATDONG.name());
+            stmt.setString(2, maBN.trim());
+            stmt.setString(3, trangthaidieutri.NGUNGHOATDONG.name());
 
-            n = stmt.executeUpdate();
+            return stmt.executeUpdate() > 0;
 
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
-
-        return n > 0;
     }
 
 	public ArrayList<BenhNhan> timBenhNhan(
