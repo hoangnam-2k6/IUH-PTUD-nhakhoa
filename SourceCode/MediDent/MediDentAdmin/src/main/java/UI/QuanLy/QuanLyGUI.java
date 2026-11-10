@@ -90,7 +90,15 @@ public final class QuanLyGUI extends JFrame {
         vaiTro.setForeground(CHU_PHU);
         duoi.add(tenNguoiDung); duoi.add(vaiTro);
         JButton dangXuat = new JButton("Đăng xuất");
+        dangXuat.setHorizontalAlignment(SwingConstants.LEFT);
+        dangXuat.setFont(new Font("Segoe UI",Font.BOLD,12));
+        dangXuat.setBackground(Color.WHITE); 
+        dangXuat.setForeground(CHU_PHU);
+        dangXuat.setFocusPainted(false);
+        dangXuat.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        dangXuat.setBorder(new CompoundBorder(new LineBorder(VIEN,1,true),new EmptyBorder(12,13,12,8)));
         dangXuat.setAlignmentX(LEFT_ALIGNMENT);
+        dangXuat.setMaximumSize(new Dimension(225,46));
         dangXuat.addActionListener(e -> {
             dispose();
             new UI.DangNhap.DangNhap(dao).setVisible(true);
