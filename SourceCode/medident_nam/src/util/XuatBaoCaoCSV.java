@@ -1,31 +1,82 @@
+
 package util;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
-/** Xuất CSV UTF-8 có BOM; bảo vệ ký tự đặc biệt và công thức bảng tính. */
-public final class XuatBaoCaoCSV {
-    private XuatBaoCaoCSV() { }
+public class XuatBaoCaoCSV {
 
-    public static void xuat(Path tep,String loai,String khoang,String[] cot,List<Object[]> duLieu) throws IOException {
-        try(BufferedWriter out=Files.newBufferedWriter(tep,StandardCharsets.UTF_8)){
-            out.write('\uFEFF');
-            ghiDong(out,new Object[]{"Loại báo cáo",loai});
-            ghiDong(out,new Object[]{"Khoảng thời gian",khoang});
-            ghiDong(out,cot);
-            for(Object[] dong:duLieu)ghiDong(out,dong);
+    // Xuất báo cáo thống kê ra file CSV.
+    public static void xuat(Path duongDan, String loaiBaoCao,
+                            String thoiGian, String[] cot,
+                            List<Object[]> duLieu) throws IOException {
+
+        try (BufferedWriter ghi = Files.newBufferedWriter(
+                duongDan, StandardCharsets.UTF_8)) {
+
+            // Giúp Excel nhận tiếng Việt có dấu.
+            ghi.write('\uFEFF');
+
+            ghi.write("BÁO CÁO THỐNG KÊ MEDIDENT");
+            ghi.newLine();
+
+            ghi.write("Loại báo cáo;" + chuanHoa(loaiBaoCao));
+            ghi.newLine();
+
+            ghi.write("Thời gian;" + chuanHoa(thoiGian));
+            ghi.newLine();
+            ghi.newLine();
+
+            // Xuất tiêu đề các cột JTable.
+            for (int i = 0; i < cot.length; i++) {
+                if (i > 0) ghi.write(";");
+                ghi.write(chuanHoa(cot[i]));
+            }
+            ghi.newLine();
+
+            // Xuất toàn bộ dữ liệu của bảng.
+            for (Object[] dong : duLieu) {
+                for (int i = 0; i < cot.length; i++) {
+                    if (i > 0) ghi.write(";");
+
+                    Object giaTri = i < dong.length ? dong[i] : null;
+                    ghi.write(chuanHoa(giaTri));
+                }
+                ghi.newLine();
+            }
         }
     }
 
-    private static void ghiDong(Writer out,Object[] dong) throws IOException {
-        for(int i=0;i<dong.length;i++){
-            if(i>0)out.write(',');
-            String text=dong[i]==null?"":dong[i].toString();
-            if(!text.isEmpty() && "=+-@".indexOf(text.charAt(0))>=0)text="'"+text;
-            out.write('"');out.write(text.replace("\"","\"\""));out.write('"');
+    // Chuẩn hóa giá trị để CSV không bị lỗi cột.
+    private static String chuanHoa(Object giaTri) {
+        if (giaTri == null) return "";
+
+        String chuoi;
+
+        if (giaTri instanceof BigDecimal) {
+            chuoi = ((BigDecimal) giaTri).stripTrailingZeros()
+                    .toPlainString().replace('.', ',');
+        } else {
+            chuoi = giaTri.toString();
         }
-        out.write('\n');
+
+        // Ngăn Excel thực thi công thức từ dữ liệu văn bản.
+        if (giaTri instanceof String && chuoi.trim().matches("^[=+@\\-].*")) {
+            chuoi = "'" + chuoi;
+        }
+
+        chuoi = chuoi.replace("\"", "\"\"");
+
+        if (chuoi.contains(";") || chuoi.contains("\"")
+                || chuoi.contains("\n") || chuoi.contains("\r")) {
+            chuoi = "\"" + chuoi + "\"";
+        }
+
+        return chuoi;
     }
 }

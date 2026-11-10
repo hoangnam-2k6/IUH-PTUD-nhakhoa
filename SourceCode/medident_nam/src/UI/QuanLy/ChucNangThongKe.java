@@ -1,30 +1,29 @@
 package UI.QuanLy;
 
 
-
-import DAO.ThongKeDAO;
+import DAO.ThongKeMoRongDAO;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 public class ChucNangThongKe {
-    private final ThongKeDAO dao = new ThongKeDAO();
+    private final ThongKeMoRongDAO dao = new ThongKeMoRongDAO();
 
-    public record KetQua(boolean doanhThu, String theo, List<Object[]> dong) {}
+    public record BaoCao(ThongKeMoRongDAO.Bang bang, String nhom) {}
 
-    public KetQua tai(String loai, LocalDate tu, LocalDate den) throws SQLException {
-        if (loai == null || (!loai.equals("Doanh thu") && !loai.equals("Lượt khám")))
-            throw new IllegalArgumentException("Loại báo cáo không hợp lệ.");
-
-        if ((tu == null) != (den == null) || (tu != null && tu.isAfter(den)))
+    // Kiểm tra ngày, xác định kiểu nhóm và lấy báo cáo.
+    public BaoCao tai(String loai, LocalDate tu, LocalDate den) throws SQLException {
+        if ((tu == null) != (den == null) || (tu != null && tu.isAfter(den))) {
             throw new IllegalArgumentException("Khoảng ngày không hợp lệ.");
+        }
 
-        String theo = tu == null ? "Tháng"
-                : ChronoUnit.DAYS.between(tu, den) <= 31 ? "Ngày"
-                : ChronoUnit.DAYS.between(tu, den) <= 730 ? "Tháng" : "Năm";
+        String nhom = "Tháng";
 
-        boolean doanhThu = loai.equals("Doanh thu");
-        return new KetQua(doanhThu, theo, dao.layBaoCao(doanhThu, theo, tu, den));
+        if (tu != null) {
+            long soNgay = ChronoUnit.DAYS.between(tu, den);
+            nhom = soNgay <= 31 ? "Ngày" : soNgay <= 730 ? "Tháng" : "Năm";
+        }
+
+        return new BaoCao(dao.baoCao(loai, nhom, tu, den), nhom);
     }
 }

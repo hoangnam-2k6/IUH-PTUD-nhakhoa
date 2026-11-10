@@ -39,8 +39,7 @@ public class ConnectDB {
     }
 
     static Connection taoKetNoi(String tenCSDL) throws SQLException {
-        String url = "jdbc:sqlserver://" + MAY_CHU + ";databaseName=" + tenCSDL
-                + ";encrypt=true;trustServerCertificate=true;loginTimeout=5";
+        String url = "jdbc:sqlserver://" + MAY_CHU + ";databaseName=" + tenCSDL+ ";encrypt=true;trustServerCertificate=true;loginTimeout=5";
         return DriverManager.getConnection(url, TAI_KHOAN, MAT_KHAU);
     }
 

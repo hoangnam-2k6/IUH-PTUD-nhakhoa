@@ -1,11 +1,17 @@
 package UI.QuanLy;
 
 import java.awt.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
 /** Một kiểu nút, bảng, font và màu dùng chung cho toàn bộ quản lý. */
@@ -85,59 +91,98 @@ public final class GiaoDienChung {
 
   
     
-    public static void bang(JTable bang) {
-        bang.setFont(new Font("Arial", Font.PLAIN, 13));
-        bang.setRowHeight(27);
-        bang.setShowGrid(true);
-        bang.setGridColor(new Color(225, 225, 225));
-        bang.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-        bang.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        bang.setFillsViewportHeight(true);
+  public static void bang(JTable bang) {
+    bang.setFont(new Font("Arial", Font.PLAIN, 13));
+    bang.setRowHeight(30);
+    bang.setShowGrid(true);
+    bang.setGridColor(new Color(225, 225, 225));
+    bang.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+    bang.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    bang.setFillsViewportHeight(true);
 
-        bang.setSelectionBackground(UIManager.getColor("Table.selectionBackground"));
-        bang.setSelectionForeground(UIManager.getColor("Table.selectionForeground"));
+    bang.setSelectionBackground(UIManager.getColor("Table.selectionBackground"));
+    bang.setSelectionForeground(UIManager.getColor("Table.selectionForeground"));
 
-        JTableHeader header = bang.getTableHeader();
-        header.setFont(new Font("Arial", Font.PLAIN, 12));
-        header.setBackground(UIManager.getColor("TableHeader.background"));
-        header.setForeground(UIManager.getColor("TableHeader.foreground"));
-        header.setReorderingAllowed(false);
+    JTableHeader header = bang.getTableHeader();
+    header.setFont(new Font("Arial", Font.PLAIN, 12));
+    header.setBackground(UIManager.getColor("TableHeader.background"));
+    header.setForeground(UIManager.getColor("TableHeader.foreground"));
+    header.setReorderingAllowed(false);
 
-        if (bang.getModel() instanceof DefaultTableModel model) {
-            TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(model);
+    // Căn lề và hiển thị đầy đủ nội dung khi rê chuột.
+    DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+        @Override
+        public Component getTableCellRendererComponent(
+                JTable table, Object value, boolean selected,
+                boolean focus, int row, int column) {
 
-            for (int i = 0; i < model.getColumnCount(); i++) {
-                String tenCot = model.getColumnName(i).toLowerCase(Locale.ROOT);
+            super.getTableCellRendererComponent(table, value, selected, focus, row, column);
 
-                if (tenCot.equals("stt") || tenCot.startsWith("mã")) {
-                    sorter.setComparator(i, GiaoDienChung::soSanhMa);
-                }
+            String tenCot = table.getColumnName(column).toLowerCase();
+            setToolTipText(value == null ? null : value.toString());
+
+            if (tenCot.equals("stt") || tenCot.startsWith("mã")) {
+                setHorizontalAlignment(SwingConstants.CENTER);
+            } else if (value instanceof Number) {
+                setHorizontalAlignment(SwingConstants.RIGHT);
+            } else {
+                setHorizontalAlignment(SwingConstants.LEFT);
             }
 
-            bang.setRowSorter(sorter);
+            setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));
+            return this;
         }
+    };
+
+    for (int i = 0; i < bang.getColumnCount(); i++) {
+        bang.getColumnModel().getColumn(i).setCellRenderer(renderer);
     }
 
-    private static int soSanhMa(Object a, Object b) {
-        String x = String.valueOf(a);
-        String y = String.valueOf(b);
+    // Giữ sorter cũ để không làm mất chức năng tìm kiếm.
+    TableRowSorter<?> sorter = null;
 
-        if (x.matches("\\d+") && y.matches("\\d+")) {
-            return Long.compare(Long.parseLong(x), Long.parseLong(y));
-        }
-
-        String soX = x.replaceAll("\\D", "");
-        String soY = y.replaceAll("\\D", "");
-        String dauX = x.replaceAll("\\d", "");
-        String dauY = y.replaceAll("\\d", "");
-
-        if (!soX.isEmpty() && !soY.isEmpty() && dauX.equalsIgnoreCase(dauY)) {
-            return Long.compare(Long.parseLong(soX), Long.parseLong(soY));
-        }
-
-        return x.compareToIgnoreCase(y);
+    if (bang.getRowSorter() instanceof TableRowSorter<?>) {
+        sorter = (TableRowSorter<?>) bang.getRowSorter();
+    } else if (bang.getRowSorter() == null) {
+        TableRowSorter<TableModel> moi = new TableRowSorter<>(bang.getModel());
+        bang.setRowSorter(moi);
+        sorter = moi;
     }
 
+    if (sorter != null) {
+        for (int i = 0; i < bang.getColumnCount(); i++) {
+            String ten = bang.getColumnName(i).toLowerCase();
+
+            if (ten.equals("stt") || ten.startsWith("mã")) {
+                sorter.setComparator(i, GiaoDienChung::soSanhMa);
+            }
+        }
+    }
+}
+
+    
+private static int soSanhMa(Object a, Object b) {
+    if (a == null) return b == null ? 0 : -1;
+    if (b == null) return 1;
+
+    if (a instanceof Number && b instanceof Number) {
+        return new BigDecimal(a.toString()).compareTo(new BigDecimal(b.toString()));
+    }
+
+    String x = a.toString().trim();
+    String y = b.toString().trim();
+
+    Pattern p = Pattern.compile("^(.*?)(\\d+)$");
+    Matcher mx = p.matcher(x);
+    Matcher my = p.matcher(y);
+
+    if (mx.matches() && my.matches()
+            && mx.group(1).equalsIgnoreCase(my.group(1))) {
+        return new BigInteger(mx.group(2)).compareTo(new BigInteger(my.group(2)));
+    }
+
+    return x.compareToIgnoreCase(y);
+}
     public static JPanel thanhCongCu(Component... thanhPhan) {
         JPanel p = new JPanel(new GridBagLayout());
         p.setOpaque(false);
