@@ -13,6 +13,7 @@ import javax.swing.table.DefaultTableModel;
 import DAO.NhanVienDAO;
 import Entity.NhanVien;
 
+@SuppressWarnings("serial")
 public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
 
     private JLabel lbltitle, lbltimnhanh;
@@ -30,6 +31,8 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
 
     private final NhanVienDAO nvDAO = new NhanVienDAO();
 	private JButton btntailai;
+	private JButton btnchitiet;
+	private JPanel chitietpanel;
 
     public QuanLyNhanVienPanel() {
         this(null, null);
@@ -74,6 +77,7 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
         btnthem = taoNut("+ Thêm nhân viên");
         btnsua = taoNut("Chỉnh sửa");
         btnxoa = taoNut("Xóa");
+        btnchitiet = taoNut("xem chi tiết");
 
         pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
         pbtn.setBackground(Color.WHITE);
@@ -85,6 +89,7 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
         pbtn.add(btnthem);
         pbtn.add(btnsua);
         pbtn.add(btnxoa);
+        pbtn.add(btnchitiet);
 
         nhanvien_top.add(pbtn, BorderLayout.CENTER);
         add(nhanvien_top, BorderLayout.NORTH);
@@ -131,6 +136,7 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
         btnthem.addActionListener(this);
         btnsua.addActionListener(this);
         btnxoa.addActionListener(this);
+        btnchitiet.addActionListener(this);
     }
 
     // Xu ly su kien cac nut
@@ -150,9 +156,22 @@ public class QuanLyNhanVienPanel extends JPanel implements ActionListener {
             moFormSuaNhanVien();
         } else if (nut == btnxoa) {
             xoaNhanVien();
-        }
+        } else if (nut == btnchitiet) {
+			if(tableNV.getSelectedRow() == -1) {
+				JOptionPane.showMessageDialog(this, "hãy chọn cột cần xem chi tiết");
+			} else {
+				String[] option = {"sửa thông tin","đóng"};
+				chitietpanel = new JPanel();
+				chitietpanel.setPreferredSize(new Dimension(600,400));
+				chitietpanel.setLayout(new GridBagLayout());
+				int luachon = JOptionPane.showOptionDialog(this, chitietpanel, "chi tiêt", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, option, option[1]);
+				if(luachon == 0) {
+					moFormSuaNhanVien();
+				}
+			}
+				
+		}
     }
-
     // Lay danh sach nhan vien tu SQL Server
     public void loadnhanvien() {
         try {
