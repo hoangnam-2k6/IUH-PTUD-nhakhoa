@@ -32,7 +32,7 @@ public final class KetNoi {
 
     /** Tài khoản SQL Server dùng cho ứng dụng (cấu hình theo máy triển khai). */
     public static final String DB_USER = "sa";
-    public static final String DB_PASSWORD = "sapassword";
+    public static final String DB_PASSWORD = "YOUR_SQL_SERVER_PASSWORD";
 
     private KetNoi() {
     }
