@@ -1,71 +1,62 @@
 package UI.LeTan;
 
 import Dao.BenhNhanDao;
+import Dao.LichHenDao;
 import Dao.PhieuKhamDao;
-import Dao.PhongKhamDao;
-import Entity.BenhNhan;
 import Entity.PhieuKham;
-import Entity.PhongKham;
+import Entity.TaiKhoan;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
-import javax.swing.event.DocumentListener;
-import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
-import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.regex.Pattern;
+import java.util.function.IntFunction;
 
 import static UI.LeTan.GiaoDien.*;
 
 public class TrangChuLeTan extends JPanel {
-    private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
-
-    private final String tenNguoiDung;
+    private final TaiKhoan taiKhoan;
     private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
-    private final PhongKhamDao phongKhamDao = new PhongKhamDao();
     private final BenhNhanDao benhNhanDao = new BenhNhanDao();
+    private final LichHenDao lichHenDao = new LichHenDao();
 
     private List<PhieuKham> dsPhieu = new ArrayList<>();
-    private List<PhongKham> dsPhong = new ArrayList<>();
-    private boolean dangNap = false;
 
-    // 4 con số thống kê
     private final JLabel soTongBN = new JLabel("0");
     private final JLabel soChoKham = new JLabel("0");
     private final JLabel soHoanThanh = new JLabel("0");
-    private final JLabel soPhieu = new JLabel("0");
+    private final JLabel soLichHen = new JLabel("0");
 
-    // Bảng phiếu khám (bên trái)
     private final DefaultTableModel modelPhieu = new DefaultTableModel(
-            new String[]{"STT", "Mã phiếu", "Mã BN", "Bệnh nhân", "Phòng khám", "Trạng thái"}, 0) {
+            new String[]{"STT", "Mã phiếu", "Mã BN", "Bệnh nhân", "Phòng khám", "Trạng thái", "Ghi chú"}, 0) {
         @Override
         public boolean isCellEditable(int row, int column) {
-            return column >= 4; // chỉ sửa được Phòng khám và Trạng thái
+            return false; // trang chủ chỉ để xem, thao tác phiếu nằm ở màn Khám bệnh
         }
     };
     private final JTable bangPhieu = GiaoDien.taoBang(modelPhieu);
-    private final TableRowSorter<DefaultTableModel> boLoc = new TableRowSorter<>(modelPhieu);
+    private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(modelPhieu);
     private final JTextField oTimKiem = GiaoDien.taoOText();
+
+    // Bộ lọc nâng cao: bấm nút "Bộ lọc" để sổ khung lọc xuống phía trên bảng
+    private static final String TAT_CA = "Tất cả";
+    private final JTextField oMaPhieuLoc = GiaoDien.taoOText();
+    private final JTextField oMaBNLoc = GiaoDien.taoOText();
+    private final JTextField oBenhNhanLoc = GiaoDien.taoOText();
+    private final JComboBox<String> cbPhong = new JComboBox<>(new String[]{TAT_CA});
+    private final JComboBox<String> cbTrangThai = new JComboBox<>(new String[]{TAT_CA,
+            PhieuKhamDao.CHO_KHAM, PhieuKhamDao.DANG_KHAM, PhieuKhamDao.HOAN_THANH, PhieuKhamDao.DA_HUY});
+    private final JButton nutLoc = taoNutTrang("Bộ lọc");
+    private GiaoDien.KhungTruot khungLoc;
+    private BoLoc boLoc = BoLoc.RONG;
+    private boolean dangDatLai;
     private final JLabel soLuongPhieu = new JLabel("0 phiếu");
 
-    // Form tiếp nhận (bên phải)
-    private final JTextField oTen = GiaoDien.taoOText();
-    private final JTextField oNgaySinh = GiaoDien.taoOText();
-    private final JComboBox<String> cbGioiTinh = new JComboBox<>(new String[]{"Nam", "Nữ", "Khác"});
-    private final JTextField oSdt = GiaoDien.taoOText();
-    private final JTextField oDiaChi = GiaoDien.taoOText();
-    private final JComboBox<PhongKham> cbPhong = new JComboBox<>();
-
-    public TrangChuLeTan(String tenNguoiDung) {
-        this.tenNguoiDung = tenNguoiDung;
+    public TrangChuLeTan(TaiKhoan taiKhoan) {
+        this.taiKhoan = taiKhoan;
         setLayout(new BorderLayout(0, 12));
         setBackground(NEN_APP);
         setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
@@ -75,36 +66,8 @@ public class TrangChuLeTan extends JPanel {
         phanTren.add(taoBanner(), BorderLayout.NORTH);
         phanTren.add(taoHangThongKe(), BorderLayout.CENTER);
 
-        JSplitPane chia = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, taoKhamVaDieuTri(), taoTiepNhan());
-        chia.setResizeWeight(0.6);
-        chia.setDividerSize(14);
-        chia.setBorder(null);
-        chia.setOpaque(false);
-
         add(phanTren, BorderLayout.NORTH);
-        add(chia, BorderLayout.CENTER);
-
-        // Sửa Phòng khám / Trạng thái ngay trên bảng thì lưu vào CSDL
-        modelPhieu.addTableModelListener(e -> {
-            if (dangNap || e.getType() != TableModelEvent.UPDATE) return;
-            int dong = e.getFirstRow();
-            if (dong < 0 || dong >= dsPhieu.size()) return;
-            PhieuKham pk = dsPhieu.get(dong);
-            String tenPhong = String.valueOf(modelPhieu.getValueAt(dong, 4));
-            String trangThai = String.valueOf(modelPhieu.getValueAt(dong, 5));
-            String phongCu = pk.getTenPhong() == null ? "" : pk.getTenPhong();
-            if (Objects.equals(tenPhong, phongCu) && Objects.equals(trangThai, pk.getTrangThai())) return;
-            try {
-                Integer maPhong = null;
-                for (PhongKham p : dsPhong) {
-                    if (p.getTenPhong().equals(tenPhong)) maPhong = p.getMaPhong();
-                }
-                phieuKhamDao.capNhat(pk, maPhong, trangThai);
-            } catch (Exception ex) {
-                GiaoDien.baoLoi(this, ex);
-            }
-            SwingUtilities.invokeLater(this::taiDuLieu);
-        });
+        add(taoKhamVaDieuTri(), BorderLayout.CENTER);
     }
 
     // ===================== Xây dựng giao diện =====================
@@ -114,12 +77,12 @@ public class TrangChuLeTan extends JPanel {
         banner.setBackground(MAU_CHINH);
         banner.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
 
-        JLabel tieuDe = new JLabel("Tiếp nhận & Khám điều trị");
+        JLabel tieuDe = new JLabel("Tổng quan & Khám điều trị");
         tieuDe.setFont(font(Font.BOLD, 22));
         tieuDe.setForeground(Color.WHITE);
 
-        String homNay = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        JLabel chao = new JLabel("Xin chào, " + tenNguoiDung + "  ·  Hôm nay " + homNay);
+        JLabel chao = new JLabel("Xin chào, " + taiKhoan.getHoTen() + "  ·  Hôm nay "
+                + LocalDate.now().format(NGAY));
         chao.setFont(font(Font.PLAIN, 13));
         chao.setForeground(MAU_CHINH_NHAT);
 
@@ -130,7 +93,7 @@ public class TrangChuLeTan extends JPanel {
 
         JButton nutLamMoi = taoNut("Làm mới", Color.decode("#0EA5E9"), Color.decode("#38BDF8"));
         nutLamMoi.addActionListener(e -> taiDuLieu());
-        JPanel goc = new JPanel(new GridBagLayout()); // để nút nằm giữa theo chiều dọc
+        JPanel goc = new JPanel(new GridBagLayout());
         goc.setOpaque(false);
         goc.add(nutLamMoi);
 
@@ -145,7 +108,7 @@ public class TrangChuLeTan extends JPanel {
         hang.add(taoTheThongKe("Tổng bệnh nhân", soTongBN, MAU_CHINH));
         hang.add(taoTheThongKe("Chờ khám hôm nay", soChoKham, CANH_BAO));
         hang.add(taoTheThongKe("Đã hoàn thành hôm nay", soHoanThanh, THANH_CONG));
-        hang.add(taoTheThongKe("Phiếu khám hôm nay", soPhieu, Color.decode("#8B5CF6")));
+        hang.add(taoTheThongKe("Lịch hẹn hôm nay", soLichHen, Color.decode("#8B5CF6")));
         return hang;
     }
 
@@ -171,20 +134,17 @@ public class TrangChuLeTan extends JPanel {
 
     private JPanel taoKhamVaDieuTri() {
         JPanel the = GiaoDien.taoThe("Khám & điều trị",
-                "Danh sách phiếu khám hôm nay. Bấm vào ô Phòng khám / Trạng thái để sửa trực tiếp.");
+                "Danh sách phiếu khám hôm nay (chỉ xem). Thao tác bắt đầu/hoàn thành/hủy phiếu ở màn Khám bệnh. "
+                        + "Bấm \"Bộ lọc\" để lọc theo mã phiếu, mã BN, bệnh nhân, phòng, trạng thái, ghi chú.");
 
-        // Ô tìm kiếm lọc ngay trên bảng
-        oTimKiem.setToolTipText("Gõ tên bệnh nhân, mã phiếu, phòng hoặc trạng thái");
-        oTimKiem.getDocument().addDocumentListener(new DocumentListener() {
-            @Override public void insertUpdate(DocumentEvent e) { locBang(); }
-            @Override public void removeUpdate(DocumentEvent e) { locBang(); }
-            @Override public void changedUpdate(DocumentEvent e) { locBang(); }
-        });
-        bangPhieu.setRowSorter(boLoc);
-        int[] doRong = {45, 80, 75, 180, 90, 100};
+        oTimKiem.setToolTipText("Gõ tên bệnh nhân, mã phiếu, phòng hoặc trạng thái rồi bấm Tìm kiếm hoặc Enter");
+        oTimKiem.addActionListener(e -> apDungLoc());
+        bangPhieu.setRowSorter(sorter);
+        int[] doRong = {45, 75, 70, 175, 90, 100, 150};
         for (int i = 0; i < doRong.length; i++) {
             bangPhieu.getColumnModel().getColumn(i).setPreferredWidth(doRong[i]);
         }
+        bangPhieu.getColumnModel().getColumn(5).setCellRenderer(new TrangThaiRenderer());
 
         JLabel nhanTim = new JLabel("Tìm kiếm:");
         nhanTim.setFont(font(Font.PLAIN, 13));
@@ -192,219 +152,272 @@ public class TrangChuLeTan extends JPanel {
         soLuongPhieu.setFont(font(Font.BOLD, 12));
         soLuongPhieu.setForeground(MAU_CHINH);
 
+        JButton nutTim = taoNut("Tìm kiếm", MAU_CHINH, MAU_CHINH_DAM);
+        nutTim.addActionListener(e -> apDungLoc());
+        khoiTaoBoLoc();
+        JPanel phaiTim = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        phaiTim.setOpaque(false);
+        phaiTim.add(nutLoc);
+        phaiTim.add(nutTim);
+        phaiTim.add(soLuongPhieu);
+
         JPanel hangTim = new JPanel(new BorderLayout(8, 0));
         hangTim.setOpaque(false);
         hangTim.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         hangTim.add(nhanTim, BorderLayout.WEST);
         hangTim.add(oTimKiem, BorderLayout.CENTER);
-        hangTim.add(soLuongPhieu, BorderLayout.EAST);
+        hangTim.add(phaiTim, BorderLayout.EAST);
 
         JPanel giua = new JPanel(new BorderLayout());
         giua.setOpaque(false);
-        giua.add(hangTim, BorderLayout.NORTH);
+        JPanel phanDau = new JPanel(new BorderLayout());
+        phanDau.setOpaque(false);
+        phanDau.add(hangTim, BorderLayout.NORTH);
+        phanDau.add(khungLoc, BorderLayout.CENTER);
+        giua.add(phanDau, BorderLayout.NORTH);
         giua.add(new JScrollPane(bangPhieu), BorderLayout.CENTER);
         the.add(giua, BorderLayout.CENTER);
         return the;
     }
 
-    private JPanel taoTiepNhan() {
-        JPanel the = GiaoDien.taoThe("Tiếp nhận bệnh nhân", "Nhập thông tin, cấp số thứ tự và phân phòng khám");
-
-        // Các ô nhập (có thanh cuộn phòng khi cửa sổ thấp)
-        cbGioiTinh.setFont(font(Font.PLAIN, 14));
-        JPanel hangNgaySinh = hai(truong("Ngày sinh (dd/MM/yyyy)", oNgaySinh), truong("Giới tính", cbGioiTinh));
-
-        JPanel luoi = new JPanel();
-        luoi.setLayout(new BoxLayout(luoi, BoxLayout.Y_AXIS));
-        luoi.setOpaque(false);
-        luoi.add(truong("Họ và tên *", oTen));
-        luoi.add(hangNgaySinh);
-        luoi.add(truong("Số điện thoại *", oSdt));
-        luoi.add(truong("Địa chỉ", oDiaChi));
-
-        JPanel boc = new JPanel(new BorderLayout());
-        boc.setOpaque(false);
-        boc.add(luoi, BorderLayout.NORTH);
-        JScrollPane cuon = new JScrollPane(boc);
-        cuon.setBorder(null);
-        cuon.setOpaque(false);
-        cuon.getViewport().setOpaque(false);
-        cuon.getVerticalScrollBar().setUnitIncrement(16);
-        the.add(cuon, BorderLayout.CENTER);
-
-        // Phần cố định phía dưới: chọn phòng + nút + ghi chú
-        JPanel duoi = new JPanel(new BorderLayout(0, 10));
-        duoi.setOpaque(false);
-        duoi.setBorder(BorderFactory.createEmptyBorder(8, 0, 0, 0));
-        duoi.add(taoKhungPhong(), BorderLayout.NORTH);
-
-        JButton nutNhapLai = taoNutTrang("Nhập lại");
-        JButton nutTiepNhan = taoNut("Tiếp nhận / Cấp số", MAU_CHINH, MAU_CHINH_DAM);
-        nutNhapLai.addActionListener(e -> nhapLai());
-        nutTiepNhan.addActionListener(e -> tiepNhan());
-        JPanel hangNut = new JPanel(new BorderLayout(10, 0));
-        hangNut.setOpaque(false);
-        hangNut.add(nutNhapLai, BorderLayout.WEST);
-        hangNut.add(nutTiepNhan, BorderLayout.CENTER);
-        duoi.add(hangNut, BorderLayout.CENTER);
-
-        JLabel ghiChu = new JLabel("Hồ sơ trùng họ tên + SĐT sẽ được dùng lại, không tạo mới.");
-        ghiChu.setFont(font(Font.PLAIN, 12));
-        ghiChu.setForeground(CHU_PHU);
-        duoi.add(ghiChu, BorderLayout.SOUTH);
-
-        the.add(duoi, BorderLayout.SOUTH);
-        return the;
-    }
-
-    private JPanel taoKhungPhong() {
-        JPanel khung = new JPanel(new BorderLayout(10, 0));
-        khung.setBackground(MAU_CHINH_NHAT);
-        khung.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(Color.decode("#BAE6FD")),
-                BorderFactory.createEmptyBorder(10, 14, 10, 14)));
-
-        JLabel ten = new JLabel("Phòng khám *");
-        ten.setFont(font(Font.BOLD, 13));
-        ten.setForeground(CHU_CHINH);
-        JLabel moTa = new JLabel("Tối đa " + PhieuKhamDao.TOI_DA_MOI_PHONG + " bệnh nhân / phòng / ngày");
-        moTa.setFont(font(Font.PLAIN, 12));
-        moTa.setForeground(CHU_PHU);
-        JPanel chu = new JPanel(new GridLayout(2, 1));
-        chu.setOpaque(false);
-        chu.add(ten);
-        chu.add(moTa);
-
-        cbPhong.setFont(font(Font.PLAIN, 14));
-        cbPhong.setPreferredSize(new Dimension(130, 32));
-        khung.add(chu, BorderLayout.CENTER);
-        khung.add(cbPhong, BorderLayout.EAST);
-        return khung;
-    }
-
-    private JPanel truong(String nhan, JComponent oNhap) {
-        return GiaoDien.truong(nhan, oNhap);
-    }
-
-    private JPanel hai(JComponent trai, JComponent phai) {
-        JPanel p = new JPanel(new GridLayout(1, 2, 10, 0));
-        p.setOpaque(false);
-        p.add(trai);
-        p.add(phai);
-        return p;
-    }
-
-    // ===================== Xử lý dữ liệu =====================
+    // ===================== Dữ liệu =====================
 
     public void taiDuLieu() {
         int tongBN;
+        int lichHenHomNay;
         try {
-            dsPhong = phongKhamDao.findAll();
             dsPhieu = phieuKhamDao.findHomNay();
-            tongBN = benhNhanDao.demTatCa();
+            tongBN = benhNhanDao.demDangHoatDong();
+            lichHenHomNay = lichHenDao.findTheoNgay(LocalDate.now()).size();
         } catch (Exception e) {
             GiaoDien.baoLoi(this, e);
             return;
         }
 
-        // Đổ dữ liệu vào bảng
-        dangNap = true;
+        modelPhieu.setRowCount(0);
+        int choKham = 0;
+        int hoanThanh = 0;
+        for (PhieuKham pk : dsPhieu) {
+            modelPhieu.addRow(new Object[]{pk.getSoThuTu(), String.format("PK%03d", pk.getMaPK()),
+                    String.format("BN%03d", pk.getMaBN()), pk.getTenBenhNhan(),
+                    pk.getTenPhong() == null ? "" : pk.getTenPhong(), pk.getTrangThai(),
+                    pk.getGhiChu() == null ? "" : pk.getGhiChu()});
+            if (PhieuKhamDao.CHO_KHAM.equals(pk.getTrangThai())) choKham++;
+            if (PhieuKhamDao.HOAN_THANH.equals(pk.getTrangThai())) hoanThanh++;
+        }
+        soTongBN.setText(String.valueOf(tongBN));
+        soChoKham.setText(String.valueOf(choKham));
+        soHoanThanh.setText(String.valueOf(hoanThanh));
+        soLichHen.setText(String.valueOf(lichHenHomNay));
+        napDanhSachPhong();
+        capNhatSoLuong();
+    }
+
+    private void capNhatSoLuong() {
+        int hien = bangPhieu.getRowCount();
+        soLuongPhieu.setText(hien == dsPhieu.size() ? dsPhieu.size() + " phiếu"
+                : hien + " / " + dsPhieu.size() + " phiếu");
+    }
+
+    /** Điền ô chọn phòng theo các phòng đang có trong phiếu hôm nay; giữ lựa chọn cũ nếu còn. */
+    private void napDanhSachPhong() {
+        Object dangChon = cbPhong.getSelectedItem();
+        java.util.TreeSet<String> ten = new java.util.TreeSet<>();
+        for (PhieuKham pk : dsPhieu) {
+            if (pk.getTenPhong() != null && !pk.getTenPhong().isBlank()) ten.add(pk.getTenPhong());
+        }
+        dangDatLai = true;
         try {
-            modelPhieu.setRowCount(0);
-            int choKham = 0;
-            int hoanThanh = 0;
-            for (PhieuKham pk : dsPhieu) {
-                modelPhieu.addRow(new Object[]{pk.getSoThuTu(), String.format("PK%03d", pk.getMaPK()),
-                        String.format("BN%03d", pk.getMaBN()), pk.getTenBenhNhan(),
-                        pk.getTenPhong() == null ? "" : pk.getTenPhong(), pk.getTrangThai()});
-                if (PhieuKhamDao.CHO_KHAM.equals(pk.getTrangThai())) choKham++;
-                if (PhieuKhamDao.HOAN_THANH.equals(pk.getTrangThai())) hoanThanh++;
-            }
-            soTongBN.setText(String.valueOf(tongBN));
-            soChoKham.setText(String.valueOf(choKham));
-            soHoanThanh.setText(String.valueOf(hoanThanh));
-            soPhieu.setText(String.valueOf(dsPhieu.size()));
-            soLuongPhieu.setText(dsPhieu.size() + " phiếu");
+            cbPhong.removeAllItems();
+            cbPhong.addItem(TAT_CA);
+            for (String t : ten) cbPhong.addItem(t);
+            cbPhong.setSelectedItem(dangChon != null && ten.contains(dangChon.toString()) ? dangChon : TAT_CA);
         } finally {
-            dangNap = false;
+            dangDatLai = false;
         }
-
-        // Danh sách phòng ở bảng và ở form (giữ lại phòng đang chọn)
-        JComboBox<String> cbPhongTrongBang = new JComboBox<>();
-        for (PhongKham p : dsPhong) cbPhongTrongBang.addItem(p.getTenPhong());
-        bangPhieu.getColumnModel().getColumn(4).setCellEditor(new DefaultCellEditor(cbPhongTrongBang));
-        bangPhieu.getColumnModel().getColumn(5).setCellEditor(
-                new DefaultCellEditor(new JComboBox<>(PhieuKhamDao.TRANG_THAI)));
-
-        PhongKham dangChon = (PhongKham) cbPhong.getSelectedItem();
-        cbPhong.removeAllItems();
-        for (PhongKham p : dsPhong) {
-            cbPhong.addItem(p);
-            if (dangChon != null && dangChon.getMaPhong() == p.getMaPhong()) cbPhong.setSelectedItem(p);
+        // Phòng đã chọn không còn trong dữ liệu thì bỏ điều kiện đó
+        if (!TAT_CA.equals(boLoc.phong()) && !ten.contains(boLoc.phong())) {
+            apDungLoc();
         }
     }
 
-    private void locBang() {
-        String tuKhoa = oTimKiem.getText().trim();
-        if (tuKhoa.isEmpty()) {
-            boLoc.setRowFilter(null);
-        } else {
-            boLoc.setRowFilter(RowFilter.regexFilter("(?iu)" + Pattern.quote(tuKhoa)));
+    // ===================== Bộ lọc =====================
+
+    /** Dựng khung lọc (ẩn sẵn) và gắn sự kiện cho nút "Bộ lọc". */
+    private void khoiTaoBoLoc() {
+        for (JComboBox<String> cb : List.of(cbPhong, cbTrangThai)) {
+            cb.setFont(font(Font.PLAIN, 13));
+            cb.addActionListener(e -> {
+                if (!dangDatLai) apDungLoc();
+            });
         }
+        oMaPhieuLoc.setToolTipText("Nhập mã hoặc một phần mã, ví dụ PK012 hoặc 12");
+        oMaBNLoc.setToolTipText("Nhập mã hoặc một phần mã, ví dụ BN005 hoặc 5");
+        oBenhNhanLoc.setToolTipText("Nhập một phần tên bệnh nhân, không cần gõ dấu");
+        for (JTextField o : new JTextField[]{oMaPhieuLoc, oMaBNLoc, oBenhNhanLoc}) {
+            o.addActionListener(e -> apDungLoc());
+        }
+
+        JPanel luoi = new JPanel(new GridLayout(2, 3, 16, 10));
+        luoi.setOpaque(false);
+        luoi.add(o("Mã phiếu", oMaPhieuLoc));
+        luoi.add(o("Mã bệnh nhân", oMaBNLoc));
+        luoi.add(o("Bệnh nhân", oBenhNhanLoc));
+        luoi.add(o("Phòng khám", cbPhong));
+        luoi.add(o("Trạng thái", cbTrangThai));
+
+        JButton nutXoa = taoNutTrang("Xóa lọc");
+        nutXoa.addActionListener(e -> xoaLoc());
+        JButton nutApDung = taoNut("Áp dụng", MAU_CHINH, MAU_CHINH_DAM);
+        nutApDung.addActionListener(e -> apDungLoc());
+        JPanel nutHang = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        nutHang.setOpaque(false);
+        nutHang.add(nutXoa);
+        nutHang.add(nutApDung);
+        JPanel oNut = new JPanel(new BorderLayout());
+        oNut.setOpaque(false);
+        oNut.add(nutHang, BorderLayout.SOUTH);
+        luoi.add(oNut);
+
+        JPanel the = new JPanel(new BorderLayout());
+        the.setBackground(NEN_APP);
+        the.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(VIEN),
+                BorderFactory.createEmptyBorder(12, 14, 12, 14)));
+        the.add(luoi, BorderLayout.CENTER);
+
+        JPanel noiDung = new JPanel(new BorderLayout());
+        noiDung.setOpaque(false);
+        noiDung.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        noiDung.add(the, BorderLayout.CENTER);
+        khungLoc = new GiaoDien.KhungTruot(noiDung);
+
+        nutLoc.addActionListener(e -> {
+            khungLoc.datMo(!khungLoc.dangMo());
+            capNhatNutLoc();
+        });
+        capNhatNutLoc();
     }
 
-    private void nhapLai() {
-        oTen.setText("");
-        oNgaySinh.setText("");
-        cbGioiTinh.setSelectedIndex(0);
-        oSdt.setText("");
-        oDiaChi.setText("");
-        oTen.requestFocusInWindow();
+    /** Nhãn nhỏ màu xám phía trên, ô nhập phía dưới. */
+    private static JPanel o(String nhan, JComponent oNhap) {
+        JLabel l = new JLabel(nhan);
+        l.setFont(font(Font.PLAIN, 12));
+        l.setForeground(CHU_PHU);
+        JPanel p = new JPanel(new BorderLayout(0, 2));
+        p.setOpaque(false);
+        p.add(l, BorderLayout.NORTH);
+        p.add(oNhap, BorderLayout.CENTER);
+        return p;
     }
 
-    /** Tìm hồ sơ cũ (trùng họ tên + SĐT) hoặc tạo mới, sau đó cấp số thứ tự và phân phòng. */
-    private void tiepNhan() {
-        String ten = oTen.getText().trim();
-        String sdt = oSdt.getText().trim();
-        if (ten.isEmpty() || sdt.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng nhập họ tên và số điện thoại.",
-                    "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        PhongKham phong = (PhongKham) cbPhong.getSelectedItem();
-        if (phong == null) {
-            JOptionPane.showMessageDialog(this, "Chưa có phòng khám nào trong hệ thống.",
-                    "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        try {
-            BenhNhan bn = benhNhanDao.findByTenVaSdt(ten, sdt);
-            boolean dungLaiHoSo = (bn != null);
-            if (bn == null) {
-                bn = new BenhNhan();
-                bn.setHoTen(ten);
-                bn.setSoDienThoai(sdt);
-                String ngaySinh = oNgaySinh.getText().trim();
-                if (!ngaySinh.isEmpty()) bn.setNgaySinh(LocalDate.parse(ngaySinh, NGAY));
-                bn.setGioiTinh((String) cbGioiTinh.getSelectedItem());
-                bn.setDiaChi(oDiaChi.getText());
-                bn.setMaBN(benhNhanDao.them(bn));
+    /** Đọc các ô lọc và lọc lại bảng. */
+    private void apDungLoc() {
+        boLoc = new BoLoc(oTimKiem.getText().trim(), oMaPhieuLoc.getText().trim(), oMaBNLoc.getText().trim(),
+                oBenhNhanLoc.getText().trim(), (String) cbPhong.getSelectedItem(),
+                (String) cbTrangThai.getSelectedItem());
+        final BoLoc dieuKien = boLoc;
+        sorter.setRowFilter(dieuKien.laRong() ? null : new RowFilter<DefaultTableModel, Integer>() {
+            @Override
+            public boolean include(Entry<? extends DefaultTableModel, ? extends Integer> e) {
+                return dieuKien.khop(e::getStringValue);
             }
+        });
+        capNhatNutLoc();
+        capNhatSoLuong();
+    }
 
-            PhieuKham pk = phieuKhamDao.capSoThuTu(bn.getMaBN(), phong.getMaPhong());
-            JOptionPane.showMessageDialog(this,
-                    "Đã cấp số thứ tự " + pk.getSoThuTu() + " cho " + bn.getHoTen() + " (" + phong.getTenPhong() + ").\n"
-                            + (dungLaiHoSo ? "Hồ sơ có sẵn được dùng lại." : "Đã tạo hồ sơ bệnh nhân mới.")
-                            + (bn.getDiUng() == null ? "" : "\n\n⚠ Bệnh nhân có dị ứng: " + bn.getDiUng()),
-                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
-            nhapLai();
-            taiDuLieu();
-        } catch (DateTimeParseException e) {
-            JOptionPane.showMessageDialog(this, "Ngày sinh không đúng định dạng dd/MM/yyyy.",
-                    "Cảnh báo", JOptionPane.WARNING_MESSAGE);
-        } catch (Exception e) {
-            GiaoDien.baoLoi(this, e);
+    /** Xóa mọi điều kiện (kể cả ô tìm kiếm) và hiển thị lại toàn bộ. */
+    private void xoaLoc() {
+        dangDatLai = true;
+        try {
+            oTimKiem.setText("");
+            oMaPhieuLoc.setText("");
+            oMaBNLoc.setText("");
+            oBenhNhanLoc.setText("");
+            cbPhong.setSelectedItem(TAT_CA);
+            cbTrangThai.setSelectedItem(TAT_CA);
+        } finally {
+            dangDatLai = false;
+        }
+        apDungLoc();
+    }
+
+    /** Nút hiển thị số điều kiện đang lọc và mũi tên mở/đóng; đổi màu khi đang mở hoặc đang lọc. */
+    private void capNhatNutLoc() {
+        int n = boLoc.soDieuKien();
+        boolean mo = khungLoc != null && khungLoc.dangMo();
+        nutLoc.setText("Bộ lọc" + (n > 0 ? " (" + n + ")" : "") + "  " + (mo ? "▲" : "▼"));
+        boolean noiBat = mo || n > 0;
+        nutLoc.setForeground(noiBat ? MAU_CHINH_DAM : CHU_CHINH);
+        nutLoc.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(noiBat ? MAU_CHINH : VIEN),
+                BorderFactory.createEmptyBorder(8, 16, 8, 16)));
+    }
+
+    /** Điều kiện lọc đang áp dụng; các điều kiện kết hợp bằng "và". Số cột theo bảng phiếu khám. */
+    private record BoLoc(String tuKhoa, String maPhieu, String maBN, String benhNhan, String phong,
+                         String trangThai) {
+        static final BoLoc RONG = new BoLoc("", "", "", "", TAT_CA, TAT_CA);
+        private static final int COT_MA_PHIEU = 1, COT_MA_BN = 2, COT_BENH_NHAN = 3, COT_PHONG = 4,
+                COT_TRANG_THAI = 5, SO_COT = 7;
+
+        private static boolean co(String s) {
+            return s != null && !s.isBlank();
+        }
+
+        boolean laRong() {
+            return !co(tuKhoa) && soDieuKien() == 0;
+        }
+
+        /** Số điều kiện trong khung lọc (ô tìm kiếm ở hàng trên không tính). */
+        int soDieuKien() {
+            int n = 0;
+            if (co(maPhieu)) n++;
+            if (co(maBN)) n++;
+            if (co(benhNhan)) n++;
+            if (phong != null && !TAT_CA.equals(phong)) n++;
+            if (trangThai != null && !TAT_CA.equals(trangThai)) n++;
+            return n;
+        }
+
+        boolean khop(IntFunction<String> giaTri) {
+            if (co(tuKhoa)) {
+                String k = boDau(tuKhoa.trim());
+                boolean thay = false;
+                for (int i = 0; i < SO_COT && !thay; i++) thay = boDau(giaTri.apply(i)).contains(k);
+                if (!thay) return false;
+            }
+            // Mã: "12" hoặc "pk012" đều khớp PK012
+            if (co(maPhieu) && !nz(giaTri.apply(COT_MA_PHIEU)).toUpperCase().contains(maPhieu.trim().toUpperCase())) {
+                return false;
+            }
+            if (co(maBN) && !nz(giaTri.apply(COT_MA_BN)).toUpperCase().contains(maBN.trim().toUpperCase())) {
+                return false;
+            }
+            if (co(benhNhan) && !boDau(giaTri.apply(COT_BENH_NHAN)).contains(boDau(benhNhan.trim()))) return false;
+            if (phong != null && !TAT_CA.equals(phong) && !phong.equals(giaTri.apply(COT_PHONG))) return false;
+            return trangThai == null || TAT_CA.equals(trangThai) || trangThai.equals(giaTri.apply(COT_TRANG_THAI));
+        }
+
+        private static String nz(String s) {
+            return s == null ? "" : s;
+        }
+    }
+
+    private static final class TrangThaiRenderer extends GiaoDien.OCoBanRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                       boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            String tt = value == null ? "" : value.toString();
+            if (!isSelected) {
+                if (PhieuKhamDao.CHO_KHAM.equals(tt)) c.setForeground(Color.decode("#B45309"));
+                else if (PhieuKhamDao.DANG_KHAM.equals(tt)) c.setForeground(MAU_CHINH);
+                else if (PhieuKhamDao.HOAN_THANH.equals(tt)) c.setForeground(Color.decode("#047857"));
+                else if (PhieuKhamDao.DA_HUY.equals(tt)) c.setForeground(Color.decode("#B91C1C"));
+            }
+            return c;
         }
     }
 }

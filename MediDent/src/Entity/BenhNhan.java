@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.time.Period;
 
 public class BenhNhan {
+    public static final String HOAT_DONG = "Hoạt động";
+    public static final String NGUNG_HOAT_DONG = "Ngừng hoạt động";
+
     private int maBN;
     private String hoTen;
     private LocalDate ngaySinh;
@@ -20,6 +23,7 @@ public class BenhNhan {
     private String diUng;
     private String tienSuBenh;
     private String ghiChu;
+    private String trangThai = HOAT_DONG;
     private LocalDateTime ngayTao;
 
     public BenhNhan() {}
@@ -61,6 +65,8 @@ public class BenhNhan {
     public void setTienSuBenh(String tienSuBenh) { this.tienSuBenh = tienSuBenh; }
     public String getGhiChu() { return ghiChu; }
     public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
+    public String getTrangThai() { return trangThai; }
+    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
 
     public LocalDateTime getNgayTao() { return ngayTao; }
     public void setNgayTao(LocalDateTime ngayTao) { this.ngayTao = ngayTao; }
@@ -68,6 +74,10 @@ public class BenhNhan {
     /** Tuổi tính theo ngày sinh; null nếu chưa có ngày sinh. */
     public Integer getTuoi() {
         return ngaySinh == null ? null : Period.between(ngaySinh, LocalDate.now()).getYears();
+    }
+
+    public boolean dangHoatDong() {
+        return HOAT_DONG.equals(trangThai);
     }
 
     @Override
