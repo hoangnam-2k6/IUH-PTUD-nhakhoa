@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class PhieuKhamDao {
+public class PhieuKhamDAO {
     public static final String CHO_KHAM = PhieuKham.CHO_KHAM;
     public static final String DANG_KHAM = PhieuKham.DANG_KHAM;
     public static final String HOAN_THANH = PhieuKham.HOAN_THANH;
@@ -291,7 +291,7 @@ public class PhieuKhamDao {
                 trangThai = rs.getString("TrangThai");
             }
         }
-        if (PhongKhamDao.NGUNG_HOAT_DONG.equals(trangThai)) {
+        if (PhongKhamDAO.NGUNG_HOAT_DONG.equals(trangThai)) {
             throw new IllegalArgumentException("Phòng khám này đang ngừng hoạt động.");
         }
         int daCo = demPhieuTheoPhong(conn, maPhong, ngay);

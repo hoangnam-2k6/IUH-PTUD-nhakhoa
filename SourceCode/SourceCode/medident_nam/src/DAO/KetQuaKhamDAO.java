@@ -12,7 +12,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 
 /** DAO hồ sơ kết quả khám (quan hệ 1-1 với phiếu khám). */
-public class KetQuaKhamDao {
+public class KetQuaKhamDAO {
 
     public KetQuaKham findByMaPK(int maPK) throws SQLException {
         String sql = "SELECT kq.MaPK, kq.MaBS, bs.HoTen AS TenBS, kq.TrieuChung, kq.KetQuaLamSang, "

@@ -28,8 +28,8 @@ import static UI.LeTan.GiaoDien.*;
 
 public class TrangChuLeTan extends JPanel {
     private final TaiKhoan taiKhoan;
-    private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
-    private final PhongKhamDao phongKhamDao = new PhongKhamDao();
+    private final PhieuKhamDAO phieuKhamDao = new PhieuKhamDAO();
+    private final PhongKhamDAO phongKhamDao = new PhongKhamDAO();
     private final BenhNhanDao benhNhanDao = new BenhNhanDao();
     private final LichHenDao lichHenDao = new LichHenDao();
 
@@ -329,8 +329,8 @@ public class TrangChuLeTan extends JPanel {
                         String.format("BN%03d", pk.getMaBN()), pk.getTenBenhNhan(),
                         pk.getTenPhong() == null ? "" : pk.getTenPhong(), pk.getTrangThai(),
                         pk.getGhiChu() == null ? "" : pk.getGhiChu()});
-                if (PhieuKhamDao.CHO_KHAM.equals(pk.getTrangThai())) choKham++;
-                if (PhieuKhamDao.HOAN_THANH.equals(pk.getTrangThai())) hoanThanh++;
+                if (PhieuKhamDAO.CHO_KHAM.equals(pk.getTrangThai())) choKham++;
+                if (PhieuKhamDAO.HOAN_THANH.equals(pk.getTrangThai())) hoanThanh++;
             }
             soTongBN.setText(String.valueOf(tongBN));
             soChoKham.setText(String.valueOf(choKham));
@@ -342,7 +342,7 @@ public class TrangChuLeTan extends JPanel {
             for (PhongKham p : dsPhong) cbPhongTrongBang.addItem(p.getTenPhong());
             bangPhieu.getColumnModel().getColumn(4).setCellEditor(new DefaultCellEditor(cbPhongTrongBang));
             bangPhieu.getColumnModel().getColumn(5).setCellEditor(
-                    new DefaultCellEditor(new JComboBox<>(PhieuKhamDao.TRANG_THAI)));
+                    new DefaultCellEditor(new JComboBox<>(PhieuKhamDAO.TRANG_THAI)));
 
             PhongKham dangChon = (PhongKham) cbPhong.getSelectedItem();
             cbPhong.removeAllItems();
@@ -534,10 +534,10 @@ public class TrangChuLeTan extends JPanel {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             String tt = value == null ? "" : value.toString();
             if (!isSelected) {
-                if (PhieuKhamDao.CHO_KHAM.equals(tt)) c.setForeground(Color.decode("#B45309"));
-                else if (PhieuKhamDao.DANG_KHAM.equals(tt)) c.setForeground(MAU_CHINH);
-                else if (PhieuKhamDao.HOAN_THANH.equals(tt)) c.setForeground(Color.decode("#047857"));
-                else if (PhieuKhamDao.DA_HUY.equals(tt)) c.setForeground(Color.decode("#B91C1C"));
+                if (PhieuKhamDAO.CHO_KHAM.equals(tt)) c.setForeground(Color.decode("#B45309"));
+                else if (PhieuKhamDAO.DANG_KHAM.equals(tt)) c.setForeground(MAU_CHINH);
+                else if (PhieuKhamDAO.HOAN_THANH.equals(tt)) c.setForeground(Color.decode("#047857"));
+                else if (PhieuKhamDAO.DA_HUY.equals(tt)) c.setForeground(Color.decode("#B91C1C"));
             }
             return c;
         }

@@ -1,6 +1,5 @@
 package UI.LeTan;
 
-import DAO.TaiKhoanDAO;
 import Entity.TaiKhoan;
 import Entity.VaiTro;
 import java.awt.*;
@@ -11,6 +10,7 @@ import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.*;
 
+import DAO.TaiKhoanDAO;
 import UI.Chung.HoTroPage;
 
 /** Frame riêng cho vai trò Lễ tân; menu lấy từ map quyền. */

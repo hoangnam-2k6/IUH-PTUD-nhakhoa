@@ -1,6 +1,5 @@
 package UI.QuanTriVien;
 
-import DAO.TaiKhoanDAO;
 import Entity.TaiKhoan;
 import Entity.VaiTro;
 import java.awt.*;
@@ -11,9 +10,10 @@ import java.util.Map;
 import javax.swing.*;
 import javax.swing.border.*;
 
+import DAO.TaiKhoanDAO;
 import UI.Chung.HoTroPage;
-import UI.QuanLy.QuanLyGUI;
 import UI.LeTan.LeTanGUI;
+import UI.QuanLy.*;
 
 /** Frame riêng cho vai trò Quản trị viên; menu lấy từ map quyền. */
 public final class QuanTriVienGUI extends JFrame {

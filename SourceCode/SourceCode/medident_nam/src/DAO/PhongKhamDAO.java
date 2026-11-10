@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PhongKhamDao {
+public class PhongKhamDAO {
     public static final String HOAT_DONG = PhongKham.HOAT_DONG;
     public static final String NGUNG_HOAT_DONG = PhongKham.NGUNG_HOAT_DONG;
 
@@ -104,7 +104,7 @@ public class PhongKhamDao {
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, maPhong);
             ps.setDate(2, java.sql.Date.valueOf(ngay));
-            ps.setString(3, PhieuKhamDao.DA_HUY);
+            ps.setString(3, PhieuKhamDAO.DA_HUY);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getInt(1) : 0;
             }

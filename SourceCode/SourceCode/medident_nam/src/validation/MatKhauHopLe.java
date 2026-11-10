@@ -1,4 +1,4 @@
-package Valid;
+package validation;
 
 /** Chính sách mật khẩu thống nhất với màn hình đổi mật khẩu bắt buộc. */
 public final class MatKhauHopLe {

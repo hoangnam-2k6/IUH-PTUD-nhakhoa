@@ -1,6 +1,5 @@
 package UI.LeTan;
 
-import DAO.BacSiDao;
 import Dao.BenhNhanDao;
 import Dao.HoaDonDao;
 import Dao.KetQuaKhamDao;
@@ -18,6 +17,9 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
+
+import DAO.BacSiDAO;
+
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -30,10 +32,10 @@ import static UI.LeTan.GiaoDien.*;
 /** Màn hình "Khám bệnh": danh sách phiếu khám và hồ sơ kết quả khám. */
 public class KhamBenhLeTan extends JPanel {
     private final TaiKhoan taiKhoan;
-    private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
+    private final PhieuKhamDAO phieuKhamDao = new PhieuKhamDAO();
     private final BenhNhanDao benhNhanDao = new BenhNhanDao();
-    private final BacSiDao bacSiDao = new BacSiDao();
-    private final KetQuaKhamDao ketQuaKhamDao = new KetQuaKhamDao();
+    private final BacSiDAO bacSiDao = new BacSiDAO();
+    private final KetQuaKhamDAO ketQuaKhamDao = new KetQuaKhamDAO();
     private final HoaDonDao hoaDonDao = new HoaDonDao();
 
     private List<PhieuKham> dsPhieu = new ArrayList<>();
@@ -553,10 +555,10 @@ public class KhamBenhLeTan extends JPanel {
     }
 
     private static Color mauTrangThai(String tt) {
-        if (PhieuKhamDao.CHO_KHAM.equals(tt)) return Color.decode("#B45309");
-        if (PhieuKhamDao.DANG_KHAM.equals(tt)) return MAU_CHINH;
-        if (PhieuKhamDao.HOAN_THANH.equals(tt)) return Color.decode("#047857");
-        if (PhieuKhamDao.DA_HUY.equals(tt)) return Color.decode("#B91C1C");
+        if (PhieuKhamDAO.CHO_KHAM.equals(tt)) return Color.decode("#B45309");
+        if (PhieuKhamDAO.DANG_KHAM.equals(tt)) return MAU_CHINH;
+        if (PhieuKhamDAO.HOAN_THANH.equals(tt)) return Color.decode("#047857");
+        if (PhieuKhamDAO.DA_HUY.equals(tt)) return Color.decode("#B91C1C");
         return CHU_PHU;
     }
 

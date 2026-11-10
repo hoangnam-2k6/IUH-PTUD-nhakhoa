@@ -11,7 +11,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BacSiDao {
+public class BacSiDAO {
     public static final String HOAT_DONG = BacSi.HOAT_DONG;
     public static final String NGUNG_HOAT_DONG = BacSi.NGUNG_HOAT_DONG;
 

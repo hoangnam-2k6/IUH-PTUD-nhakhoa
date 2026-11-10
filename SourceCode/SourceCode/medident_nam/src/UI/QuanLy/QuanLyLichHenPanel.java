@@ -1,7 +1,6 @@
 package UI.QuanLy;
 
 import util.BangStyle;
-import DAO.LichHenDAO;
 import Entity.LichHen;
 import java.awt.*;
 import java.time.LocalDate;
@@ -10,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+
+import DAO.LichHenDAO;
 
 public class QuanLyLichHenPanel extends JPanel {
 

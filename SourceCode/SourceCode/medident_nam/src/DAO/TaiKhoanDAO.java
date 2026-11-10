@@ -2,8 +2,7 @@ package DAO;
 
 import Entity.TaiKhoan;
 import Entity.VaiTro;
-import Valid.EmailHopLe;
-import Valid.MatKhauHopLe;
+import validation.*;
 import enums.VaiTroHeThong;
 import ConnectDB.ConnectDB;
 import java.sql.*;

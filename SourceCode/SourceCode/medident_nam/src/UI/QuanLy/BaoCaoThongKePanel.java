@@ -2,8 +2,7 @@
 package UI.QuanLy;
 
 import util.BangStyle;
-import DAO.HoaDonDAO;
-import DAO.LichHenDAO;
+
 import java.awt.*;
 import java.io.File;
 import java.io.Writer;
@@ -15,6 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+
+import DAO.HoaDonDAO;
+import DAO.LichHenDAO;
 
 public class BaoCaoThongKePanel extends JPanel {
 

@@ -33,12 +33,14 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
+
+import DAO.TaiKhoanDAO;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 
 
 import Entity.TaiKhoan;
-import DAO.TaiKhoanDAO;
 
 import java.awt.Component;
 import java.awt.GridLayout;
@@ -77,8 +79,8 @@ final class DoiMatKhauBatBuoc {
         Runnable kiemTraCu = () -> loiCu.setText(hienTai.getPassword().length == 0
                 ? "Vui lòng nhập mật khẩu hiện tại." : "");
         Runnable kiemTraMoi = () -> loiMoi.setText(
-                Valid.MatKhauHopLe.kiemTra(new String(moi.getPassword())) ? ""
-                        : Valid.MatKhauHopLe.huongDan());
+                validation.MatKhauHopLe.kiemTra(new String(moi.getPassword())) ? ""
+                        : validation.MatKhauHopLe.huongDan());
         Runnable kiemTraXacNhan = () -> loiXacNhan.setText(
                 xacNhan.getPassword().length > 0
                         && Arrays.equals(moi.getPassword(), xacNhan.getPassword())

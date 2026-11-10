@@ -1,6 +1,5 @@
 package UI.LeTan;
 
-import DAO.BacSiDao;
 import Dao.BenhNhanDao;
 import Dao.LichHenDao;
 import Entity.BacSi;
@@ -9,6 +8,9 @@ import Entity.LichHen;
 import Entity.TaiKhoan;
 
 import javax.swing.*;
+
+import DAO.BacSiDAO;
+
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
@@ -21,7 +23,7 @@ import static UI.LeTan.GiaoDien.*;
 public class LichHenDialog extends JDialog {
     private final LichHenDao lichHenDao = new LichHenDao();
     private final BenhNhanDao benhNhanDao = new BenhNhanDao();
-    private final BacSiDao bacSiDao = new BacSiDao();
+    private final BacSiDAO bacSiDao = new BacSiDAO();
 
     private final LichHen lichHen;      // null = tạo mới
     private final Integer maTK;

@@ -28,8 +28,8 @@ import static UI.LeTan.GiaoDien.*;
 public class QuanLyLichHenLeTan extends JPanel {
     private final TaiKhoan taiKhoan;
     private final LichHenDao lichHenDao = new LichHenDao();
-    private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
-    private final PhongKhamDao phongKhamDao = new PhongKhamDao();
+    private final PhieuKhamDAO phieuKhamDao = new PhieuKhamDAO();
+    private final PhongKhamDAO phongKhamDao = new PhongKhamDAO();
     private final BenhNhanDao benhNhanDao = new BenhNhanDao();
 
     private List<LichHen> dsTatCa = new ArrayList<>();

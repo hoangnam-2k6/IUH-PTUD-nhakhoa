@@ -33,17 +33,17 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableColumn;
+
+import DAO.TaiKhoanDAO;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 
 
 import Entity.TaiKhoan;
 import Entity.VaiTro;
-import Valid.EmailHopLe;
-import Valid.MatKhauHopLe;
-import DAO.TaiKhoanDAO;
-
-
+import validation.EmailHopLe;
+import validation.MatKhauHopLe;
 import UI.Chung.NgayChon;
 import java.awt.BorderLayout;
 import java.awt.Component;

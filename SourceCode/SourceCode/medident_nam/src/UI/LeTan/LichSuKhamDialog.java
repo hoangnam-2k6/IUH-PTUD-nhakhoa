@@ -25,8 +25,8 @@ public class LichSuKhamDialog extends JDialog {
     private static final DateTimeFormatter NGAY_GIO = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     private final BenhNhan benhNhan;
-    private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
-    private final KetQuaKhamDao ketQuaKhamDao = new KetQuaKhamDao();
+    private final PhieuKhamDAO phieuKhamDao = new PhieuKhamDAO();
+    private final KetQuaKhamDAO ketQuaKhamDao = new KetQuaKhamDAO();
     private final HoaDonDao hoaDonDao = new HoaDonDao();
 
     private final List<PhieuKham> dsPhieu = new ArrayList<>();

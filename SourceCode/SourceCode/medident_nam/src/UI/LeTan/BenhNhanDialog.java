@@ -1,9 +1,11 @@
 package UI.LeTan;
 
-import Dao.BenhNhanDao;
 import Entity.BenhNhan;
 
 import javax.swing.*;
+
+import DAO.BenhNhanDAO;
+
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -16,7 +18,7 @@ import static UI.LeTan.GiaoDien.*;
 public class BenhNhanDialog extends JDialog {
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
 
-    private final BenhNhanDao dao = new BenhNhanDao();
+    private final BenhNhanDAO dao = new BenhNhanDAO();
     private final BenhNhan bn;          // đang sửa (maBN > 0) hoặc hồ sơ mới
     private boolean daLuu = false;
 
@@ -35,8 +37,8 @@ public class BenhNhanDialog extends JDialog {
     private final JTextArea oGhiChu = taoOVanBan(2);
 
     private BenhNhanDialog(Component cha, BenhNhan bn) {
-        super(SwingUtilities.getWindowAncestor(cha), bn.getMaBNSo() > 0
-                ? String.format("Sửa hồ sơ BN%03d", bn.getMaBNSo()) : "Thêm bệnh nhân mới", ModalityType.APPLICATION_MODAL);
+        super(SwingUtilities.getWindowAncestor(cha), bn.getMaBN() > 0
+                ? String.format("Sửa hồ sơ BN%03d", bn.getMaBN()) : "Thêm bệnh nhân mới", ModalityType.APPLICATION_MODAL);
         this.bn = bn;
         setLayout(new BorderLayout());
         getContentPane().setBackground(NEN_THE);
@@ -121,10 +123,10 @@ public class BenhNhanDialog extends JDialog {
     }
 
     private void napDuLieu() {
-        oTen.setText(nz(bn.getHoTen()));
-        oNgaySinh.setText(bn.getNgaySinh() == null ? "" : bn.getNgaySinh().format(NGAY));
-        if (bn.getGioiTinh() != null) cbGioiTinh.setSelectedItem(bn.getGioiTinh());
-        oSdt.setText(nz(bn.getSoDienThoai()));
+        oTen.setText(nz(bn.getHoten()));
+        oNgaySinh.setText(bn.getNgaysinh() == null ? "" : bn.getNgaysinh().format(NGAY));
+        if (bn.getGioitinh() != null) cbGioiTinh.setSelectedItem(bn.getGioitinh());
+        oSdt.setText(nz(bn.getSdt()));
         oCccd.setText(nz(bn.getCccd()));
         oEmail.setText(nz(bn.getEmail()));
         oNgheNghiep.setText(nz(bn.getNgheNghiep()));
@@ -156,7 +158,7 @@ public class BenhNhanDialog extends JDialog {
             bn.setDiUng(oDiUng.getText());
             bn.setTienSuBenh(oTienSu.getText());
             bn.setGhiChu(oGhiChu.getText());
-            if (bn.getMaBNSo() > 0) {
+            if (bn.getMaBN() > 0) {
                 dao.capNhat(bn);
             } else {
                 bn.setMaBN(dao.them(bn));
