@@ -91,7 +91,7 @@ public final class NgayChon extends JPanel {
     }
 
     /** Nạp ngày đã có trong SQL vào ô chọn (null = chưa có ngày sinh). */
-    public void setNgay(LocalDate date) {
+    public void datNgay(LocalDate date) {
         LocalDate cu = ngayDuocChon;
         ngayDuocChon = date;
         firePropertyChange("ngay", cu, date);
@@ -113,7 +113,7 @@ public final class NgayChon extends JPanel {
     }
 
     /** Trả null nếu chưa chọn; từ chối ngày đã trở thành không hợp lệ. */
-    public LocalDate getNgay() {
+    public LocalDate layNgay() {
         if (ngayDuocChon != null && !ngaySinhHopLe(ngayDuocChon)) {
             throw new IllegalArgumentException(
                     "Ngày sinh phải từ " + LocalDate.now().minusYears(100).format(FORMAT)
@@ -215,7 +215,7 @@ public final class NgayChon extends JPanel {
                 nutNgay.setForeground(CHU_DAO);
             }
             nutNgay.addActionListener(e -> {
-                setNgay(luaChon);
+                datNgay(luaChon);
                 popup.setVisible(false);
             });
             luoi.add(nutNgay);

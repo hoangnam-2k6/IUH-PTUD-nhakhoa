@@ -15,6 +15,10 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -22,6 +26,7 @@ import javax.swing.border.LineBorder;
 import DAO.DichVuDAO;
 import Entity.DichVu;
 import enums.trangthai_dichvu;
+import validation.Regex_DichVu;
 
 @SuppressWarnings("serial")
 public class SuaDichVuPanel extends JPanel implements ActionListener {
@@ -83,6 +88,7 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         txtMaDV = taoTextField();
         txtTenDV = taoTextField();
         txtDonGia = taoTextField();
+        chiChoNhapDonGia(txtDonGia);
 
         txtMaDV.setEditable(false);
         txtMaDV.setBackground(new Color(241, 245, 249));
@@ -90,7 +96,7 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         txtMoTa = taoTextArea();
 
         cboTrangThai = new JComboBox<>(trangthai_dichvu.values());
-        styleComboBox(cboTrangThai);
+        dinhDangHopChon(cboTrangThai);
 
         JScrollPane scrollMoTa = taoScrollPane(txtMoTa);
 
@@ -114,8 +120,8 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         btnHuy = new JButton("Hủy");
         btnLuu = new JButton("Lưu thay đổi");
 
-        styleButtonSecondary(btnHuy);
-        styleButtonPrimary(btnLuu);
+        dinhDangButtonSecondary(btnHuy);
+        dinhDangButtonPrimary(btnLuu);
 
         btnHuy.addActionListener(this);
         btnLuu.addActionListener(this);
@@ -163,7 +169,7 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         return scroll;
     }
 
-    private void styleComboBox(JComboBox<?> cbo) {
+    private void dinhDangHopChon(JComboBox<?> cbo) {
         cbo.setFont(new Font("Arial", Font.PLAIN, 14));
         cbo.setBackground(WHITE);
         cbo.setForeground(TEXT);
@@ -201,7 +207,7 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         panel.add(pnlTruong, gbc);
     }
 
-    private void styleButtonPrimary(JButton btn) {
+    private void dinhDangButtonPrimary(JButton btn) {
         btn.setFont(new Font("Arial", Font.BOLD, 14));
         btn.setBackground(PRIMARY);
         btn.setForeground(WHITE);
@@ -211,7 +217,7 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
-    private void styleButtonSecondary(JButton btn) {
+    private void dinhDangButtonSecondary(JButton btn) {
         btn.setFont(new Font("Arial", Font.BOLD, 14));
         btn.setBackground(WHITE);
         btn.setForeground(TEXT);
@@ -226,28 +232,50 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
+    // Lọc dữ liệu nhập tạm thời; biểu thức cho đơn giá nằm trong Regex_DichVu.
+    private void chiChoNhapDonGia(JTextField textField) {
+        ((AbstractDocument) textField.getDocument()).setDocumentFilter(new DocumentFilter() {
+            private boolean hopLe(String text) {
+                return Regex_DichVu.laDonGiaDangNhapHopLe(text);
+            }
+
+            @Override
+            public void insertString(FilterBypass fb, int offset, String text,
+                    AttributeSet attr) throws BadLocationException {
+                if (text == null) return;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + text + old.substring(offset);
+                if (hopLe(next)) super.insertString(fb, offset, text, attr);
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text,
+                    AttributeSet attrs) throws BadLocationException {
+                String insert = text == null ? "" : text;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + insert + old.substring(offset + length);
+                if (hopLe(next)) super.replace(fb, offset, length, insert, attrs);
+            }
+        });
+    }
+
     private BigDecimal docDonGia() {
         String gia = txtDonGia.getText().trim().replace(",", ".");
 
-        if (!gia.matches("[0-9]{1,16}(\\.[0-9]{1,2})?")) {
+        if (!Regex_DichVu.laDonGiaHopLe(gia)) {
             throw new IllegalArgumentException(
-                "Đơn giá phải là số không âm và có tối đa 2 chữ số thập phân!"
+                "Đơn giá phải là số không âm, tối đa 16 chữ số nguyên "
+                    + "và 2 chữ số thập phân!"
             );
         }
 
-        BigDecimal donGia = new BigDecimal(gia);
-
-        if (donGia.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Đơn giá không được âm!");
-        }
-
-        return donGia;
+        return new BigDecimal(gia);
     }
 
     // Lấy thông tin dịch vụ theo mã
     private void taiThongTinDichVu() {
         try {
-            DichVu dv = dvDAO.getDichVuByMaDV(maDV);
+            DichVu dv = dvDAO.layDichVuByMaDV(maDV);
 
             if (dv == null) {
                 JOptionPane.showMessageDialog(
@@ -260,17 +288,17 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
                 return;
             }
 
-            txtMaDV.setText(dv.getMaDV());
-            txtTenDV.setText(dv.getTenDV());
-            txtMoTa.setText(dv.getMota());
+            txtMaDV.setText(dv.layMaDV());
+            txtTenDV.setText(dv.layTenDV());
+            txtMoTa.setText(dv.layMota());
 
             txtDonGia.setText(
-                dv.getDongia() == null
+                dv.layDongia() == null
                     ? ""
-                    : dv.getDongia().toPlainString()
+                    : dv.layDongia().toPlainString()
             );
 
-            cboTrangThai.setSelectedItem(dv.getTrangthai());
+            cboTrangThai.setSelectedItem(dv.layTrangthai());
 
         } catch (SQLException | IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(
@@ -297,72 +325,50 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         try {
             String tenDV = txtTenDV.getText().trim();
             String mota = txtMoTa.getText().trim();
+            trangthai_dichvu tt = (trangthai_dichvu) cboTrangThai.getSelectedItem();
 
-            if (tenDV.isEmpty()) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Tên dịch vụ không được để trống!"
-                );
+            if (!Regex_DichVu.laMaDVHopLe(maDV)) {
+                JOptionPane.showMessageDialog(this, "Mã dịch vụ không hợp lệ!");
+                return;
+            }
+            if (!Regex_DichVu.laTenDVHopLe(tenDV)) {
+                JOptionPane.showMessageDialog(this, "Tên dịch vụ không hợp lệ hoặc bị để trống!");
                 txtTenDV.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_DichVu.laMoTaHopLe(mota)) {
+                JOptionPane.showMessageDialog(this, "Mô tả dịch vụ không hợp lệ!");
+                txtMoTa.requestFocusInWindow();
                 return;
             }
 
             BigDecimal donGia = docDonGia();
 
-            trangthai_dichvu tt =
-                (trangthai_dichvu) cboTrangThai.getSelectedItem();
-
-            if (tt == null) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Vui lòng chọn trạng thái dịch vụ!"
-                );
+            if (!Regex_DichVu.laTrangThaiHopLe(tt == null ? null : tt.name())) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn trạng thái dịch vụ hợp lệ!");
                 return;
             }
 
-            DichVu dv = new DichVu(
-                maDV,
-                tenDV,
-                mota,
-                donGia,
-                tt
-            );
-
-            boolean ketQua = dvDAO.update(dv);
+            DichVu dv = new DichVu(maDV, tenDV, mota, donGia, tt);
+            boolean ketQua = dvDAO.capNhat(dv);
 
             if (!ketQua) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Cập nhật dịch vụ thất bại!",
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-                );
+                JOptionPane.showMessageDialog(this, "Cập nhật dịch vụ thất bại!",
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            JOptionPane.showMessageDialog(
-                this,
-                "Cập nhật dịch vụ thành công!",
-                "Thông báo",
-                JOptionPane.INFORMATION_MESSAGE
-            );
-
+            JOptionPane.showMessageDialog(this, "Cập nhật dịch vụ thành công!",
+                "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             suaThanhCong();
 
         } catch (IllegalArgumentException ex) {
-            JOptionPane.showMessageDialog(
-                this,
-                ex.getMessage(),
-                "Dữ liệu không hợp lệ",
-                JOptionPane.WARNING_MESSAGE
-            );
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                "Dữ liệu không hợp lệ", JOptionPane.WARNING_MESSAGE);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(
-                this,
+            JOptionPane.showMessageDialog(this,
                 "Không thể cập nhật dịch vụ: " + ex.getMessage(),
-                "Lỗi",
-                JOptionPane.ERROR_MESSAGE
-            );
+                "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -378,7 +384,7 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
         }
     }
 
-    public void moframe() {
+    public void moKhung() {
         JFrame frame = new JFrame("Sửa dịch vụ");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setContentPane(this);
@@ -389,7 +395,7 @@ public class SuaDichVuPanel extends JPanel implements ActionListener {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new SuaDichVuPanel("DV001", null).moframe();
+            new SuaDichVuPanel("DV001", null).moKhung();
         });
     }
 }

@@ -37,83 +37,83 @@ public class NhanVien {
 		this.maTK = maTK;
 	}
 
-	public String getMaNV() {
+	public String layMaNV() {
 		return maNV;
 	}
 
-	public void setMaNV(String maNV) {
+	public void datMaNV(String maNV) {
 		this.maNV = maNV;
 	}
 
-	public String getHoten() {
+	public String layHoten() {
 		return hoten;
 	}
 
-	public void setHoten(String hoten) {
+	public void datHoten(String hoten) {
 		this.hoten = hoten;
 	}
 
-	public LocalDate getNgaysinh() {
+	public LocalDate layNgaysinh() {
 		return ngaysinh;
 	}
 
-	public void setNgaysinh(LocalDate ngaysinh) {
+	public void datNgaysinh(LocalDate ngaysinh) {
 		this.ngaysinh = ngaysinh;
 	}
 
-	public gioitinh getGioitinh() {
+	public gioitinh layGioitinh() {
 		return gioitinh;
 	}
 
-	public void setGioitinh(gioitinh gioitinh) {
+	public void datGioitinh(gioitinh gioitinh) {
 		this.gioitinh = gioitinh;
 	}
 
-	public String getSdt() {
+	public String laySdt() {
 		return sdt;
 	}
 
-	public void setSdt(String sdt) {
+	public void datSdt(String sdt) {
 		this.sdt = sdt;
 	}
 
-	public String getEmail() {
+	public String layEmail() {
 		return email;
 	}
 
-	public void setEmail(String email) {
+	public void datEmail(String email) {
 		this.email = email;
 	}
 
-	public String getDiachi() {
+	public String layDiachi() {
 		return diachi;
 	}
 
-	public void setDiachi(String diachi) {
+	public void datDiachi(String diachi) {
 		this.diachi = diachi;
 	}
 
-	public String getChucvu() {
+	public String layChucvu() {
 		return chucvu;
 	}
 
-	public void setChucvu(String chucvu) {
+	public void datChucvu(String chucvu) {
 		this.chucvu = chucvu;
 	}
 
-	public trangthai_NhanVien getTrangthai() {
+	public trangthai_NhanVien layTrangthai() {
 		return trangthai;
 	}
 
-	public void setTrangthai(trangthai_NhanVien trangthai) {
+	public void datTrangthai(trangthai_NhanVien trangthai) {
 		this.trangthai = trangthai;
 	}
 
-	public String getMaTK() {
+	public String layMaTK() {
 		return maTK;
 	}
 
-	public void setMaTK(String maTK) {
+	public void datMaTK(String maTK) {
 		this.maTK = maTK;
 	}
 

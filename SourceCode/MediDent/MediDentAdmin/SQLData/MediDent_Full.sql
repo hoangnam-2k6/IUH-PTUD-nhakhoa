@@ -1,7 +1,3 @@
--- MEDIDENT 00: BO SQL HOAN CHINH CHO SQL SERVER 2012 (CHI DEMO)
--- Luu backup CSDL cu, chay tren database moi.
-
-
 -- =========== 01_MediDent.sql ===========
 -- MediDent: tài khoản, phân quyền, lịch sử đăng nhập; Hỗ trợ chỉ là trang hướng dẫn.
 -- Bao gồm phân quyền, lịch hẹn, khám, dịch vụ, hóa đơn, khuyến mãi.
@@ -244,6 +240,27 @@ CREATE TABLE dbo.KhuyenMai (
  CONSTRAINT CK_KM_Ngay CHECK(NgayBatDau<=NgayKetThuc)
 );
 GO
+-- Cấp mã khuyến mãi tự động trên SQL Server 2012 (không đặt mã tại giao diện).
+IF OBJECT_ID(N'dbo.SeqKhuyenMai', N'SO') IS NULL
+    EXEC(N'CREATE SEQUENCE dbo.SeqKhuyenMai AS BIGINT START WITH 100000 INCREMENT BY 1');
+GO
+-- Thông tin ngân hàng phải do phòng khám nhập. Không tự đặt tài khoản demo để tránh chuyển nhầm.
+IF OBJECT_ID(N'dbo.CauHinhChuyenKhoan', N'U') IS NULL
+CREATE TABLE dbo.CauHinhChuyenKhoan (
+    Id TINYINT NOT NULL PRIMARY KEY CHECK(Id=1),
+    BinNganHang VARCHAR(6) NOT NULL DEFAULT '',
+    SoTaiKhoan VARCHAR(19) NOT NULL DEFAULT '',
+    ChuTaiKhoan NVARCHAR(100) NOT NULL DEFAULT N''
+);
+GO
+IF NOT EXISTS(SELECT 1 FROM dbo.CauHinhChuyenKhoan WHERE Id=1)
+INSERT dbo.CauHinhChuyenKhoan(Id,BinNganHang,SoTaiKhoan,ChuTaiKhoan)
+VALUES(1,'','',N'');
+GO
+ UPDATE dbo.CauHinhChuyenKhoan
+ SET BinNganHang='123456', SoTaiKhoan='0123456789', ChuTaiKhoan=N'Phòng Khám MediDent'
+ WHERE Id=1;
+ GO
 IF OBJECT_ID(N'dbo.HoaDon',N'U') IS NULL
 CREATE TABLE dbo.HoaDon (
  MaHD INT IDENTITY(1,1) PRIMARY KEY,MaPK INT NOT NULL REFERENCES dbo.PhieuKham(MaPK),
@@ -526,4 +543,377 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+GO
+
+-- =========== 04_BO_SUNG_NHAT_KY_DEMO_DU_24_BANG ===========
+-- Chỉ thêm bản ghi minh họa nếu chưa tồn tại, không ghi đè lịch sử thật.
+USE MediDent;
+GO
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRAN;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.NhatKyHeThong
+                   WHERE doiTuong=N'MEDIDENT-DEMO-KHOITAO')
+        INSERT INTO dbo.NhatKyHeThong(hanhDong,doiTuong,moTa)
+        VALUES(N'Khởi tạo dữ liệu mẫu',N'MEDIDENT-DEMO-KHOITAO',
+               N'Dữ liệu DEMO, dùng để kiểm thử giao diện nhật ký hệ thống.');
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.NhatKyHeThong
+                   WHERE doiTuong=N'MEDIDENT-DEMO-HOADON')
+        INSERT INTO dbo.NhatKyHeThong(hanhDong,doiTuong,moTa)
+        VALUES(N'Lập hóa đơn',N'MEDIDENT-DEMO-HOADON',
+               N'Lập hóa đơn demo từ phiếu khám đã hoàn thành.');
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.NhatKyHeThong
+                   WHERE doiTuong=N'MEDIDENT-DEMO-KHUYENMAI')
+        INSERT INTO dbo.NhatKyHeThong(hanhDong,doiTuong,moTa)
+        VALUES(N'Cấu hình khuyến mãi',N'MEDIDENT-DEMO-KHUYENMAI',
+               N'Ví dụ sử dụng KM10, KM20 và KM300.');
+
+    INSERT INTO dbo.LichSuDangNhap(maTK,tenDangNhap,tenVaiTro,thoiGian,ketQua)
+    SELECT t.maTK, t.tenDangNhap, v.tenVaiTro,
+           DATEADD(MINUTE,-10,SYSDATETIME()),N'Thành công'
+    FROM dbo.TaiKhoan t JOIN dbo.VaiTro v ON v.maVaiTro=t.maVaiTro
+    WHERE t.tenDangNhap IN ('admin','quanly','letan','letan2','full')
+      AND NOT EXISTS (SELECT 1 FROM dbo.LichSuDangNhap l
+                      WHERE l.tenDangNhap=t.tenDangNhap
+                        AND l.ketQua=N'Thành công');
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.LichSuDangNhap
+                   WHERE tenDangNhap='demo_sai_mat_khau')
+        INSERT INTO dbo.LichSuDangNhap(maTK,tenDangNhap,tenVaiTro,thoiGian,ketQua)
+        VALUES(NULL,'demo_sai_mat_khau',NULL,DATEADD(MINUTE,-5,SYSDATETIME()),N'Thất bại');
+
+    COMMIT;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT > 0 ROLLBACK;
+    THROW;
+END CATCH;
+GO
+
+
+-- Bảng lịch làm việc còn thiếu trong bản gốc; giữ nguyên các bảng hiện có.
+IF OBJECT_ID(N'dbo.LichLamViec',N'U') IS NULL
+CREATE TABLE dbo.LichLamViec (
+    maLLV INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    maNV INT NOT NULL REFERENCES dbo.NhanVien(maNV),
+    ngayLamViec DATE NOT NULL,
+    gioBatDau TIME NOT NULL,
+    gioKetThuc TIME NOT NULL,
+    phongKham NVARCHAR(100) NULL,
+    trangThai NVARCHAR(30) NOT NULL DEFAULT N'Hoạt động',
+    CONSTRAINT CK_LLV_ThoiGian CHECK (gioBatDau<gioKetThuc)
+);
+GO
+
+
+-- Dữ liệu ca làm việc mẫu cho phần quản lý lịch làm việc.
+INSERT INTO dbo.LichLamViec(maNV,ngayLamViec,gioBatDau,gioKetThuc,phongKham,trangThai)
+SELECT TOP 3 n.maNV,DATEADD(DAY,1,CONVERT(DATE,GETDATE())),
+       CAST('08:00' AS TIME),CAST('12:00' AS TIME),N'Phòng 01',N'Hoạt động'
+FROM dbo.NhanVien n
+WHERE n.trangThai=N'Đang làm việc'
+  AND NOT EXISTS (SELECT 1 FROM dbo.LichLamViec x WHERE x.maNV=n.maNV
+                  AND x.ngayLamViec=DATEADD(DAY,1,CONVERT(DATE,GETDATE())))
+ORDER BY n.maNV;
+GO
+
+-- Kiểm tra số bản ghi trên 25 bảng, gồm lịch làm việc vừa bổ sung.
+-- Phải có dữ liệu ở mỗi bảng; CauHinhChuyenKhoan để trống thông tin ngân hàng có chủ ý.
+SELECT N'VaiTro' AS TenBang, COUNT(*) AS SoDong FROM dbo.VaiTro
+UNION ALL SELECT N'TaiKhoan', COUNT(*) FROM dbo.TaiKhoan
+UNION ALL SELECT N'NhanVien', COUNT(*) FROM dbo.NhanVien
+UNION ALL SELECT N'QuanTriVien', COUNT(*) FROM dbo.QuanTriVien
+UNION ALL SELECT N'QuanLy', COUNT(*) FROM dbo.QuanLy
+UNION ALL SELECT N'LeTan', COUNT(*) FROM dbo.LeTan
+UNION ALL SELECT N'Quyen', COUNT(*) FROM dbo.Quyen
+UNION ALL SELECT N'VaiTroQuyen', COUNT(*) FROM dbo.VaiTroQuyen
+UNION ALL SELECT N'NhatKyHeThong', COUNT(*) FROM dbo.NhatKyHeThong
+UNION ALL SELECT N'LichSuDangNhap', COUNT(*) FROM dbo.LichSuDangNhap
+UNION ALL SELECT N'BenhNhan', COUNT(*) FROM dbo.BenhNhan
+UNION ALL SELECT N'BacSi', COUNT(*) FROM dbo.BacSi
+UNION ALL SELECT N'PhongKham', COUNT(*) FROM dbo.PhongKham
+UNION ALL SELECT N'DichVu', COUNT(*) FROM dbo.DichVu
+UNION ALL SELECT N'LichHen', COUNT(*) FROM dbo.LichHen
+UNION ALL SELECT N'PhieuKham', COUNT(*) FROM dbo.PhieuKham
+UNION ALL SELECT N'KetQuaKham', COUNT(*) FROM dbo.KetQuaKham
+UNION ALL SELECT N'DichVuDieuTri', COUNT(*) FROM dbo.DichVuDieuTri
+UNION ALL SELECT N'ChiTietDieuTri', COUNT(*) FROM dbo.ChiTietDieuTri
+UNION ALL SELECT N'ThanhToan', COUNT(*) FROM dbo.ThanhToan
+UNION ALL SELECT N'KhuyenMai', COUNT(*) FROM dbo.KhuyenMai
+UNION ALL SELECT N'CauHinhChuyenKhoan', COUNT(*) FROM dbo.CauHinhChuyenKhoan
+UNION ALL SELECT N'HoaDon', COUNT(*) FROM dbo.HoaDon
+UNION ALL SELECT N'ChiTietHoaDon', COUNT(*) FROM dbo.ChiTietHoaDon
+UNION ALL SELECT N'LichLamViec', COUNT(*) FROM dbo.LichLamViec;
+GO
+
+-- QUYỀN NGHIỆP VỤ BẮT BUỘC CHO DATABASE DEMO (không chạm quyền Admin ở app).
+USE MediDent;
+GO
+INSERT INTO dbo.VaiTroQuyen(maVaiTro,maQuyen)
+SELECT v.maVaiTro,q.maQuyen FROM dbo.VaiTro v JOIN dbo.Quyen q
+ ON ((v.tenVaiTro=N'Quản lý phòng khám' AND q.maQuyen='QL_KHUYENMAI')
+  OR (v.tenVaiTro=N'Lễ tân' AND q.maQuyen='LT_THANHTOAN'))
+WHERE NOT EXISTS (SELECT 1 FROM dbo.VaiTroQuyen x
+ WHERE x.maVaiTro=v.maVaiTro AND x.maQuyen=q.maQuyen);
+GO
+
+
+-- ============================================================================
+-- BO SUNG 3 BANG CO TRONG medident_nam NHUNG KHONG CO TRONG MediDent_2.
+-- Khong thay doi bang thanh toan / khuyen mai hien co cua MediDent_2.
+-- ============================================================================
+USE MediDent;
+GO
+IF OBJECT_ID(N'dbo.ChiTietPhieuKham',N'U') IS NULL
+CREATE TABLE dbo.ChiTietPhieuKham (
+    maCT INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    maPK INT NOT NULL REFERENCES dbo.PhieuKham(MaPK),
+    maDV INT NOT NULL REFERENCES dbo.DichVu(MaDV),
+    soLuong INT NOT NULL DEFAULT(1),
+    donGia DECIMAL(18,2) NOT NULL,
+    thanhTien AS (CONVERT(DECIMAL(18,2), soLuong*donGia)) PERSISTED,
+    CONSTRAINT CK_CTPK_SL CHECK(soLuong>0),
+    CONSTRAINT CK_CTPK_GIA CHECK(donGia>=0)
+);
+GO
+IF OBJECT_ID(N'dbo.YeuCauHuyPhieuThu',N'U') IS NULL
+CREATE TABLE dbo.YeuCauHuyPhieuThu (
+    maYC INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    maTT INT NOT NULL REFERENCES dbo.ThanhToan(MaTT),
+    lyDo NVARCHAR(500) NOT NULL,
+    trangThai NVARCHAR(30) NOT NULL DEFAULT N'Chờ duyệt',
+    ngayYeuCau DATETIME2 NOT NULL DEFAULT SYSDATETIME()
+);
+GO
+IF OBJECT_ID(N'dbo.PhieuDuyetHuyPhieuThu',N'U') IS NULL
+CREATE TABLE dbo.PhieuDuyetHuyPhieuThu (
+    maPD INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    maYC INT NOT NULL REFERENCES dbo.YeuCauHuyPhieuThu(maYC),
+    ngayPheDuyet DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    lyDoPheDuyet NVARCHAR(500) NULL
+);
+GO
+
+-- ============================================================================
+-- DU LIEU DEMO MO RONG: BENH NHAN, DICH VU, LICH, KHAM, HOA DON, YEU CAU.
+-- Chi INSERT neu chua co; khong xoa/sua du lieu that tren database da co.
+-- ============================================================================
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+BEGIN TRY
+    BEGIN TRAN;
+
+    DECLARE @DSBN TABLE (sdt VARCHAR(20), hoTen NVARCHAR(120), gioiTinh NVARCHAR(15),ngaySinh DATE);
+    INSERT INTO @DSBN VALUES
+        ('0909990201',N'Phan Minh Tâm',N'NAM','1994-04-19'),
+        ('0909990202',N'Trịnh Ngọc Diệp',N'NU','1998-03-27'),
+        ('0909990203',N'Hoàng Trọng Đức',N'NAM','1985-10-02'),
+        ('0909990204',N'Lâm Hải Yến',N'NU','2000-06-15'),
+        ('0909990205',N'Nguyễn Hoàng Hà',N'NAM','2003-08-05'),
+        ('0909990206',N'Võ Phương Anh',N'NU','1996-12-12'),
+        ('0909990207',N'Đặng Minh Hiếu',N'NAM','1989-07-30'),
+        ('0909990208',N'Đỗ Ngọc Trâm',N'NU','2001-11-23');
+    INSERT dbo.BenhNhan(HoTen,NgaySinh,GioiTinh,Sdt,Email,DiaChi,TienSuBenh,TrangThai,TrangThaiHoSo)
+    SELECT b.hoTen,b.ngaySinh,b.gioiTinh,b.sdt,'demo_'+b.sdt+'@medident.vn',
+           N'TP. Hồ Chí Minh',N'Dữ liệu khám thử',N'DANGDIEUTRI',N'Hoạt động'
+    FROM @DSBN b WHERE NOT EXISTS(SELECT 1 FROM dbo.BenhNhan x WHERE x.Sdt=b.sdt);
+
+    INSERT dbo.BacSi(HoTen,ChuyenKhoa)
+    SELECT N'BS. Lê Quốc Khánh',N'Chỉnh nha'
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.BacSi WHERE HoTen=N'BS. Lê Quốc Khánh');
+    INSERT dbo.BacSi(HoTen,ChuyenKhoa)
+    SELECT N'BS. Phạm Thu Thủy',N'Nha khoa thẩm mỹ'
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.BacSi WHERE HoTen=N'BS. Phạm Thu Thủy');
+
+    INSERT dbo.PhongKham(TenPhong,SucChua)
+    SELECT N'Phòng khám 03',2
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.PhongKham WHERE TenPhong=N'Phòng khám 03');
+
+    DECLARE @DVD TABLE(ten NVARCHAR(150),gia DECIMAL(18,2));
+    INSERT @DVD VALUES(N'Chỉnh nha mắc cài',5000000),(N'Nhổ răng khôn',1500000),
+        (N'Phục hình răng sứ',3500000),(N'Tư vấn implant',250000);
+    INSERT dbo.DichVu(TenDV,MoTa,DonGia,TrangThai)
+    SELECT d.ten,N'Dịch vụ bổ sung demo',d.gia,'DANGAPDUNG' FROM @DVD d
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.DichVu x WHERE x.TenDV=d.ten);
+    INSERT dbo.DichVuDieuTri(TenDDT,DonGia,TrangThai)
+    SELECT d.ten,d.gia,N'Đang áp dụng' FROM @DVD d
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.DichVuDieuTri x WHERE x.TenDDT=d.ten);
+
+    DECLARE @bs INT=(SELECT TOP 1 MaBS FROM dbo.BacSi WHERE HoTen=N'BS. Lê Quốc Khánh');
+    DECLARE @tk INT=(SELECT TOP 1 maTK FROM dbo.TaiKhoan WHERE tenDangNhap='letan');
+    DECLARE @phong INT=(SELECT TOP 1 MaPhong FROM dbo.PhongKham WHERE TenPhong=N'Phòng khám 03');
+
+    INSERT dbo.LichHen(MaBN,MaBS,MaTK,NgayGio,TrangThai,GhiChu)
+    SELECT bn.MaBN,@bs,@tk,
+           DATEADD(DAY,2+CONVERT(INT,RIGHT(bn.Sdt,1)),DATEADD(HOUR,9,CAST(CONVERT(DATE,GETDATE()) AS DATETIME2))),
+           N'Đã xác nhận',N'MEDIDENT-DEMO-PLUS-LH-'+bn.Sdt
+    FROM dbo.BenhNhan bn JOIN @DSBN d ON d.sdt=bn.Sdt
+    WHERE NOT EXISTS(SELECT 1 FROM dbo.LichHen l WHERE l.GhiChu=N'MEDIDENT-DEMO-PLUS-LH-'+bn.Sdt);
+
+    ;WITH ds AS (
+        SELECT bn.MaBN,bn.Sdt,ROW_NUMBER() OVER (ORDER BY bn.Sdt) AS rn
+        FROM dbo.BenhNhan bn JOIN @DSBN d ON d.sdt=bn.Sdt
+        WHERE NOT EXISTS(SELECT 1 FROM dbo.PhieuKham p WHERE p.GhiChu=N'MEDIDENT-DEMO-PLUS-PK-'+bn.Sdt)
+    )
+    INSERT dbo.PhieuKham(MaBN,MaPhong,MaLH,NgayKham,SoThuTu,TrangThai,GhiChu)
+    SELECT ds.MaBN,@phong,
+           (SELECT TOP 1 l.MaLH FROM dbo.LichHen l WHERE l.MaBN=ds.MaBN AND l.GhiChu=N'MEDIDENT-DEMO-PLUS-LH-'+ds.Sdt ORDER BY l.MaLH DESC),
+           CONVERT(DATE,GETDATE()),
+           (SELECT ISNULL(MAX(p.SoThuTu),0) FROM dbo.PhieuKham p WHERE p.NgayKham=CONVERT(DATE,GETDATE())) + ds.rn,
+           N'Hoàn thành',N'MEDIDENT-DEMO-PLUS-PK-'+ds.Sdt
+    FROM ds;
+
+    INSERT dbo.KetQuaKham(MaPK,MaBS,TrieuChung,ChanDoan,HuongDieuTri,GhiChu)
+    SELECT p.MaPK,@bs,N'Khám tổng quát',N'Theo dõi răng miệng',N'Điều trị theo chỉ định',N'DEMO - có tên bác sĩ trên hóa đơn'
+    FROM dbo.PhieuKham p WHERE p.GhiChu LIKE N'MEDIDENT-DEMO-PLUS-PK-%'
+    AND NOT EXISTS(SELECT 1 FROM dbo.KetQuaKham k WHERE k.MaPK=p.MaPK);
+
+    INSERT dbo.ChiTietDieuTri(MaPK,MaDDT,NoiDung,SoLuong,DonGia)
+    SELECT p.MaPK,d.MaDDT,N'Dịch vụ điều trị demo',1,d.DonGia
+    FROM dbo.PhieuKham p JOIN dbo.BenhNhan bn ON bn.MaBN=p.MaBN
+    JOIN dbo.DichVuDieuTri d ON d.TenDDT=CASE WHEN RIGHT(bn.Sdt,1) IN('1','4','7')
+        THEN N'Chỉnh nha mắc cài' WHEN RIGHT(bn.Sdt,1) IN('2','5','8') THEN N'Nhổ răng khôn'
+        ELSE N'Phục hình răng sứ' END
+    WHERE p.GhiChu LIKE N'MEDIDENT-DEMO-PLUS-PK-%'
+    AND NOT EXISTS(SELECT 1 FROM dbo.ChiTietDieuTri x WHERE x.MaPK=p.MaPK);
+
+    INSERT dbo.ChiTietPhieuKham(maPK,maDV,soLuong,donGia)
+    SELECT p.MaPK,d.MaDV,1,d.DonGia FROM dbo.PhieuKham p
+    CROSS JOIN (SELECT TOP 1 MaDV,DonGia FROM dbo.DichVu WHERE TenDV=N'Khám tổng quát') d
+    WHERE p.GhiChu LIKE N'MEDIDENT-DEMO-PLUS-PK-%'
+      AND NOT EXISTS(SELECT 1 FROM dbo.ChiTietPhieuKham c WHERE c.maPK=p.MaPK);
+
+    -- Tạo thêm hai hóa đơn đã thu để kiểm tra thống kê, lịch sử, thông tin bác sĩ trong PDF.
+    DECLARE @dsPK TABLE(maPK INT PRIMARY KEY,soTT INT IDENTITY(1,1));
+    INSERT @dsPK(maPK)
+    SELECT TOP 2 p.MaPK FROM dbo.PhieuKham p WHERE p.GhiChu LIKE N'MEDIDENT-DEMO-PLUS-PK-%'
+      AND NOT EXISTS(SELECT 1 FROM dbo.HoaDon h WHERE h.MaPK=p.MaPK AND h.TrangThai<>N'Đã hủy')
+    ORDER BY p.MaPK;
+    DECLARE @i INT=1,@pk INT,@so DECIMAL(18,2),@tt INT,@hd INT;
+    WHILE @i<=2
+    BEGIN
+        SET @pk=NULL;
+        SELECT @pk=maPK FROM @dsPK WHERE soTT=@i;
+        IF @pk IS NOT NULL
+        BEGIN
+            SELECT @so=SUM(ThanhTien) FROM dbo.ChiTietDieuTri WHERE MaPK=@pk;
+            IF @so>0
+            BEGIN
+                INSERT dbo.ThanhToan(MaPK,NgayThanhToan,SoTien,PhuongThuc,TrangThai,MaGiaoDich)
+                VALUES(@pk,SYSDATETIME(),@so,N'Tiền mặt',N'Thành công',NULL);
+                SET @tt=CONVERT(INT,SCOPE_IDENTITY());
+                INSERT dbo.HoaDon(MaPK,MaTT,TongTien,TrangThai,TienGoc,TienGiam,NguoiLap,PhuongThucTT,TienKhachDua,TienThua,GhiChu)
+                VALUES(@pk,@tt,@so,N'Đã thanh toán',@so,0,@tk,N'Tiền mặt',@so,0,N'Hóa đơn demo mở rộng');
+                SET @hd=CONVERT(INT,SCOPE_IDENTITY());
+                INSERT dbo.ChiTietHoaDon(MaHD,MaDV,TenDichVu,SoLuong,DonGia)
+                SELECT @hd,NULL,dt.TenDDT,ct.SoLuong,ct.DonGia FROM dbo.ChiTietDieuTri ct
+                JOIN dbo.DichVuDieuTri dt ON dt.MaDDT=ct.MaDDT WHERE ct.MaPK=@pk;
+            END
+        END
+        SET @i=@i+1;
+    END
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.YeuCauHuyPhieuThu WHERE lyDo=N'DEMO: yêu cầu hủy phiếu thu đã từ chối')
+        INSERT dbo.YeuCauHuyPhieuThu(maTT,lyDo,trangThai,ngayYeuCau)
+        SELECT TOP 1 MaTT,N'DEMO: yêu cầu hủy phiếu thu đã từ chối',N'Đã từ chối',SYSDATETIME()
+        FROM dbo.ThanhToan WHERE TrangThai=N'Thành công' ORDER BY MaTT DESC;
+    IF NOT EXISTS (SELECT 1 FROM dbo.PhieuDuyetHuyPhieuThu p
+                   JOIN dbo.YeuCauHuyPhieuThu y ON y.maYC=p.maYC
+                   WHERE y.lyDo=N'DEMO: yêu cầu hủy phiếu thu đã từ chối')
+        INSERT dbo.PhieuDuyetHuyPhieuThu(maYC,ngayPheDuyet,lyDoPheDuyet)
+        SELECT TOP 1 maYC,SYSDATETIME(),N'DEMO: từ chối do hồ sơ thiếu căn cứ'
+        FROM dbo.YeuCauHuyPhieuThu WHERE lyDo=N'DEMO: yêu cầu hủy phiếu thu đã từ chối';
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.KhuyenMai WHERE MaKM='KMDABAN')
+        INSERT dbo.KhuyenMai(MaKM,TenKM,LoaiGiam,GiaTri,NgayBatDau,NgayKetThuc,TrangThai)
+        VALUES('KMDABAN',N'Demo ưu đãi đã hết hạn','PHAN_TRAM',15,'2025-01-01','2025-12-31',0);
+
+    COMMIT;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT>0 ROLLBACK;
+    THROW;
+END CATCH;
+GO
+
+-- KIỂM TRA BAO PHỦ 28 BẢNG (KHÔNG CHỨNG NHẬN KẾT NỐI JDBC).
+DECLARE @bang TABLE(ten SYSNAME PRIMARY KEY);
+INSERT INTO @bang(ten) VALUES
+ (N'VaiTro'),(N'TaiKhoan'),(N'NhanVien'),(N'QuanTriVien'),(N'QuanLy'),(N'LeTan'),
+ (N'Quyen'),(N'VaiTroQuyen'),(N'NhatKyHeThong'),(N'LichSuDangNhap'),
+ (N'BenhNhan'),(N'BacSi'),(N'PhongKham'),(N'DichVu'),(N'LichHen'),
+ (N'PhieuKham'),(N'KetQuaKham'),(N'DichVuDieuTri'),(N'ChiTietDieuTri'),
+ (N'ThanhToan'),(N'KhuyenMai'),(N'CauHinhChuyenKhoan'),(N'HoaDon'),
+ (N'ChiTietHoaDon'),(N'LichLamViec'),(N'ChiTietPhieuKham'),
+ (N'YeuCauHuyPhieuThu'),(N'PhieuDuyetHuyPhieuThu');
+DECLARE @bangTen SYSNAME,@so INT,@sql NVARCHAR(MAX);
+DECLARE @ketQua TABLE(TenBang SYSNAME,SoDong BIGINT,TrangThai NVARCHAR(30));
+DECLARE ds CURSOR LOCAL FAST_FORWARD FOR SELECT ten FROM @bang ORDER BY ten;
+OPEN ds;
+FETCH NEXT FROM ds INTO @bangTen;
+WHILE @@FETCH_STATUS=0
+BEGIN
+    IF OBJECT_ID(N'dbo.'+@bangTen,N'U') IS NULL
+        INSERT @ketQua VALUES(@bangTen,NULL,N'THIẾU BẢNG');
+    ELSE
+    BEGIN
+        SET @sql=N'SELECT @n=COUNT_BIG(*) FROM dbo.'+QUOTENAME(@bangTen);
+        DECLARE @n BIGINT;
+        EXEC sp_executesql @sql,N'@n BIGINT OUTPUT',@n=@n OUTPUT;
+        INSERT @ketQua VALUES(@bangTen,@n,CASE WHEN @n=0 THEN N'CHƯA CÓ DỮ LIỆU' ELSE N'ĐÃ CÓ DỮ LIỆU' END);
+    END
+    FETCH NEXT FROM ds INTO @bangTen;
+END
+CLOSE ds;
+DEALLOCATE ds;
+SELECT TenBang,SoDong,TrangThai FROM @ketQua ORDER BY TenBang;
+IF EXISTS(SELECT 1 FROM @ketQua WHERE SoDong IS NULL OR SoDong=0)
+    RAISERROR(N'Kiểm tra dữ liệu: vẫn có bảng thiếu hoặc rỗng.',10,1);
+GO
+-- MEDIDENT - CHI DUNG CHO CSDL DEMO / THU NGHIEM
+-- Tao hoa don trang thai CHO THANH TOAN tu nhung phieu kham da hoan tat
+-- va CHUA CO HOA DON/THANH TOAN CON HIEU LUC.
+-- Khong chay tren CSDL benh nhan that khi chua duoc phe duyet nghiep vu.
+-- SQL Server 2012+. Khong sua hoa don da thanh toan.
+USE MediDent;
+GO
+SET XACT_ABORT ON;
+GO
+BEGIN TRY
+    BEGIN TRANSACTION;
+    INSERT dbo.HoaDon (MaPK, TongTien, TrangThai, TienGoc, TienGiam, GhiChu)
+    SELECT p.MaPK, SUM(ct.ThanhTien), N'Chờ thanh toán', SUM(ct.ThanhTien), 0,
+           N'MEDIDENT-DEMO-HOA-DON-CHO'
+    FROM dbo.PhieuKham AS p
+    JOIN dbo.ChiTietDieuTri AS ct ON ct.MaPK=p.MaPK
+    WHERE p.TrangThai IN (N'Hoàn tất',N'Hoàn thành',N'Đã hoàn thành')
+      AND NOT EXISTS (SELECT 1 FROM dbo.HoaDon h
+                      WHERE h.MaPK=p.MaPK AND h.TrangThai<>N'Đã hủy')
+      AND NOT EXISTS (SELECT 1 FROM dbo.ThanhToan t WHERE t.MaPK=p.MaPK
+                      AND t.TrangThai NOT IN (N'Đã hủy',N'Thất bại',N'Chờ xử lý',N'Chờ thanh toán'))
+    GROUP BY p.MaPK
+    HAVING SUM(ct.ThanhTien)>0;
+
+    INSERT dbo.ChiTietHoaDon (MaHD,MaDV,TenDichVu,SoLuong,DonGia)
+    SELECT h.MaHD,NULL,d.TenDDT,ct.SoLuong,ct.DonGia
+    FROM dbo.HoaDon h
+    JOIN dbo.ChiTietDieuTri ct ON ct.MaPK=h.MaPK
+    JOIN dbo.DichVuDieuTri d ON d.MaDDT=ct.MaDDT
+    WHERE h.GhiChu=N'MEDIDENT-DEMO-HOA-DON-CHO'
+      AND h.TrangThai=N'Chờ thanh toán'
+      AND NOT EXISTS (SELECT 1 FROM dbo.ChiTietHoaDon c WHERE c.MaHD=h.MaHD);
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF @@TRANCOUNT>0 ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+GO
+SELECT h.MaHD,h.MaPK,h.TrangThai,h.TongTien
+FROM dbo.HoaDon h
+WHERE h.TrangThai IN(N'Chờ thanh toán',N'Chưa thanh toán')
+ORDER BY h.MaHD DESC;
 GO

@@ -79,11 +79,11 @@ public final class DangNhap extends JFrame {
             khoiChu.setOpaque(false);
             khoiChu.setBorder(new EmptyBorder(18, 34, 34, 32));
             khoiChu.setLayout(new BoxLayout(khoiChu, BoxLayout.Y_AXIS));
-            JLabel tieuDe = GiaoDienDangNhap.label("Chăm sóc nụ cười,", 27, true);
+            JLabel tieuDe = GiaoDienDangNhap.taoNhan("Chăm sóc nụ cười,", 27, true);
             tieuDe.setForeground(Color.WHITE);
-            JLabel phuDe = GiaoDienDangNhap.label("kết nối sự tin tưởng.", 27, true);
+            JLabel phuDe = GiaoDienDangNhap.taoNhan("kết nối sự tin tưởng.", 27, true);
             phuDe.setForeground(Color.WHITE);
-            JLabel moTa = GiaoDienDangNhap.label("MEDIDENT  |  Quản lý phòng khám nha khoa", 12, false);
+            JLabel moTa = GiaoDienDangNhap.taoNhan("MEDIDENT  |  Quản lý phòng khám nha khoa", 12, false);
             moTa.setForeground(new Color(0xE0F2FE));
             khoiChu.add(tieuDe);
             khoiChu.add(Box.createVerticalStrut(4));
@@ -140,21 +140,21 @@ public final class DangNhap extends JFrame {
         JPanel vanBan = new JPanel();
         vanBan.setOpaque(false);
         vanBan.setLayout(new BoxLayout(vanBan, BoxLayout.Y_AXIS));
-        JLabel logoChu = GiaoDienDangNhap.label("MEDIDENT", 26, true);
+        JLabel logoChu = GiaoDienDangNhap.taoNhan("MEDIDENT", 26, true);
         logoChu.setForeground(GiaoDienDangNhap.PRIMARY);
         vanBan.add(logoChu);
-        vanBan.add(GiaoDienDangNhap.label("HỆ THỐNG QUẢN LÝ NHA KHOA", 10, false));
+        vanBan.add(GiaoDienDangNhap.taoNhan("HỆ THỐNG QUẢN LÝ NHA KHOA", 10, false));
         nhanHieu.add(vanBan);
         form.add(nhanHieu);
         form.add(Box.createVerticalStrut(31));
-        form.add(GiaoDienDangNhap.label("Đăng nhập hệ thống", 23, true));
+        form.add(GiaoDienDangNhap.taoNhan("Đăng nhập hệ thống", 23, true));
         form.add(Box.createVerticalStrut(8));
-        form.add(GiaoDienDangNhap.label("Nhập tài khoản được quản trị viên cấp để tiếp tục.", 12, false));
+        form.add(GiaoDienDangNhap.taoNhan("Nhập tài khoản được quản trị viên cấp để tiếp tục.", 12, false));
         form.add(Box.createVerticalStrut(31));
 
-        form.add(GiaoDienDangNhap.label("Tên đăng nhập", 12, true));
+        form.add(GiaoDienDangNhap.taoNhan("Tên đăng nhập", 12, true));
         form.add(Box.createVerticalStrut(8));
-        JTextField taiKhoan = GiaoDienDangNhap.text("");
+        JTextField taiKhoan = GiaoDienDangNhap.taoOChu("");
         taiKhoan.setToolTipText("Tên đăng nhập do hệ thống cấp, ví dụ nv1");
         taiKhoan.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         form.add(taiKhoan);
@@ -168,7 +168,7 @@ public final class DangNhap extends JFrame {
         hangMatKhau.setOpaque(false);
         hangMatKhau.setAlignmentX(LEFT_ALIGNMENT);
         hangMatKhau.setMaximumSize(new Dimension(Integer.MAX_VALUE, 26));
-        hangMatKhau.add(GiaoDienDangNhap.label("Mật khẩu", 12, true), BorderLayout.WEST);
+        hangMatKhau.add(GiaoDienDangNhap.taoNhan("Mật khẩu", 12, true), BorderLayout.WEST);
 
         form.add(hangMatKhau);
         form.add(Box.createVerticalStrut(8));
@@ -323,7 +323,7 @@ public final class DangNhap extends JFrame {
                             new UI.Chung.FullGUI(nguoiDung,db).setVisible(true);
                         } else switch (nguoiDung.tenVaiTro) {
                             case "Quản trị viên" -> new QuanTriVienGUI(nguoiDung, db).setVisible(true);
-                            case "Quản lý phòng khám" -> new QuanLyGUI(nguoiDung, db).setVisible(true);
+                            case "Quản lý phòng khám" -> new UI.QuanLy.QuanLy_GUI(nguoiDung,db).setVisible(true);
                             case "Lễ tân" -> new LeTanGUI(nguoiDung, db).setVisible(true);
                             default -> throw new IllegalStateException("Vai trò chưa được hỗ trợ: " + nguoiDung.tenVaiTro);
                         } // Chỉ điều hướng sau khi xác thực thành công.
@@ -373,7 +373,7 @@ final class GiaoDienDangNhap {
     }
 
     /** 2. Tạo nhãn có font và màu nhất quán. */
-    public static JLabel label(String text, int fontSize, boolean bold) {
+    public static JLabel taoNhan(String text, int fontSize, boolean bold) {
         JLabel result = new JLabel(text);
         result.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, fontSize));
         result.setForeground(bold ? TEXT : MUTED);
@@ -409,7 +409,7 @@ final class GiaoDienDangNhap {
     }
 
     /** 5. Khung trắng và viền nhạt dùng cho form, bảng và biểu đồ. */
-    public static JPanel card(LayoutManager layout) {
+    public static JPanel taoThe(LayoutManager layout) {
         JPanel panel = new JPanel(layout) {
             @Override
             protected void paintComponent(Graphics graphics) {
@@ -483,11 +483,11 @@ final class GiaoDienDangNhap {
     public static JPanel trang(String title, String description) {
         JPanel page = new CotNoiDung();
         page.setBorder(new EmptyBorder(26, 28, 44, 28));
-        page.add(label("Tổng quan   ›   " + title, 11, false));
+        page.add(taoNhan("Tổng quan   ›   " + title, 11, false));
         page.add(Box.createVerticalStrut(18));
-        page.add(label(title, 24, true));
+        page.add(taoNhan(title, 24, true));
         page.add(Box.createVerticalStrut(7));
-        page.add(label(description, 12, false));
+        page.add(taoNhan(description, 12, false));
         page.add(Box.createVerticalStrut(23));
         return page;
     }
@@ -590,7 +590,7 @@ final class GiaoDienDangNhap {
     }
 
     /** 11. Ô nhập liệu có padding và viền đồng nhất. */
-    public static JTextField text(String value) {
+    public static JTextField taoOChu(String value) {
         JTextField field = new JTextField(value, 23);
         field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         field.setBorder(new CompoundBorder(new LineBorder(BORDER),
@@ -637,7 +637,7 @@ final class GiaoDienDangNhap {
     }
 
     /** 14. Trang trí bảng và cho phép cuộn ngang ở bảng nhiều cột. */
-    public static JComponent wrapTable(JTable table) {
+    public static JComponent bocBang(JTable table) {
         table.setRowHeight(39);
         table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         // Không chọn nhầm dòng khi người dùng lọc/sắp xếp JTable.

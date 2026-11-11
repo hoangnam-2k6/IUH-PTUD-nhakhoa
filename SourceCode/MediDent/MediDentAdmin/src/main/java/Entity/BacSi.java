@@ -17,14 +17,14 @@ public class BacSi {
         this.chuyenKhoa = chuyenKhoa;
     }
 
-    public int getMaBS() { return maBS; }
-    public void setMaBS(int maBS) { this.maBS = maBS; }
-    public String getHoTen() { return hoTen; }
-    public void setHoTen(String hoTen) { this.hoTen = hoTen; }
-    public String getChuyenKhoa() { return chuyenKhoa; }
-    public void setChuyenKhoa(String chuyenKhoa) { this.chuyenKhoa = chuyenKhoa; }
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
+    public int layMaBS() { return maBS; }
+    public void datMaBS(int maBS) { this.maBS = maBS; }
+    public String layHoTen() { return hoTen; }
+    public void datHoTen(String hoTen) { this.hoTen = hoTen; }
+    public String layChuyenKhoa() { return chuyenKhoa; }
+    public void datChuyenKhoa(String chuyenKhoa) { this.chuyenKhoa = chuyenKhoa; }
+    public String layTrangThai() { return trangThai; }
+    public void datTrangThai(String trangThai) { this.trangThai = trangThai; }
 
     public boolean dangHoatDong() { return HOAT_DONG.equals(trangThai); }
 

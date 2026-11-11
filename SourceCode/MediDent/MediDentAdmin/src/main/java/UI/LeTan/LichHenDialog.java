@@ -1,8 +1,8 @@
 package UI.LeTan;
 
 import DAO.BacSiDao;
-import Dao.BenhNhanDao;
-import Dao.LichHenDao;
+import DAO.BenhNhanLeTanDAO;
+import DAO.LichHenLeTanDAO;
 import Entity.BacSi;
 import Entity.BenhNhan;
 import Entity.LichHen;
@@ -19,8 +19,8 @@ import static UI.LeTan.GiaoDien.*;
 
 /** Hộp thoại tạo mới / chỉnh sửa lịch hẹn. */
 public class LichHenDialog extends JDialog {
-    private final LichHenDao lichHenDao = new LichHenDao();
-    private final BenhNhanDao benhNhanDao = new BenhNhanDao();
+    private final LichHenLeTanDAO lichHenDao = new LichHenLeTanDAO();
+    private final BenhNhanLeTanDAO benhNhanDao = new BenhNhanLeTanDAO();
     private final BacSiDao bacSiDao = new BacSiDao();
 
     private final LichHen lichHen;      // null = tạo mới
@@ -34,10 +34,10 @@ public class LichHenDialog extends JDialog {
 
     private LichHenDialog(Component cha, LichHen lichHen, TaiKhoan taiKhoan) {
         super(SwingUtilities.getWindowAncestor(cha),
-                lichHen == null ? "Tạo lịch hẹn mới" : "Sửa lịch hẹn " + String.format("LH%03d", lichHen.getMaLH()),
+                lichHen == null ? "Tạo lịch hẹn mới" : "Sửa lịch hẹn " + String.format("LH%03d", lichHen.layMaLH()),
                 ModalityType.APPLICATION_MODAL);
         this.lichHen = lichHen;
-        this.maTK = taiKhoan == null ? null : taiKhoan.getMaTK();
+        this.maTK = taiKhoan == null ? null : taiKhoan.layMaTK();
 
         setLayout(new BorderLayout());
         getContentPane().setBackground(NEN_THE);
@@ -68,8 +68,8 @@ public class LichHenDialog extends JDialog {
         noi.setBackground(NEN_THE);
         noi.setBorder(BorderFactory.createEmptyBorder(14, 18, 6, 18));
 
-        cbBenhNhan.setFont(font(Font.PLAIN, 14));
-        cbBacSi.setFont(font(Font.PLAIN, 14));
+        cbBenhNhan.setFont(taoPhongChu(Font.PLAIN, 14));
+        cbBacSi.setFont(taoPhongChu(Font.PLAIN, 14));
         oNgayGio.setToolTipText("dd/MM/yyyy HH:mm");
 
         noi.add(taoTieuDeNhom("Thông tin lịch hẹn"));
@@ -80,7 +80,7 @@ public class LichHenDialog extends JDialog {
 
         JLabel goiY = new JLabel("<html><span style='color:#64748B'>Bác sĩ cần cách lịch hẹn trước đó ít nhất 30 phút. "
                 + "Lịch mới tạo ở trạng thái \"Chờ xác nhận\".</span></html>");
-        goiY.setFont(font(Font.PLAIN, 11));
+        goiY.setFont(taoPhongChu(Font.PLAIN, 11));
         goiY.setAlignmentX(Component.LEFT_ALIGNMENT);
         noi.add(Box.createVerticalStrut(6));
         noi.add(goiY);
@@ -108,16 +108,16 @@ public class LichHenDialog extends JDialog {
     private void napDuLieu() {
         try {
             List<BenhNhan> dsBenhNhan = new ArrayList<>();
-            for (BenhNhan bn : benhNhanDao.findAll()) {
-                if (bn.dangHoatDong() || (lichHen != null && bn.getMaBNSo() == lichHen.getMaBN())) {
+            for (BenhNhan bn : benhNhanDao.timTatCa()) {
+                if (bn.dangHoatDong() || (lichHen != null && bn.layMaBNSo() == lichHen.layMaBN())) {
                     dsBenhNhan.add(bn);
                 }
             }
             for (BenhNhan bn : dsBenhNhan) cbBenhNhan.addItem(bn);
 
             List<BacSi> dsBacSi = new ArrayList<>();
-            for (BacSi bs : bacSiDao.findAll()) {
-                if (bs.dangHoatDong() || (lichHen != null && bs.getMaBS() == lichHen.getMaBS())) {
+            for (BacSi bs : bacSiDao.timTatCa()) {
+                if (bs.dangHoatDong() || (lichHen != null && bs.layMaBS() == lichHen.layMaBS())) {
                     dsBacSi.add(bs);
                 }
             }
@@ -137,16 +137,16 @@ public class LichHenDialog extends JDialog {
             oNgayGio.setText(macDinh.format(NGAY_GIO_NHAP));
             return;
         }
-        oNgayGio.setText(lichHen.getNgayGio() == null ? "" : lichHen.getNgayGio().format(NGAY_GIO_NHAP));
-        oGhiChu.setText(lichHen.getGhiChu() == null ? "" : lichHen.getGhiChu());
+        oNgayGio.setText(lichHen.layNgayGio() == null ? "" : lichHen.layNgayGio().format(NGAY_GIO_NHAP));
+        oGhiChu.setText(lichHen.layGhiChu() == null ? "" : lichHen.layGhiChu());
         for (int i = 0; i < cbBenhNhan.getItemCount(); i++) {
-            if (cbBenhNhan.getItemAt(i).getMaBNSo() == lichHen.getMaBN()) {
+            if (cbBenhNhan.getItemAt(i).layMaBNSo() == lichHen.layMaBN()) {
                 cbBenhNhan.setSelectedIndex(i);
                 break;
             }
         }
         for (int i = 0; i < cbBacSi.getItemCount(); i++) {
-            if (cbBacSi.getItemAt(i).getMaBS() == lichHen.getMaBS()) {
+            if (cbBacSi.getItemAt(i).layMaBS() == lichHen.layMaBS()) {
                 cbBacSi.setSelectedIndex(i);
                 break;
             }
@@ -167,11 +167,11 @@ public class LichHenDialog extends JDialog {
                 throw new IllegalArgumentException("Vui lòng nhập ngày giờ hẹn.");
             }
             if (lichHen == null) {
-                lichHenDao.tao(bn.getMaBNSo(), bs.getMaBS(), ngayGio, oGhiChu.getText(), maTK);
-                thongBao(this, "Đã tạo lịch hẹn cho " + bn.getHoTen()
+                lichHenDao.tao(bn.layMaBNSo(), bs.layMaBS(), ngayGio, oGhiChu.getText(), maTK);
+                thongBao(this, "Đã tạo lịch hẹn cho " + bn.layHoTen()
                         + " lúc " + ngayGio.format(NGAY_GIO) + ".");
             } else {
-                lichHenDao.capNhat(lichHen.getMaLH(), bn.getMaBNSo(), bs.getMaBS(), ngayGio, oGhiChu.getText());
+                lichHenDao.capNhat(lichHen.layMaLH(), bn.layMaBNSo(), bs.layMaBS(), ngayGio, oGhiChu.getText());
                 thongBao(this, "Đã cập nhật lịch hẹn.");
             }
             daLuu = true;

@@ -35,9 +35,9 @@ public class TaiKhoan {
         this.phaiDoiMatKhau = phaiDoiMatKhau;
     }
     // Accessors used by the Reception screens after merging the three roles.
-    public int getMaTK() { return id; }
-    public String getHoTen() { return hoTen; }
-    public String getTenDangNhap() { return tenDangNhap; }
-    public String getVaiTro() { return tenVaiTro; }
+    public int layMaTK() { return id; }
+    public String layHoTen() { return hoTen; }
+    public String layTenDangNhap() { return tenDangNhap; }
+    public String layVaiTro() { return tenVaiTro; }
 
 }

@@ -56,7 +56,7 @@ public class Regex_DichVu {
     // NVARCHAR(20) NOT NULL
     // =========================
 
-    public static boolean isValidMaDV(String maDV) {
+    public static boolean laMaDVHopLe(String maDV) {
 
         if (rong(maDV)) {
             return false;
@@ -72,7 +72,7 @@ public class Regex_DichVu {
     // NVARCHAR(150) NOT NULL
     // =========================
 
-    public static boolean isValidTenDV(String tenDV) {
+    public static boolean laTenDVHopLe(String tenDV) {
 
         if (rong(tenDV)) {
             return false;
@@ -88,7 +88,7 @@ public class Regex_DichVu {
     // NVARCHAR(1000) NULL
     // =========================
 
-    public static boolean isValidMoTa(String moTa) {
+    public static boolean laMoTaHopLe(String moTa) {
 
         if (rong(moTa)) {
             return true;
@@ -106,7 +106,7 @@ public class Regex_DichVu {
     // =========================
 
     // Kiểm tra khi lấy dữ liệu từ JTextField
-    public static boolean isValidDonGia(String donGia) {
+    public static boolean laDonGiaHopLe(String donGia) {
 
         if (rong(donGia)) {
             return false;
@@ -119,14 +119,14 @@ public class Regex_DichVu {
         }
 
         try {
-            return isValidDonGia(new BigDecimal(gia));
+            return laDonGiaHopLe(new BigDecimal(gia));
         } catch (NumberFormatException e) {
             return false;
         }
     }
 
     // Kiểm tra khi dữ liệu đã chuyển sang BigDecimal
-    public static boolean isValidDonGia(BigDecimal donGia) {
+    public static boolean laDonGiaHopLe(BigDecimal donGia) {
 
         if (donGia == null || donGia.signum() < 0) {
             return false;
@@ -147,7 +147,7 @@ public class Regex_DichVu {
     // NVARCHAR(50) NOT NULL
     // =========================
 
-    public static boolean isValidTrangThai(String trangThai) {
+    public static boolean laTrangThaiHopLe(String trangThai) {
 
         if (rong(trangThai)) {
             return false;
@@ -164,5 +164,9 @@ public class Regex_DichVu {
         } catch (IllegalArgumentException e) {
             return false;
         }
+    }
+    /** Chỉ kiểm tra chuỗi đang nhập; xác thực cuối dùng các hàm la...HopLe hiện có. */
+    public static boolean laDonGiaDangNhapHopLe(String giaTri) {
+        return giaTri != null && giaTri.matches("(?:[0-9]{0,16}(?:[\\.,][0-9]{0,2})?)");
     }
 }

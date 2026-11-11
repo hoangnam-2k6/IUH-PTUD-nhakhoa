@@ -1,124 +1,84 @@
+
 package UI.QuanLy;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
-
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.RowFilter;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 
 import DAO.DichVuDAO;
 import Entity.DichVu;
 
-@SuppressWarnings("serial")
 public class QuanLyDichVuPanel extends JPanel implements ActionListener {
 
-    private JLabel lbltitle;
-    private JLabel lbltimnhanh;
+    private JLabel lbltitle, lbltimnhanh;
     private JTextField txttimnhanh;
-    private JButton btnthem;
-    private JButton btnsua;
-    private JButton btnxoa;
-    private JPanel pbtn;
-    private JPanel dichvu_top;
-    private JPanel dichvu_top_top;
-    private JPanel dichvu_center;
+    private JButton btntim, btnthem, btnsua, btnxoa;
+    private JPanel pbtn, dichvu_top, dichvu_center;
     private DefaultTableModel modelDV;
     private JTable tableDV;
     private JScrollPane scrollDV;
-    private JButton btntim;
+    private JComboBox<String> loccombo;
     private List<DichVu> dsDichVu;
-
-    // Callback mở form thêm và sửa dịch vụ
+    public static final Color BORDER = new Color(0xE2E8F0);
+    public static final Color TEXT = new Color(0x0F172A);
     private Runnable moManHinhThemDichVu;
     private Consumer<String> moManHinhSuaDichVu;
 
-    // DAO
     private final DichVuDAO dvDAO = new DichVuDAO();
-
-    // Hỗ trợ sắp xếp và tìm kiếm trên bảng
     private TableRowSorter<DefaultTableModel> sorterDV;
-	private JComboBox loccombo;
 
     public QuanLyDichVuPanel() {
         this(null, null);
     }
 
-    public QuanLyDichVuPanel(
-            Runnable callbackThem,
-            Consumer<String> callbackSua) {
+    public QuanLyDichVuPanel(Runnable callbackThem, Consumer<String> callbackSua) {
+        moManHinhThemDichVu = callbackThem;
+        moManHinhSuaDichVu = callbackSua;
 
-        this.moManHinhThemDichVu = callbackThem;
-        this.moManHinhSuaDichVu = callbackSua;
+        taoGiaoDien();
+        ganSuKien();
+        taiDichvu();
+    }
 
+    // Tao giao dien quan ly dich vu
+    private void taoGiaoDien() {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
 
         String[] colsDV = {
-        		"STT", "mã dịch vụ", "Dịch Vụ",
-        		"Mô Tả", "Đơn Giá(vnđ)", "Trạng Thái"
+            "STT", "Mã dịch vụ", "Dịch vụ", "Mô tả",
+            "Đơn giá (VNĐ)", "Trạng thái"
         };
-        // Phần trên
-        dichvu_top = new JPanel();
-        dichvu_top.setLayout(new BorderLayout(10, 10));
 
-        dichvu_top_top = new JPanel();
-        Box boxlbl = Box.createVerticalBox();
+        dichvu_top = new JPanel(new BorderLayout(10, 10));
 
         lbltitle = new JLabel("Quản lý dịch vụ");
-        boxlbl.add(lbltitle);
-        dichvu_top_top.add(boxlbl);
+        lbltitle.setFont(new Font("Arial", Font.BOLD, 20));
 
-        Box dichvu_top_center = Box.createHorizontalBox();
-        dichvu_top_center.setOpaque(true);
-        dichvu_top_center.setBackground(Color.WHITE);
+        JPanel phanTieuDe = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        phanTieuDe.add(lbltitle);
+        dichvu_top.add(phanTieuDe, BorderLayout.NORTH);
 
-        lbltimnhanh = new JLabel("  tìm nhanh:");
-        txttimnhanh = new JTextField();
-        txttimnhanh.setPreferredSize(new Dimension(300, 25));
-        dichvu_top_center.add(lbltimnhanh);
+        lbltimnhanh = new JLabel("Tìm nhanh:");
+        txttimnhanh = new JTextField(18);
+        txttimnhanh.setPreferredSize(new Dimension(220, 30));
+
+        loccombo = new JComboBox<>(colsDV);
+
+        btntim = taoNut("Tìm");
+        btnthem = taoNut("+ Thêm dịch vụ");
+        btnsua = taoNut("Chỉnh sửa");
+        btnxoa = taoNut("Xóa");
 
         pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
         pbtn.setBackground(Color.WHITE);
-        
-        loccombo = new JComboBox<>();
-        loccombo.setModel(new DefaultComboBoxModel<>(colsDV));
-        
-        btntim = new JButton("tìm");
-        btntim.setBackground(Color.WHITE);
-        btntim.setForeground(new Color(52, 152, 219));
-
-        btnthem = new JButton("+ thêm dịch vụ");
-        btnthem.setBackground(Color.WHITE);
-        btnthem.setForeground(new Color(52, 152, 219));
-
-        btnsua = new JButton("chỉnh sửa");
-        btnsua.setBackground(Color.WHITE);
-        btnsua.setForeground(new Color(52, 152, 219));
-
-        btnxoa = new JButton("xóa");
-        btnxoa.setBackground(Color.WHITE);
-        btnxoa.setForeground(new Color(52, 152, 219));
-
+        pbtn.add(lbltimnhanh);
         pbtn.add(txttimnhanh);
         pbtn.add(loccombo);
         pbtn.add(btntim);
@@ -126,233 +86,205 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         pbtn.add(btnsua);
         pbtn.add(btnxoa);
 
-        dichvu_top_center.add(pbtn);
+        dichvu_top.add(pbtn, BorderLayout.CENTER);
+        add(dichvu_top, BorderLayout.NORTH);
 
-        // Phần giữa
-        dichvu_center = new JPanel();
-        dichvu_center.setLayout(new BorderLayout());
-        dichvu_center.setBorder(
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        );
+        // Tao bang danh sach dich vu
+        dichvu_center = new JPanel(new BorderLayout());
         dichvu_center.setBackground(Color.WHITE);
+        dichvu_center.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
+        modelDV = new DefaultTableModel(colsDV, 0) {
+            @Override
+            public boolean isCellEditable(int dong, int cot) {
+                return false;
+            }
+        };
 
-        modelDV = new DefaultTableModel(colsDV, 0);
         tableDV = new JTable(modelDV);
-        tableDV.setRowHeight(20);
+        tableDV.setRowHeight(25);
         tableDV.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         tableDV.setFillsViewportHeight(true);
+        tableDV.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         sorterDV = new TableRowSorter<>(modelDV);
         tableDV.setRowSorter(sorterDV);
 
         scrollDV = new JScrollPane(tableDV);
         dichvu_center.add(scrollDV, BorderLayout.CENTER);
-
-        // Ghép giao diện
-        dichvu_top.add(dichvu_top_top, BorderLayout.WEST);
-        dichvu_top.add(dichvu_top_center, BorderLayout.SOUTH);
-
-        add(dichvu_top, BorderLayout.NORTH);
         add(dichvu_center, BorderLayout.CENTER);
+    }
 
-        // Listener
+    // Tao nut chuc nang
+    private JButton taoNut(String tenNut) {
+    	JButton b = new JButton(tenNut) {
+            @Override protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(getBackground());
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g.setColor(BORDER);
+                g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g.dispose();
+                super.paintComponent(graphics);
+            }
+        };
+        b.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        b.setBackground(Color.white);
+        b.setForeground(TEXT);
+        b.setContentAreaFilled(false);
+        b.setOpaque(false);
+        b.setFocusPainted(false);
+        b.setBorder(new EmptyBorder(10, 14, 10, 14));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    // Gan su kien cho cac nut
+    private void ganSuKien() {
         txttimnhanh.addActionListener(e -> timDichVu());
         btntim.addActionListener(this);
         btnthem.addActionListener(this);
         btnsua.addActionListener(this);
         btnxoa.addActionListener(this);
-
-        // Tải dữ liệu
-        loaddichvu();
     }
 
+    // Xu ly cac nut chuc nang
     @Override
     public void actionPerformed(ActionEvent e) {
-        Object o = e.getSource();
-        if (o == btntim) {
+        Object nut = e.getSource();
+
+        if (nut == btntim) {
             timDichVu();
-        } else if (o == btnthem) {
+        } else if (nut == btnthem) {
             moFormThemDichVu();
-        } else if (o == btnsua) {
+        } else if (nut == btnsua) {
             moFormSuaDichVu();
-        } else if (o == btnxoa) {
+        } else if (nut == btnxoa) {
             xoaDichVu();
         }
     }
 
-    // Tải danh sách dịch vụ từ database
-    private int phienTaiDichVu;
-    public void loaddichvu() {
-        final int phien=++phienTaiDichVu;
-        modelDV.setRowCount(0);
-        new javax.swing.SwingWorker<java.util.ArrayList<DichVu>,Void>() {
-            @Override protected java.util.ArrayList<DichVu> doInBackground() {
-                return dvDAO.getalldichvu();
+    // Lay danh sach dich vu tu SQL Server
+    public void taiDichvu() {
+        try {
+            dsDichVu = dvDAO.layTatCaDichvu();
+            modelDV.setRowCount(0);
+
+            if (dsDichVu == null) return;
+
+            int stt = 1;
+
+            for (DichVu dv : dsDichVu) {
+                modelDV.addRow(new Object[]{
+                    stt++, dv.layMaDV(), dv.layTenDV(),
+                    dv.layMota(), dv.layDongia(), dv.layTrangthai()
+                });
             }
-            @Override protected void done() {
-                if(phien!=phienTaiDichVu)return;
-                try {
-                    dsDichVu=get();
-                    modelDV.setRowCount(0);
-                    int stt=1;
-                    for (DichVu dv : dsDichVu) {
-                        modelDV.addRow(new Object[]{stt++,dv.getMaDV(), dv.getTenDV(), dv.getMota(), dv.getDongia(), dv.getTrangthai()});
-                    }
-                } catch (Exception ex) {
-                    Throwable loi=ex.getCause()==null?ex:ex.getCause();
-                    JOptionPane.showMessageDialog(QuanLyDichVuPanel.this,
-                        "Không tải được dữ liệu: "+loi.getMessage(), "Lỗi truy vấn SQL",JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        }.execute();
+
+        } catch (Exception loi) {
+            baoLoi(loi);
+        }
     }
 
-    // Mở form thêm dịch vụ
+    // Mo man hinh them dich vu
     private void moFormThemDichVu() {
         if (moManHinhThemDichVu != null) {
             moManHinhThemDichVu.run();
         } else {
-            JOptionPane.showMessageDialog(
-                this,
-                "Chức năng thêm dịch vụ chưa được kết nối!"
-            );
+            JOptionPane.showMessageDialog(this, "Chức năng thêm dịch vụ chưa được kết nối!");
         }
     }
 
-    // Mở form sửa dịch vụ
+    // Mo man hinh sua dich vu
     private void moFormSuaDichVu() {
-        int row = tableDV.getSelectedRow();
+        String maDV = layMaDichVu();
 
-        if (row == -1) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Vui lòng chọn dịch vụ cần sửa!"
-            );
-            return;
-        }
-
-        int modelRow = tableDV.convertRowIndexToModel(row);
-        Object value = modelDV.getValueAt(modelRow, 1);
-
-        if (value == null) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Không lấy được mã dịch vụ cần sửa!"
-            );
-            return;
-        }
-
-        String maDV = value.toString();
+        if (maDV == null) return;
 
         if (moManHinhSuaDichVu != null) {
             moManHinhSuaDichVu.accept(maDV);
         } else {
-            JOptionPane.showMessageDialog(
-                this,
-                "Chức năng sửa dịch vụ chưa được kết nối!"
-            );
+            JOptionPane.showMessageDialog(this, "Chức năng sửa dịch vụ chưa được kết nối!");
         }
     }
 
-    // Xóa dịch vụ được chọn
+    // Lay ma dich vu dang chon trong bang
+    private String layMaDichVu() {
+        int dongChon = tableDV.getSelectedRow();
+
+        if (dongChon == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn dịch vụ trong bảng!");
+            return null;
+        }
+
+        int dongModel = tableDV.convertRowIndexToModel(dongChon);
+        Object maDV = modelDV.getValueAt(dongModel, 1);
+
+        if (maDV == null) {
+            JOptionPane.showMessageDialog(this, "Không lấy được mã dịch vụ!");
+            return null;
+        }
+
+        return maDV.toString();
+    }
+
+    // Xoa dich vu
     private void xoaDichVu() {
-        int row = tableDV.getSelectedRow();
+        String maDV = layMaDichVu();
 
-        if (row == -1) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Vui lòng chọn dịch vụ cần xóa!"
-            );
-            return;
-        }
+        if (maDV == null) return;
 
-        int modelRow = tableDV.convertRowIndexToModel(row);
-        Object value = modelDV.getValueAt(modelRow, 1);
+        String thongBao = "Bạn có chắc chắn muốn xóa dịch vụ " + maDV + " không?";
+        int luaChon = JOptionPane.showConfirmDialog(this, thongBao, "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
 
-        if (value == null) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Không lấy được mã dịch vụ cần xóa!"
-            );
-            return;
-        }
+        if (luaChon != JOptionPane.YES_OPTION) return;
 
-        String maDV = value.toString();
-
-        int chon = JOptionPane.showConfirmDialog(
-            this,
-            "Bạn có chắc chắn muốn xóa dịch vụ " + maDV + " không?",
-            "Xác nhận xóa",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.WARNING_MESSAGE
-        );
-
-        if (chon == JOptionPane.YES_OPTION) {
-            boolean ketQua = dvDAO.delete(maDV);
+        try {
+            boolean ketQua = dvDAO.xoa(maDV);
 
             if (ketQua) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Xóa dịch vụ thành công!"
-                );
-                loaddichvu();
+                JOptionPane.showMessageDialog(this, "Xóa dịch vụ thành công!");
+                taiDichvu();
             } else {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Xóa dịch vụ thất bại. Dịch vụ có thể đang được "
-                        + "sử dụng trong dữ liệu khác.",
-                    "Lỗi",
-                    JOptionPane.ERROR_MESSAGE
-                );
+                JOptionPane.showMessageDialog(this, "Xóa thất bại! Dịch vụ có thể đang được sử dụng.");
             }
+
+        } catch (Exception loi) {
+            baoLoi(loi);
         }
     }
+
+    // Tim kiem dich vu theo cot da chon
     private void timDichVu() {
+        String tuKhoa = txttimnhanh.getText().trim().toLowerCase();
+        int cotTim = loccombo.getSelectedIndex();
 
-        String tuKhoa = txttimnhanh.getText().trim();
-
-        int cot = loccombo.getSelectedIndex();
-
-        if (cot < 0) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Vui lòng chọn cột cần tìm!"
-            );
+        if (cotTim < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn cột cần tìm!");
             return;
         }
 
         if (dsDichVu == null || dsDichVu.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Danh sách dịch vụ không có dữ liệu!"
-            );
+            JOptionPane.showMessageDialog(this, "Danh sách dịch vụ không có dữ liệu!");
             return;
         }
 
         modelDV.setRowCount(0);
-
         int sttGoc = 1;
         int sttHienThi = 1;
 
         for (DichVu dv : dsDichVu) {
-
             Object[] dong = {
-                sttGoc,
-                dv.getMaDV(),
-                dv.getTenDV(),
-                dv.getMota(),
-                dv.getDongia(),
-                dv.getTrangthai()
+                sttGoc, dv.layMaDV(), dv.layTenDV(),
+                dv.layMota(), dv.layDongia(), dv.layTrangthai()
             };
 
-            String giaTri = String.valueOf(dong[cot]);
+            String giaTri = dong[cotTim] == null ? "" : dong[cotTim].toString().toLowerCase();
 
-            if (tuKhoa.isEmpty()
-                    || giaTri.toLowerCase().contains(tuKhoa.toLowerCase())) {
-
+            if (tuKhoa.isEmpty() || giaTri.contains(tuKhoa)) {
                 dong[0] = sttHienThi++;
-
                 modelDV.addRow(dong);
             }
 
@@ -360,23 +292,26 @@ public class QuanLyDichVuPanel extends JPanel implements ActionListener {
         }
 
         if (modelDV.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Không tìm thấy dịch vụ phù hợp!"
-            );
+            JOptionPane.showMessageDialog(this, "Không tìm thấy dịch vụ phù hợp!");
         }
     }
-    // Chạy riêng panel để kiểm tra giao diện
-    public void moframe() {
-        JFrame frame = new JFrame("Quản lý dịch vụ");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setContentPane(this);
-        frame.setSize(1000, 750);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+
+    // Hien thi thong bao loi
+    private void baoLoi(Exception loi) {
+        JOptionPane.showMessageDialog(this, loi.getMessage(), "Lỗi dịch vụ", JOptionPane.ERROR_MESSAGE);
+    }
+
+    // Mo giao dien quan ly dich vu
+    public void moKhung() {
+        JFrame khung = new JFrame("Quản lý dịch vụ");
+        khung.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        khung.setContentPane(this);
+        khung.setSize(1000, 750);
+        khung.setLocationRelativeTo(null);
+        khung.setVisible(true);
     }
 
     public static void main(String[] args) {
-        new QuanLyDichVuPanel().moframe();
+        SwingUtilities.invokeLater(() -> new QuanLyDichVuPanel().moKhung());
     }
 }

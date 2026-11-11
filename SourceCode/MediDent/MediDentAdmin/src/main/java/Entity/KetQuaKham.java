@@ -17,26 +17,26 @@ public class KetQuaKham {
     private LocalDate ngayTaiKham;
     private LocalDateTime ngayCapNhat;
 
-    public int getMaPK() { return maPK; }
-    public void setMaPK(int maPK) { this.maPK = maPK; }
-    public Integer getMaBS() { return maBS; }
-    public void setMaBS(Integer maBS) { this.maBS = maBS; }
-    public String getTenBacSi() { return tenBacSi; }
-    public void setTenBacSi(String tenBacSi) { this.tenBacSi = tenBacSi; }
-    public String getTrieuChung() { return trieuChung; }
-    public void setTrieuChung(String trieuChung) { this.trieuChung = trieuChung; }
-    public String getKetQuaLamSang() { return ketQuaLamSang; }
-    public void setKetQuaLamSang(String ketQuaLamSang) { this.ketQuaLamSang = ketQuaLamSang; }
-    public String getChanDoan() { return chanDoan; }
-    public void setChanDoan(String chanDoan) { this.chanDoan = chanDoan; }
-    public String getHuongDieuTri() { return huongDieuTri; }
-    public void setHuongDieuTri(String huongDieuTri) { this.huongDieuTri = huongDieuTri; }
-    public String getDonThuoc() { return donThuoc; }
-    public void setDonThuoc(String donThuoc) { this.donThuoc = donThuoc; }
-    public String getGhiChu() { return ghiChu; }
-    public void setGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
-    public LocalDate getNgayTaiKham() { return ngayTaiKham; }
-    public void setNgayTaiKham(LocalDate ngayTaiKham) { this.ngayTaiKham = ngayTaiKham; }
-    public LocalDateTime getNgayCapNhat() { return ngayCapNhat; }
-    public void setNgayCapNhat(LocalDateTime ngayCapNhat) { this.ngayCapNhat = ngayCapNhat; }
+    public int layMaPK() { return maPK; }
+    public void datMaPK(int maPK) { this.maPK = maPK; }
+    public Integer layMaBS() { return maBS; }
+    public void datMaBS(Integer maBS) { this.maBS = maBS; }
+    public String layTenBacSi() { return tenBacSi; }
+    public void datTenBacSi(String tenBacSi) { this.tenBacSi = tenBacSi; }
+    public String layTrieuChung() { return trieuChung; }
+    public void datTrieuChung(String trieuChung) { this.trieuChung = trieuChung; }
+    public String layKetQuaLamSang() { return ketQuaLamSang; }
+    public void datKetQuaLamSang(String ketQuaLamSang) { this.ketQuaLamSang = ketQuaLamSang; }
+    public String layChanDoan() { return chanDoan; }
+    public void datChanDoan(String chanDoan) { this.chanDoan = chanDoan; }
+    public String layHuongDieuTri() { return huongDieuTri; }
+    public void datHuongDieuTri(String huongDieuTri) { this.huongDieuTri = huongDieuTri; }
+    public String layDonThuoc() { return donThuoc; }
+    public void datDonThuoc(String donThuoc) { this.donThuoc = donThuoc; }
+    public String layGhiChu() { return ghiChu; }
+    public void datGhiChu(String ghiChu) { this.ghiChu = ghiChu; }
+    public LocalDate layNgayTaiKham() { return ngayTaiKham; }
+    public void datNgayTaiKham(LocalDate ngayTaiKham) { this.ngayTaiKham = ngayTaiKham; }
+    public LocalDateTime layNgayCapNhat() { return ngayCapNhat; }
+    public void datNgayCapNhat(LocalDateTime ngayCapNhat) { this.ngayCapNhat = ngayCapNhat; }
 }

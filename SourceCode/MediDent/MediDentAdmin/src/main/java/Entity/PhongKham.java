@@ -23,14 +23,14 @@ public class PhongKham {
         this.trangThai = trangThai;
     }
 
-    public int getMaPhong() { return maPhong; }
-    public void setMaPhong(int maPhong) { this.maPhong = maPhong; }
-    public String getTenPhong() { return tenPhong; }
-    public void setTenPhong(String tenPhong) { this.tenPhong = tenPhong; }
-    public int getSucChua() { return sucChua; }
-    public void setSucChua(int sucChua) { this.sucChua = sucChua; }
-    public String getTrangThai() { return trangThai; }
-    public void setTrangThai(String trangThai) { this.trangThai = trangThai; }
+    public int layMaPhong() { return maPhong; }
+    public void datMaPhong(int maPhong) { this.maPhong = maPhong; }
+    public String layTenPhong() { return tenPhong; }
+    public void datTenPhong(String tenPhong) { this.tenPhong = tenPhong; }
+    public int laySucChua() { return sucChua; }
+    public void datSucChua(int sucChua) { this.sucChua = sucChua; }
+    public String layTrangThai() { return trangThai; }
+    public void datTrangThai(String trangThai) { this.trangThai = trangThai; }
 
     public boolean dangHoatDong() { return HOAT_DONG.equals(trangThai); }
 

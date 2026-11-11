@@ -24,11 +24,11 @@ public class DichVuDAO {
     }
 
     // 1. Lấy tất cả dịch vụ
-    public ArrayList<DichVu> getalldichvu() {
+    public ArrayList<DichVu> layTatCaDichvu() {
 
         ArrayList<DichVu> dsdv = new ArrayList<>();
 
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.layConnection()) {
 
         String sql = "SELECT maDV, tenDV, moTa, donGia, trangThai "
                    + "FROM DichVu";
@@ -66,9 +66,9 @@ public class DichVuDAO {
 }
 
     // 2. Thêm dịch vụ
-    public boolean create(DichVu dv) {
+    public boolean themMoi(DichVu dv) {
 
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.layConnection()) {
 
         int n = 0;
 
@@ -79,12 +79,12 @@ public class DichVuDAO {
         try (PreparedStatement stmt = con.prepareStatement(
                 sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            stmt.setString(1, dv.getTenDV());
-            stmt.setString(2, dv.getMota());
-            stmt.setBigDecimal(3, dv.getDongia());
+            stmt.setString(1, dv.layTenDV());
+            stmt.setString(2, dv.layMota());
+            stmt.setBigDecimal(3, dv.layDongia());
 
-            if (dv.getTrangthai() != null) {
-                stmt.setString(4, dv.getTrangthai().name());
+            if (dv.layTrangthai() != null) {
+                stmt.setString(4, dv.layTrangthai().name());
             } else {
                 stmt.setNull(4, Types.NVARCHAR);
             }
@@ -94,7 +94,7 @@ public class DichVuDAO {
             if (n > 0) {
                 try (ResultSet rs = stmt.getGeneratedKeys()) {
                     if (rs.next()) {
-                        dv.setMaDV(rs.getString(1));
+                        dv.datMaDV(rs.getString(1));
                     }
                 }
             }
@@ -109,9 +109,9 @@ public class DichVuDAO {
 }
 
     // 3. Cập nhật dịch vụ
-    public boolean update(DichVu dv) {
+    public boolean capNhat(DichVu dv) {
 
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.layConnection()) {
 
         int n = 0;
 
@@ -124,17 +124,17 @@ public class DichVuDAO {
 
         try (PreparedStatement stmt = con.prepareStatement(sql)) {
 
-            stmt.setString(1, dv.getTenDV());
-            stmt.setString(2, dv.getMota());
-            stmt.setBigDecimal(3, dv.getDongia());
+            stmt.setString(1, dv.layTenDV());
+            stmt.setString(2, dv.layMota());
+            stmt.setBigDecimal(3, dv.layDongia());
 
-            if (dv.getTrangthai() != null) {
-                stmt.setString(4, dv.getTrangthai().name());
+            if (dv.layTrangthai() != null) {
+                stmt.setString(4, dv.layTrangthai().name());
             } else {
                 stmt.setNull(4, Types.NVARCHAR);
             }
 
-            stmt.setInt(5, Integer.parseInt(dv.getMaDV()));
+            stmt.setInt(5, Integer.parseInt(dv.layMaDV()));
 
             n = stmt.executeUpdate();
 
@@ -148,9 +148,9 @@ public class DichVuDAO {
 }
 
     // 4. Ngừng áp dụng dịch vụ
-    public boolean delete(String maDV) {
+    public boolean xoa(String maDV) {
 
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.layConnection()) {
 
         int n = 0;
 
@@ -189,7 +189,7 @@ public class DichVuDAO {
 	        );
 	    }
 	
-		    try (Connection con = ConnectDB.getConnection()) {
+		    try (Connection con = ConnectDB.layConnection()) {
 	
 	    StringBuilder sql = new StringBuilder(
 	        "SELECT maDV, tenDV, moTa, donGia, trangThai "
@@ -274,10 +274,10 @@ public class DichVuDAO {
 	
         } catch (SQLException loiDongKetNoi) { throw new IllegalStateException("Lỗi trả kết nối JDBC", loiDongKetNoi); }
 }
-	public DichVu getDichVuByMaDV(String maDV) throws SQLException {
+	public DichVu layDichVuByMaDV(String maDV) throws SQLException {
 
 	
-	    try (Connection con = ConnectDB.getConnection()) {
+	    try (Connection con = ConnectDB.layConnection()) {
 
 	    if (con == null) {
 	        throw new SQLException("Chưa kết nối SQL Server!");
@@ -322,4 +322,25 @@ public class DichVuDAO {
 	
         } catch (SQLException loiDongKetNoi) { throw new IllegalStateException("Lỗi trả kết nối JDBC", loiDongKetNoi); }
 }
+
+    /** Trả về dịch vụ đang áp dụng cho hộp thoại hóa đơn của Lễ tân. */
+    public java.util.List<DichVu> timDangHoatDong() throws SQLException {
+        java.util.List<DichVu> ds=new java.util.ArrayList<>();
+        try (Connection c=ConnectDB.taoKetNoiMoi();PreparedStatement ps=c.prepareStatement(
+                "SELECT MaDV,TenDV,MoTa,DonGia FROM dbo.DichVu WHERE TrangThai=? ORDER BY TenDV")) {
+            ps.setString(1,"DANGAPDUNG");
+            try(ResultSet r=ps.executeQuery()) {
+                while(r.next())ds.add(new DichVu(r.getString(1),r.getString(2),r.getString(3),r.getBigDecimal(4),enums.trangthai_dichvu.DANGAPDUNG));
+            }
+        }return ds;
+    }
+
+    /** Mã dự kiến để hiển thị form; ID chính thức do SQL Server IDENTITY cấp. */
+    public String layMaDichVuTiepTheo() throws java.sql.SQLException {
+        try (java.sql.Connection c=ConnectDB.taoKetNoiMoi();
+             java.sql.PreparedStatement q=c.prepareStatement("SELECT ISNULL(MAX(MaDV),0)+1 FROM dbo.DichVu");
+             java.sql.ResultSet r=q.executeQuery()) {
+            return "DV" + String.format("%06d",r.next()?r.getInt(1):1);
+        }
+    }
 }

@@ -25,20 +25,20 @@ public class ChiTietHoaDon {
         this.donGia = donGia;
     }
 
-    public int getMaCT() { return maCT; }
-    public void setMaCT(int maCT) { this.maCT = maCT; }
-    public int getMaHD() { return maHD; }
-    public void setMaHD(int maHD) { this.maHD = maHD; }
-    public Integer getMaDV() { return maDV; }
-    public void setMaDV(Integer maDV) { this.maDV = maDV; }
-    public String getTenDichVu() { return tenDichVu; }
-    public void setTenDichVu(String tenDichVu) { this.tenDichVu = tenDichVu; }
-    public int getSoLuong() { return soLuong; }
-    public void setSoLuong(int soLuong) { this.soLuong = soLuong; }
-    public BigDecimal getDonGia() { return donGia; }
-    public void setDonGia(BigDecimal donGia) { this.donGia = donGia; }
+    public int layMaCT() { return maCT; }
+    public void datMaCT(int maCT) { this.maCT = maCT; }
+    public int layMaHD() { return maHD; }
+    public void datMaHD(int maHD) { this.maHD = maHD; }
+    public Integer layMaDV() { return maDV; }
+    public void datMaDV(Integer maDV) { this.maDV = maDV; }
+    public String layTenDichVu() { return tenDichVu; }
+    public void datTenDichVu(String tenDichVu) { this.tenDichVu = tenDichVu; }
+    public int laySoLuong() { return soLuong; }
+    public void datSoLuong(int soLuong) { this.soLuong = soLuong; }
+    public BigDecimal layDonGia() { return donGia; }
+    public void datDonGia(BigDecimal donGia) { this.donGia = donGia; }
 
-    public BigDecimal getThanhTien() {
+    public BigDecimal layThanhTien() {
         if (donGia == null) return BigDecimal.ZERO;
         return donGia.multiply(BigDecimal.valueOf(soLuong));
     }

@@ -35,75 +35,75 @@ public class BenhNhan {
 		this.trangthai = trangthai;
 	}
 
-	public String getMaBN() {
+	public String layMaBN() {
 		return maBN;
 	}
 
-	public void setMaBN(String maBN) {
+	public void datMaBN(String maBN) {
 		this.maBN = maBN;
 	}
 
-	public String getHoten() {
+	public String layHoten() {
 		return hoten;
 	}
 
-	public void setHoten(String hoten) {
+	public void datHoten(String hoten) {
 		this.hoten = hoten;
 	}
 
-	public LocalDate getNgaysinh() {
+	public LocalDate layNgaysinh() {
 		return ngaysinh;
 	}
 
-	public void setNgaysinh(LocalDate ngaysinh) {
+	public void datNgaysinh(LocalDate ngaysinh) {
 		this.ngaysinh = ngaysinh;
 	}
 
-	public gioitinh getGioitinh() {
+	public gioitinh layGioitinh() {
 		return gioitinh;
 	}
 
-	public void setGioitinh(gioitinh gioitinh) {
+	public void datGioitinh(gioitinh gioitinh) {
 		this.gioitinh = gioitinh;
 	}
 
-	public String getSdt() {
+	public String laySdt() {
 		return sdt;
 	}
 
-	public void setSdt(String sdt) {
+	public void datSdt(String sdt) {
 		this.sdt = sdt;
 	}
 
-	public String getEmail() {
+	public String layEmail() {
 		return email;
 	}
 
-	public void setEmail(String email) {
+	public void datEmail(String email) {
 		this.email = email;
 	}
 
-	public String getDiachi() {
+	public String layDiachi() {
 		return diachi;
 	}
 
-	public void setDiachi(String diachi) {
+	public void datDiachi(String diachi) {
 		this.diachi = diachi;
 	}
 
-	public String getTiensubenh() {
+	public String layTiensubenh() {
 		return tiensubenh;
 	}
 
-	public void setTiensubenh(String tiensubenh) {
+	public void datTiensubenh(String tiensubenh) {
 		this.tiensubenh = tiensubenh;
 	}
 
-	public trangthaidieutri getTrangthai() {
+	public trangthaidieutri layTrangthai() {
 		return trangthai;
 	}
 
-	public void setTrangthai(trangthaidieutri trangthai) {
+	public void datTrangthai(trangthaidieutri trangthai) {
 		this.trangthai = trangthai;
 	}
 
@@ -146,31 +146,31 @@ public class BenhNhan {
               ("Nữ".equalsIgnoreCase(gioiTinh)||"NU".equalsIgnoreCase(gioiTinh))?enums.gioitinh.NU:enums.gioitinh.KHAC);
         this.sdt=sdt;this.diachi=diaChi;
     }
-    public int getMaBNSo(){
+    public int layMaBNSo(){
         if(maBN==null||maBN.isBlank())return 0;
         return Integer.parseInt(maBN.replaceAll("[^0-9]",""));
     }
-    public void setMaBN(int v){this.maBN=String.valueOf(v);}
-    public String getHoTen(){return hoten;} public void setHoTen(String v){hoten=v;}
-    public LocalDate getNgaySinh(){return ngaysinh;} public void setNgaySinh(LocalDate v){ngaysinh=v;}
-    public String getGioiTinh(){return gioitinh==null?null:
+    public void datMaBN(int v){this.maBN=String.valueOf(v);}
+    public String layHoTen(){return hoten;} public void datHoTen(String v){hoten=v;}
+    public LocalDate layNgaySinh(){return ngaysinh;} public void datNgaySinh(LocalDate v){ngaysinh=v;}
+    public String layGioiTinh(){return gioitinh==null?null:
         (gioitinh==enums.gioitinh.NAM?"Nam":gioitinh==enums.gioitinh.NU?"Nữ":"Khác");}
-    public void setGioiTinh(String v){gioitinh=v==null?null:
+    public void datGioiTinh(String v){gioitinh=v==null?null:
         (("Nam".equalsIgnoreCase(v)||"NAM".equalsIgnoreCase(v))?enums.gioitinh.NAM:
          ("Nữ".equalsIgnoreCase(v)||"NU".equalsIgnoreCase(v))?enums.gioitinh.NU:enums.gioitinh.KHAC);}
-    public String getSoDienThoai(){return sdt;} public void setSoDienThoai(String v){sdt=v;}
-    public String getDiaChi(){return diachi;} public void setDiaChi(String v){diachi=v;}
-    public String getTienSuBenh(){return tiensubenh;} public void setTienSuBenh(String v){tiensubenh=v;}
-    public String getCccd(){return cccd;} public void setCccd(String v){cccd=v;}
-    public String getNgheNghiep(){return ngheNghiep;} public void setNgheNghiep(String v){ngheNghiep=v;}
-    public String getTenNguoiLienHe(){return tenNguoiLienHe;} public void setTenNguoiLienHe(String v){tenNguoiLienHe=v;}
-    public String getSdtNguoiLienHe(){return sdtNguoiLienHe;} public void setSdtNguoiLienHe(String v){sdtNguoiLienHe=v;}
-    public String getDiUng(){return diUng;} public void setDiUng(String v){diUng=v;}
-    public String getGhiChu(){return ghiChu;} public void setGhiChu(String v){ghiChu=v;}
-    public String getTrangThai(){return trangThaiHoSo;} public void setTrangThai(String v){trangThaiHoSo=v;}
+    public String laySoDienThoai(){return sdt;} public void datSoDienThoai(String v){sdt=v;}
+    public String layDiaChi(){return diachi;} public void datDiaChi(String v){diachi=v;}
+    public String layTienSuBenh(){return tiensubenh;} public void datTienSuBenh(String v){tiensubenh=v;}
+    public String layCccd(){return cccd;} public void datCccd(String v){cccd=v;}
+    public String layNgheNghiep(){return ngheNghiep;} public void datNgheNghiep(String v){ngheNghiep=v;}
+    public String layTenNguoiLienHe(){return tenNguoiLienHe;} public void datTenNguoiLienHe(String v){tenNguoiLienHe=v;}
+    public String laySdtNguoiLienHe(){return sdtNguoiLienHe;} public void datSdtNguoiLienHe(String v){sdtNguoiLienHe=v;}
+    public String layDiUng(){return diUng;} public void datDiUng(String v){diUng=v;}
+    public String layGhiChu(){return ghiChu;} public void datGhiChu(String v){ghiChu=v;}
+    public String layTrangThai(){return trangThaiHoSo;} public void datTrangThai(String v){trangThaiHoSo=v;}
     public boolean dangHoatDong(){return HOAT_DONG.equals(trangThaiHoSo);}
-    public java.time.LocalDateTime getNgayTao(){return ngayTao;}
-    public void setNgayTao(java.time.LocalDateTime v){ngayTao=v;}
-    public Integer getTuoi(){return ngaysinh==null?null:java.time.Period.between(ngaysinh,LocalDate.now()).getYears();}
+    public java.time.LocalDateTime layNgayTao(){return ngayTao;}
+    public void datNgayTao(java.time.LocalDateTime v){ngayTao=v;}
+    public Integer layTuoi(){return ngaysinh==null?null:java.time.Period.between(ngaysinh,LocalDate.now()).getYears();}
 
 }

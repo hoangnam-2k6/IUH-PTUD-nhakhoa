@@ -128,9 +128,9 @@ public class QuanLyPhanQuyen extends JPanel {
         page.add(Box.createVerticalStrut(17));
 
         // 2. Tạo bảng có STT, vẽ icon cho từng ô quyền.
-        JPanel card = GiaoDienQuanLyPhanQuyen.card(new BorderLayout());
+        JPanel card = GiaoDienQuanLyPhanQuyen.taoThe(new BorderLayout());
         card.setPreferredSize(new java.awt.Dimension(740, 440));
-        card.add(GiaoDienQuanLyPhanQuyen.wrapTable(table), BorderLayout.CENTER);
+        card.add(GiaoDienQuanLyPhanQuyen.bocBang(table), BorderLayout.CENTER);
         table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         table.getColumnModel().getColumn(0).setPreferredWidth(48);
         table.getColumnModel().getColumn(1).setPreferredWidth(165);
@@ -207,19 +207,19 @@ public class QuanLyPhanQuyen extends JPanel {
                     "Không chỉnh sửa vai trò Quản trị viên gốc.");
             return;
         }
-        JTextField name = GiaoDienQuanLyPhanQuyen.text(old == null ? "" : old.ten);
+        JTextField name = GiaoDienQuanLyPhanQuyen.taoOChu(old == null ? "" : old.ten);
         name.setEditable(false);
-        JTextField description = GiaoDienQuanLyPhanQuyen.text(old == null ? "" : old.moTa);
+        JTextField description = GiaoDienQuanLyPhanQuyen.taoOChu(old == null ? "" : old.moTa);
         description.setEditable(false);
         // Tên và thứ tự các quyền luôn tương ứng TaiKhoanDAO.cacQuyen().
         String[] permissionNames = TEN_QUYEN;
         JCheckBox[] permissions = new JCheckBox[permissionNames.length];
         JPanel form = new JPanel(new GridLayout(0, 1, 6, 6));
-        form.add(GiaoDienQuanLyPhanQuyen.label("Tên vai trò *", 12, true));
+        form.add(GiaoDienQuanLyPhanQuyen.taoNhan("Tên vai trò *", 12, true));
         form.add(name);
-        form.add(GiaoDienQuanLyPhanQuyen.label("Mô tả", 12, true));
+        form.add(GiaoDienQuanLyPhanQuyen.taoNhan("Mô tả", 12, true));
         form.add(description);
-        form.add(GiaoDienQuanLyPhanQuyen.label("Quyền truy cập", 12, true));
+        form.add(GiaoDienQuanLyPhanQuyen.taoNhan("Quyền truy cập", 12, true));
         for (int i = 0; i < permissions.length; i++) {
             permissions[i] = new JCheckBox(permissionNames[i],
                     old != null && i < old.quyen.length && old.quyen[i]);
@@ -232,7 +232,7 @@ public class QuanLyPhanQuyen extends JPanel {
         form.setOpaque(false);
         JPanel trangSua = GiaoDienQuanLyPhanQuyen.trang(
                 "Chỉnh sửa quyền", "Tích các chức năng được phép hiển thị trong menu.");
-        JPanel khungForm = GiaoDienQuanLyPhanQuyen.card(new BorderLayout());
+        JPanel khungForm = GiaoDienQuanLyPhanQuyen.taoThe(new BorderLayout());
         khungForm.add(form, BorderLayout.CENTER);
         trangSua.add(khungForm);
         trangSua.add(Box.createVerticalStrut(16));
@@ -301,7 +301,7 @@ final class GiaoDienQuanLyPhanQuyen {
     }
 
     /** 2. Tạo nhãn có font và màu nhất quán. */
-    public static JLabel label(String text, int fontSize, boolean bold) {
+    public static JLabel taoNhan(String text, int fontSize, boolean bold) {
         JLabel result = new JLabel(text);
         result.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, fontSize));
         result.setForeground(bold ? TEXT : MUTED);
@@ -337,7 +337,7 @@ final class GiaoDienQuanLyPhanQuyen {
     }
 
     /** 5. Khung trắng và viền nhạt dùng cho form, bảng và biểu đồ. */
-    public static JPanel card(LayoutManager layout) {
+    public static JPanel taoThe(LayoutManager layout) {
         JPanel panel = new JPanel(layout) {
             @Override
             protected void paintComponent(Graphics graphics) {
@@ -411,11 +411,11 @@ final class GiaoDienQuanLyPhanQuyen {
     public static JPanel trang(String title, String description) {
         JPanel page = new CotNoiDung();
         page.setBorder(new EmptyBorder(26, 28, 44, 28));
-        page.add(label("Tổng quan   ›   " + title, 11, false));
+        page.add(taoNhan("Tổng quan   ›   " + title, 11, false));
         page.add(Box.createVerticalStrut(18));
-        page.add(label(title, 24, true));
+        page.add(taoNhan(title, 24, true));
         page.add(Box.createVerticalStrut(7));
-        page.add(label(description, 12, false));
+        page.add(taoNhan(description, 12, false));
         page.add(Box.createVerticalStrut(23));
         return page;
     }
@@ -518,7 +518,7 @@ final class GiaoDienQuanLyPhanQuyen {
     }
 
     /** 11. Ô nhập liệu có padding và viền đồng nhất. */
-    public static JTextField text(String value) {
+    public static JTextField taoOChu(String value) {
         JTextField field = new JTextField(value, 23);
         field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         field.setBorder(new CompoundBorder(new LineBorder(BORDER),
@@ -565,7 +565,7 @@ final class GiaoDienQuanLyPhanQuyen {
     }
 
     /** 14. Trang trí bảng và cho phép cuộn ngang ở bảng nhiều cột. */
-    public static JComponent wrapTable(JTable table) {
+    public static JComponent bocBang(JTable table) {
         table.setRowHeight(39);
         table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         // Không chọn nhầm dòng khi người dùng lọc/sắp xếp JTable.

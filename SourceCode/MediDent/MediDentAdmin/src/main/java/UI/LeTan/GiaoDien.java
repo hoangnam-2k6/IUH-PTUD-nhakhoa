@@ -32,14 +32,14 @@ public final class GiaoDien {
 
     private GiaoDien() {}
 
-    public static Font font(int kieu, int coChu) {
+    public static Font taoPhongChu(int kieu, int coChu) {
         return new Font("Segoe UI", kieu, coChu);
     }
 
     /** Nút nền màu, chữ trắng, đổi màu khi rê chuột. */
     public static JButton taoNut(String chu, Color nen, Color nenHover) {
         JButton nut = new JButton(chu);
-        nut.setFont(font(Font.BOLD, 13));
+        nut.setFont(taoPhongChu(Font.BOLD, 13));
         nut.setForeground(Color.WHITE);
         nut.setBackground(nen);
         nut.setFocusPainted(false);
@@ -64,7 +64,7 @@ public final class GiaoDien {
     /** Nút nền trắng, viền xám (dùng cho "Nhập lại", "Đăng xuất"). */
     public static JButton taoNutTrang(String chu) {
         JButton nut = new JButton(chu);
-        nut.setFont(font(Font.BOLD, 13));
+        nut.setFont(taoPhongChu(Font.BOLD, 13));
         nut.setForeground(CHU_CHINH);
         nut.setBackground(NEN_THE);
         nut.setFocusPainted(false);
@@ -91,7 +91,7 @@ public final class GiaoDien {
     /** Ô nhập chữ có viền xám và đệm hai bên. */
     public static JTextField taoOText() {
         JTextField o = new JTextField();
-        o.setFont(font(Font.PLAIN, 14));
+        o.setFont(taoPhongChu(Font.PLAIN, 14));
         o.setForeground(CHU_CHINH);
         o.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(VIEN),
@@ -102,14 +102,14 @@ public final class GiaoDien {
     public static JTable taoBang(DefaultTableModel model) {
         JTable bang = new JTable(model);
         bang.setRowHeight(34);
-        bang.setFont(font(Font.PLAIN, 13));
+        bang.setFont(taoPhongChu(Font.PLAIN, 13));
         bang.setForeground(CHU_CHINH);
         bang.setGridColor(VIEN);
         bang.setShowVerticalLines(false);
         bang.setFillsViewportHeight(true);
         bang.setSelectionBackground(MAU_CHINH_NHAT);
         bang.setSelectionForeground(CHU_CHINH);
-        bang.getTableHeader().setFont(font(Font.BOLD, 13));
+        bang.getTableHeader().setFont(taoPhongChu(Font.BOLD, 13));
         bang.getTableHeader().setBackground(NEN_APP);
         bang.getTableHeader().setForeground(CHU_PHU);
         bang.getTableHeader().setReorderingAllowed(false);
@@ -137,13 +137,13 @@ public final class GiaoDien {
         dau.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
 
         JLabel nhanTieuDe = new JLabel(tieuDe);
-        nhanTieuDe.setFont(font(Font.BOLD, 16));
+        nhanTieuDe.setFont(taoPhongChu(Font.BOLD, 16));
         nhanTieuDe.setForeground(CHU_CHINH);
         dau.add(nhanTieuDe);
 
         if (moTa != null) {
             JLabel nhanMoTa = new JLabel(moTa);
-            nhanMoTa.setFont(font(Font.PLAIN, 12));
+            nhanMoTa.setFont(taoPhongChu(Font.PLAIN, 12));
             nhanMoTa.setForeground(CHU_PHU);
             dau.add(nhanMoTa);
         }
@@ -154,7 +154,7 @@ public final class GiaoDien {
     /** Một ô nhập gồm nhãn đậm phía trên và ô nhập phía dưới. */
     public static JPanel truong(String nhan, JComponent oNhap) {
         JLabel l = new JLabel(nhan);
-        l.setFont(font(Font.BOLD, 13));
+        l.setFont(taoPhongChu(Font.BOLD, 13));
         l.setForeground(CHU_CHINH);
         JPanel p = new JPanel(new BorderLayout(0, 4));
         p.setOpaque(false);
@@ -167,7 +167,7 @@ public final class GiaoDien {
     /** Ô nhập nhiều dòng (tự xuống dòng) có viền giống ô nhập thường. */
     public static JTextArea taoOVanBan(int soDong) {
         JTextArea o = new JTextArea(soDong, 20);
-        o.setFont(font(Font.PLAIN, 14));
+        o.setFont(taoPhongChu(Font.PLAIN, 14));
         o.setForeground(CHU_CHINH);
         o.setLineWrap(true);
         o.setWrapStyleWord(true);
@@ -265,7 +265,7 @@ public final class GiaoDien {
     /** Tạo nhãn tiêu đề nhóm nhỏ (dùng trong các form). */
     public static JLabel taoTieuDeNhom(String chu) {
         JLabel l = new JLabel(chu.toUpperCase());
-        l.setFont(font(Font.BOLD, 11));
+        l.setFont(taoPhongChu(Font.BOLD, 11));
         l.setForeground(MAU_CHINH);
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         l.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));

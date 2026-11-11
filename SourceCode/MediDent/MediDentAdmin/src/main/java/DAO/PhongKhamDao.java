@@ -18,9 +18,9 @@ public class PhongKhamDao {
 
     private static final String COT = "MaPhong, TenPhong, SucChua, TrangThai";
 
-    public List<PhongKham> findAll() throws SQLException {
+    public List<PhongKham> timTatCa() throws SQLException {
         List<PhongKham> ds = new ArrayList<>();
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "SELECT " + COT + " FROM PhongKham ORDER BY TenPhong");
              ResultSet rs = ps.executeQuery()) {
@@ -29,9 +29,9 @@ public class PhongKhamDao {
         return ds;
     }
 
-    public List<PhongKham> findDangHoatDong() throws SQLException {
+    public List<PhongKham> timDangHoatDong() throws SQLException {
         List<PhongKham> ds = new ArrayList<>();
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "SELECT " + COT + " FROM PhongKham WHERE TrangThai = N'Hoạt động' ORDER BY TenPhong");
              ResultSet rs = ps.executeQuery()) {
@@ -40,8 +40,8 @@ public class PhongKhamDao {
         return ds;
     }
 
-    public PhongKham findById(int maPhong) throws SQLException {
-        try (Connection conn = ConnectDB.getConnection();
+    public PhongKham timTheoMa(int maPhong) throws SQLException {
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "SELECT " + COT + " FROM PhongKham WHERE MaPhong = ?")) {
             ps.setInt(1, maPhong);
@@ -53,13 +53,13 @@ public class PhongKhamDao {
 
     public int them(PhongKham p) throws SQLException {
         kiemTra(p);
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "INSERT INTO PhongKham (TenPhong, SucChua, TrangThai) VALUES (?, ?, ?)",
                      Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, p.getTenPhong().trim());
-            ps.setInt(2, p.getSucChua());
-            ps.setString(3, p.getTrangThai() == null ? HOAT_DONG : p.getTrangThai());
+            ps.setString(1, p.layTenPhong().trim());
+            ps.setInt(2, p.laySucChua());
+            ps.setString(3, p.layTrangThai() == null ? HOAT_DONG : p.layTrangThai());
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 return keys.next() ? keys.getInt(1) : 0;
@@ -69,13 +69,13 @@ public class PhongKhamDao {
 
     public void capNhat(PhongKham p) throws SQLException {
         kiemTra(p);
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "UPDATE PhongKham SET TenPhong = ?, SucChua = ?, TrangThai = ? WHERE MaPhong = ?")) {
-            ps.setString(1, p.getTenPhong().trim());
-            ps.setInt(2, p.getSucChua());
-            ps.setString(3, p.getTrangThai() == null ? HOAT_DONG : p.getTrangThai());
-            ps.setInt(4, p.getMaPhong());
+            ps.setString(1, p.layTenPhong().trim());
+            ps.setInt(2, p.laySucChua());
+            ps.setString(3, p.layTrangThai() == null ? HOAT_DONG : p.layTrangThai());
+            ps.setInt(4, p.layMaPhong());
             if (ps.executeUpdate() == 0) {
                 throw new IllegalArgumentException("Không tìm thấy phòng khám.");
             }
@@ -86,7 +86,7 @@ public class PhongKhamDao {
         if (!HOAT_DONG.equals(trangThai) && !NGUNG_HOAT_DONG.equals(trangThai)) {
             throw new IllegalArgumentException("Trạng thái phòng khám không hợp lệ.");
         }
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "UPDATE PhongKham SET TrangThai = ? WHERE MaPhong = ?")) {
             ps.setString(1, trangThai);
@@ -100,7 +100,7 @@ public class PhongKhamDao {
     /** Số bệnh nhân (chưa hủy) đã nhận trong phòng ở một ngày. */
     public int demBenhNhanTrongPhong(int maPhong, LocalDate ngay) throws SQLException {
         String sql = "SELECT COUNT(*) FROM PhieuKham WHERE MaPhong = ? AND NgayKham = ? AND TrangThai <> ?";
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, maPhong);
             ps.setDate(2, java.sql.Date.valueOf(ngay));
@@ -113,7 +113,7 @@ public class PhongKhamDao {
 
     /** Số phòng đang hoạt động. */
     public int demDangHoatDong() throws SQLException {
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "SELECT COUNT(*) FROM PhongKham WHERE TrangThai = N'Hoạt động'");
              ResultSet rs = ps.executeQuery()) {
@@ -122,20 +122,20 @@ public class PhongKhamDao {
     }
 
     private void kiemTra(PhongKham p) {
-        if (p.getTenPhong() == null || p.getTenPhong().isBlank()) {
+        if (p.layTenPhong() == null || p.layTenPhong().isBlank()) {
             throw new IllegalArgumentException("Tên phòng không được để trống.");
         }
-        if (p.getSucChua() <= 0) {
+        if (p.laySucChua() <= 0) {
             throw new IllegalArgumentException("Sức chứa phải lớn hơn 0.");
         }
     }
 
     private PhongKham doc(ResultSet rs) throws SQLException {
         PhongKham p = new PhongKham();
-        p.setMaPhong(rs.getInt("MaPhong"));
-        p.setTenPhong(rs.getString("TenPhong"));
-        p.setSucChua(rs.getInt("SucChua"));
-        p.setTrangThai(rs.getString("TrangThai"));
+        p.datMaPhong(rs.getInt("MaPhong"));
+        p.datTenPhong(rs.getString("TenPhong"));
+        p.datSucChua(rs.getInt("SucChua"));
+        p.datTrangThai(rs.getString("TrangThai"));
         return p;
     }
 }

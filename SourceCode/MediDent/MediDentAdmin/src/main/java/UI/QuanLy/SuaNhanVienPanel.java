@@ -16,6 +16,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -24,6 +28,7 @@ import DAO.NhanVienDAO;
 import Entity.NhanVien;
 import enums.gioitinh;
 import enums.trangthai_NhanVien;
+import validation.Regex_NhanVien;
 
 @SuppressWarnings("serial")
 public class SuaNhanVienPanel extends JPanel implements ActionListener {
@@ -74,14 +79,15 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         txtHoTen = taoTextField();
         txtNgaySinh = taoTextField();
         txtSDT = taoTextField();
+        chiChoNhapSo(txtSDT);
         txtEmail = taoTextField();
         txtChucVu = taoTextField();
         txtMaTK = taoTextField();
         txtDiaChi = taoTextArea();
         cboGioiTinh = new JComboBox<>(gioitinh.values());
         cboTrangThai = new JComboBox<>(trangthai_NhanVien.values());
-        styleCombo(cboGioiTinh);
-        styleCombo(cboTrangThai);
+        dinhDangHopChon(cboGioiTinh);
+        dinhDangHopChon(cboTrangThai);
 
         JPanel form = taoPanelForm();
         themTruong(form, "Mã nhân viên", txtMaNV, 0, 0);
@@ -98,8 +104,8 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
 
         btnHuy = new JButton("Hủy");
         btnLuu = new JButton("Lưu thay đổi");
-        styleButton(btnHuy, false);
-        styleButton(btnLuu, true);
+        dinhDangButton(btnHuy, false);
+        dinhDangButton(btnLuu, true);
         btnHuy.addActionListener(this);
         btnLuu.addActionListener(this);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
@@ -145,7 +151,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         return s;
     }
 
-    private void styleCombo(JComboBox<?> c) {
+    private void dinhDangHopChon(JComboBox<?> c) {
         c.setFont(new Font("Arial", Font.PLAIN, 14));
         c.setBackground(WHITE);
         c.setForeground(TEXT);
@@ -171,7 +177,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         panel.add(field, gbc);
     }
 
-    private void styleButton(JButton b, boolean primary) {
+    private void dinhDangButton(JButton b, boolean primary) {
         b.setFont(new Font("Arial", Font.BOLD, 14));
         b.setBackground(primary ? PRIMARY : WHITE);
         b.setForeground(primary ? WHITE : TEXT);
@@ -182,25 +188,52 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         b.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
+    // Lọc ký tự nhập vào; quy tắc chữ số được lấy từ validation.Regex_NhanVien.
+    private void chiChoNhapSo(JTextField textField) {
+        ((AbstractDocument) textField.getDocument()).setDocumentFilter(new DocumentFilter() {
+            private boolean hopLe(String text) {
+                return Regex_NhanVien.laSDTDangNhapHopLe(text);
+            }
+
+            @Override
+            public void insertString(FilterBypass fb, int offset, String text,
+                    AttributeSet attr) throws BadLocationException {
+                if (text == null) return;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + text + old.substring(offset);
+                if (hopLe(next)) super.insertString(fb, offset, text, attr);
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text,
+                    AttributeSet attrs) throws BadLocationException {
+                String insert = text == null ? "" : text;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + insert + old.substring(offset + length);
+                if (hopLe(next)) super.replace(fb, offset, length, insert, attrs);
+            }
+        });
+    }
+
     private void taiThongTinNhanVien() {
         try {
-            NhanVien nv = nvDAO.getNhanVienByMaNV(maNV);
+            NhanVien nv = nvDAO.layNhanVienByMaNV(maNV);
             if (nv == null) {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy nhân viên có mã: " + maNV,
                     "Thông báo", JOptionPane.WARNING_MESSAGE);
                 btnLuu.setEnabled(false);
                 return;
             }
-            txtMaNV.setText(nv.getMaNV());
-            txtHoTen.setText(nv.getHoten());
-            txtNgaySinh.setText(nv.getNgaysinh() == null ? "" : nv.getNgaysinh().toString());
-            cboGioiTinh.setSelectedItem(nv.getGioitinh());
-            txtSDT.setText(nv.getSdt());
-            txtEmail.setText(nv.getEmail());
-            txtDiaChi.setText(nv.getDiachi());
-            txtChucVu.setText(nv.getChucvu());
-            cboTrangThai.setSelectedItem(nv.getTrangthai());
-            txtMaTK.setText(nv.getMaTK());
+            txtMaNV.setText(nv.layMaNV());
+            txtHoTen.setText(nv.layHoten());
+            txtNgaySinh.setText(nv.layNgaysinh() == null ? "" : nv.layNgaysinh().toString());
+            cboGioiTinh.setSelectedItem(nv.layGioitinh());
+            txtSDT.setText(nv.laySdt());
+            txtEmail.setText(nv.layEmail());
+            txtDiaChi.setText(nv.layDiachi());
+            txtChucVu.setText(nv.layChucvu());
+            cboTrangThai.setSelectedItem(nv.layTrangthai());
+            txtMaTK.setText(nv.layMaTK());
         } catch (SQLException | IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this,
                 "Lỗi lấy thông tin nhân viên: " + ex.getMessage(),
@@ -221,30 +254,77 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
     private void xuLySua() {
         try {
             String hoTen = txtHoTen.getText().trim();
-            if (hoTen.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Họ tên không được để trống!");
-                txtHoTen.requestFocusInWindow();
-                return;
-            }
-
             String ngay = txtNgaySinh.getText().trim();
             LocalDate ngaySinh = ngay.isEmpty() ? null : LocalDate.parse(ngay);
+            String sdt = txtSDT.getText().trim();
+            String email = txtEmail.getText().trim();
+            String diaChi = txtDiaChi.getText().trim();
+            String chucVu = txtChucVu.getText().trim();
+            String maTK = txtMaTK.getText().trim();
+
             gioitinh gt = (gioitinh) cboGioiTinh.getSelectedItem();
             trangthai_NhanVien tt = (trangthai_NhanVien) cboTrangThai.getSelectedItem();
 
+            if (!Regex_NhanVien.laMaNVHopLe(maNV)) {
+                JOptionPane.showMessageDialog(this, "Mã nhân viên không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.laHoTenHopLe(hoTen)) {
+                JOptionPane.showMessageDialog(this, "Họ tên không hợp lệ hoặc bị để trống!");
+                txtHoTen.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.laNgaySinhHopLe(ngaySinh)) {
+                JOptionPane.showMessageDialog(this, "Ngày sinh không được lớn hơn ngày hiện tại!");
+                txtNgaySinh.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.laGioiTinhHopLe(gt == null ? null : gt.name())) {
+                JOptionPane.showMessageDialog(this, "Giới tính không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.laSDTHopLe(sdt)) {
+                JOptionPane.showMessageDialog(this, "Số điện thoại không đúng định dạng!");
+                txtSDT.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.laEmailHopLe(email)) {
+                JOptionPane.showMessageDialog(this, "Email không đúng định dạng!");
+                txtEmail.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.laDiaChiHopLe(diaChi)) {
+                JOptionPane.showMessageDialog(this, "Địa chỉ không hợp lệ!");
+                txtDiaChi.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.laChucVuHopLe(chucVu)) {
+                JOptionPane.showMessageDialog(this, "Chức vụ không hợp lệ!");
+                txtChucVu.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_NhanVien.laTrangThaiHopLe(tt == null ? null : tt.name())) {
+                JOptionPane.showMessageDialog(this, "Trạng thái nhân viên không hợp lệ!");
+                return;
+            }
+            if (!Regex_NhanVien.laMaTKHopLe(maTK)) {
+                JOptionPane.showMessageDialog(this, "Mã tài khoản không hợp lệ!");
+                txtMaTK.requestFocusInWindow();
+                return;
+            }
+
             NhanVien nv = new NhanVien(
-                maNV, hoTen, ngaySinh, gt,
-                txtSDT.getText().trim(), txtEmail.getText().trim(),
-                txtDiaChi.getText().trim(), txtChucVu.getText().trim(),
-                tt, txtMaTK.getText().trim()
+                maNV, hoTen, ngaySinh, gt, sdt, email,
+                diaChi, chucVu, tt, maTK
             );
 
-            boolean ketQua = nvDAO.update(nv);
+            boolean ketQua = nvDAO.capNhat(nv);
             if (!ketQua) {
                 JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thất bại!",
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+
             JOptionPane.showMessageDialog(this, "Cập nhật nhân viên thành công!");
             suaThanhCong();
 
@@ -267,7 +347,7 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
         if (quayLai != null) quayLai.run();
     }
 
-    public void moframe() {
+    public void moKhung() {
         JFrame frame = new JFrame("Sửa nhân viên");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setContentPane(this);
@@ -277,6 +357,6 @@ public class SuaNhanVienPanel extends JPanel implements ActionListener {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new SuaNhanVienPanel("NV001", null).moframe());
+        SwingUtilities.invokeLater(() -> new SuaNhanVienPanel("NV001", null).moKhung());
     }
 }

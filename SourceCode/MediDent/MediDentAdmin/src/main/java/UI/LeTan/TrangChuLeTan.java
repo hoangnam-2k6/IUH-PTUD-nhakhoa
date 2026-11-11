@@ -1,9 +1,9 @@
 package UI.LeTan;
 
-import Dao.BenhNhanDao;
-import Dao.LichHenDao;
-import Dao.PhieuKhamDao;
-import Dao.PhongKhamDao;
+import DAO.BenhNhanLeTanDAO;
+import DAO.LichHenLeTanDAO;
+import DAO.PhieuKhamDao;
+import DAO.PhongKhamDao;
 import Entity.BenhNhan;
 import Entity.PhieuKham;
 import Entity.PhongKham;
@@ -30,8 +30,8 @@ public class TrangChuLeTan extends JPanel {
     private final TaiKhoan taiKhoan;
     private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
     private final PhongKhamDao phongKhamDao = new PhongKhamDao();
-    private final BenhNhanDao benhNhanDao = new BenhNhanDao();
-    private final LichHenDao lichHenDao = new LichHenDao();
+    private final BenhNhanLeTanDAO benhNhanDao = new BenhNhanLeTanDAO();
+    private final LichHenLeTanDAO lichHenDao = new LichHenLeTanDAO();
 
     private List<PhieuKham> dsPhieu = new ArrayList<>();
     private List<PhongKham> dsPhong = new ArrayList<>();
@@ -104,12 +104,12 @@ public class TrangChuLeTan extends JPanel {
         banner.setBorder(BorderFactory.createEmptyBorder(12, 24, 12, 24));
 
         JLabel tieuDe = new JLabel("Tiếp nhận & Khám điều trị");
-        tieuDe.setFont(font(Font.BOLD, 22));
+        tieuDe.setFont(taoPhongChu(Font.BOLD, 22));
         tieuDe.setForeground(Color.WHITE);
 
-        JLabel chao = new JLabel("Xin chào, " + taiKhoan.getHoTen() + "  ·  Hôm nay "
+        JLabel chao = new JLabel("Xin chào, " + taiKhoan.layHoTen() + "  ·  Hôm nay "
                 + LocalDate.now().format(NGAY));
-        chao.setFont(font(Font.PLAIN, 13));
+        chao.setFont(taoPhongChu(Font.PLAIN, 13));
         chao.setForeground(MAU_CHINH_NHAT);
 
         JPanel chu = new JPanel(new GridLayout(2, 1, 0, 4));
@@ -148,9 +148,9 @@ public class TrangChuLeTan extends JPanel {
                         BorderFactory.createEmptyBorder(8, 14, 8, 14))));
 
         JLabel tenThe = new JLabel(nhan);
-        tenThe.setFont(font(Font.PLAIN, 13));
+        tenThe.setFont(taoPhongChu(Font.PLAIN, 13));
         tenThe.setForeground(CHU_PHU);
-        so.setFont(font(Font.BOLD, 26));
+        so.setFont(taoPhongChu(Font.BOLD, 26));
         so.setForeground(CHU_CHINH);
 
         the.add(tenThe, BorderLayout.NORTH);
@@ -176,9 +176,9 @@ public class TrangChuLeTan extends JPanel {
         bangPhieu.getColumnModel().getColumn(5).setCellRenderer(new TrangThaiRenderer());
 
         JLabel nhanTim = new JLabel("Tìm kiếm:");
-        nhanTim.setFont(font(Font.PLAIN, 13));
+        nhanTim.setFont(taoPhongChu(Font.PLAIN, 13));
         nhanTim.setForeground(CHU_PHU);
-        soLuongPhieu.setFont(font(Font.BOLD, 12));
+        soLuongPhieu.setFont(taoPhongChu(Font.BOLD, 12));
         soLuongPhieu.setForeground(MAU_CHINH);
 
         JPanel hangTim = new JPanel(new BorderLayout(8, 0));
@@ -217,7 +217,7 @@ public class TrangChuLeTan extends JPanel {
     private JPanel taoTiepNhan() {
         JPanel the = GiaoDien.taoThe("Tiếp nhận bệnh nhân", "Nhập thông tin, cấp số thứ tự và phân phòng khám");
 
-        cbGioiTinh.setFont(font(Font.PLAIN, 14));
+        cbGioiTinh.setFont(taoPhongChu(Font.PLAIN, 14));
         JPanel hangNgaySinh = hai(truong("Ngày sinh (dd/MM/yyyy)", oNgaySinh), truong("Giới tính", cbGioiTinh));
 
         JPanel luoi = new JPanel();
@@ -259,7 +259,7 @@ public class TrangChuLeTan extends JPanel {
         duoi.add(hangNut, BorderLayout.CENTER);
 
         JLabel ghiChu = new JLabel("Hồ sơ trùng họ tên + SĐT sẽ được dùng lại, không tạo mới.");
-        ghiChu.setFont(font(Font.PLAIN, 12));
+        ghiChu.setFont(taoPhongChu(Font.PLAIN, 12));
         ghiChu.setForeground(CHU_PHU);
         duoi.add(ghiChu, BorderLayout.SOUTH);
 
@@ -275,17 +275,17 @@ public class TrangChuLeTan extends JPanel {
                 BorderFactory.createEmptyBorder(10, 14, 10, 14)));
 
         JLabel ten = new JLabel("Phòng khám *");
-        ten.setFont(font(Font.BOLD, 13));
+        ten.setFont(taoPhongChu(Font.BOLD, 13));
         ten.setForeground(CHU_CHINH);
         JLabel moTa = new JLabel("Chọn phòng còn chỗ trong ngày");
-        moTa.setFont(font(Font.PLAIN, 12));
+        moTa.setFont(taoPhongChu(Font.PLAIN, 12));
         moTa.setForeground(CHU_PHU);
         JPanel chu = new JPanel(new GridLayout(2, 1));
         chu.setOpaque(false);
         chu.add(ten);
         chu.add(moTa);
 
-        cbPhong.setFont(font(Font.PLAIN, 14));
+        cbPhong.setFont(taoPhongChu(Font.PLAIN, 14));
         cbPhong.setPreferredSize(new Dimension(160, 32));
         khung.add(chu, BorderLayout.CENTER);
         khung.add(cbPhong, BorderLayout.EAST);
@@ -310,10 +310,10 @@ public class TrangChuLeTan extends JPanel {
         int tongBN;
         int lichHenHomNay;
         try {
-            dsPhong = phongKhamDao.findDangHoatDong();
-            dsPhieu = phieuKhamDao.findHomNay();
+            dsPhong = phongKhamDao.timDangHoatDong();
+            dsPhieu = phieuKhamDao.timHomNay();
             tongBN = benhNhanDao.demDangHoatDong();
-            lichHenHomNay = lichHenDao.findTheoNgay(LocalDate.now()).size();
+            lichHenHomNay = lichHenDao.timTheoNgay(LocalDate.now()).size();
         } catch (Exception e) {
             GiaoDien.baoLoi(this, e);
             return;
@@ -325,12 +325,12 @@ public class TrangChuLeTan extends JPanel {
             int choKham = 0;
             int hoanThanh = 0;
             for (PhieuKham pk : dsPhieu) {
-                modelPhieu.addRow(new Object[]{pk.getSoThuTu(), String.format("PK%03d", pk.getMaPK()),
-                        String.format("BN%03d", pk.getMaBN()), pk.getTenBenhNhan(),
-                        pk.getTenPhong() == null ? "" : pk.getTenPhong(), pk.getTrangThai(),
-                        pk.getGhiChu() == null ? "" : pk.getGhiChu()});
-                if (PhieuKhamDao.CHO_KHAM.equals(pk.getTrangThai())) choKham++;
-                if (PhieuKhamDao.HOAN_THANH.equals(pk.getTrangThai())) hoanThanh++;
+                modelPhieu.addRow(new Object[]{pk.laySoThuTu(), String.format("PK%03d", pk.layMaPK()),
+                        String.format("BN%03d", pk.layMaBN()), pk.layTenBenhNhan(),
+                        pk.layTenPhong() == null ? "" : pk.layTenPhong(), pk.layTrangThai(),
+                        pk.layGhiChu() == null ? "" : pk.layGhiChu()});
+                if (PhieuKhamDao.CHO_KHAM.equals(pk.layTrangThai())) choKham++;
+                if (PhieuKhamDao.HOAN_THANH.equals(pk.layTrangThai())) hoanThanh++;
             }
             soTongBN.setText(String.valueOf(tongBN));
             soChoKham.setText(String.valueOf(choKham));
@@ -339,7 +339,7 @@ public class TrangChuLeTan extends JPanel {
             soLuongPhieu.setText(dsPhieu.size() + " phiếu");
 
             JComboBox<String> cbPhongTrongBang = new JComboBox<>();
-            for (PhongKham p : dsPhong) cbPhongTrongBang.addItem(p.getTenPhong());
+            for (PhongKham p : dsPhong) cbPhongTrongBang.addItem(p.layTenPhong());
             bangPhieu.getColumnModel().getColumn(4).setCellEditor(new DefaultCellEditor(cbPhongTrongBang));
             bangPhieu.getColumnModel().getColumn(5).setCellEditor(
                     new DefaultCellEditor(new JComboBox<>(PhieuKhamDao.TRANG_THAI)));
@@ -348,7 +348,7 @@ public class TrangChuLeTan extends JPanel {
             cbPhong.removeAllItems();
             for (PhongKham p : dsPhong) {
                 cbPhong.addItem(p);
-                if (dangChon != null && dangChon.getMaPhong() == p.getMaPhong()) cbPhong.setSelectedItem(p);
+                if (dangChon != null && dangChon.layMaPhong() == p.layMaPhong()) cbPhong.setSelectedItem(p);
             }
         } finally {
             dangNap = false;
@@ -397,45 +397,45 @@ public class TrangChuLeTan extends JPanel {
         }
 
         try {
-            BenhNhan bn = benhNhanDao.findByTenVaSdt(ten, sdt);
+            BenhNhan bn = benhNhanDao.timTheoTenVaSdt(ten, sdt);
             boolean dungLaiHoSo = (bn != null);
             if (bn != null && !bn.dangHoatDong()) {
-                if (!xacNhan(this, "Hồ sơ của " + bn.getHoTen() + " đang ngừng hoạt động. "
+                if (!xacNhan(this, "Hồ sơ của " + bn.layHoTen() + " đang ngừng hoạt động. "
                         + "Kích hoạt lại để tiếp nhận?", "Hồ sơ ngừng hoạt động")) {
                     return;
                 }
-                benhNhanDao.doiTrangThai(bn.getMaBNSo(), BenhNhan.HOAT_DONG);
-                bn.setTrangThai(BenhNhan.HOAT_DONG);
+                benhNhanDao.doiTrangThai(bn.layMaBNSo(), BenhNhan.HOAT_DONG);
+                bn.datTrangThai(BenhNhan.HOAT_DONG);
             }
             if (bn == null) {
                 bn = new BenhNhan();
-                bn.setHoTen(ten);
-                bn.setSoDienThoai(sdt);
+                bn.datHoTen(ten);
+                bn.datSoDienThoai(sdt);
                 String ngaySinh = oNgaySinh.getText().trim();
-                if (!ngaySinh.isEmpty()) bn.setNgaySinh(docNgay(ngaySinh));
-                bn.setGioiTinh((String) cbGioiTinh.getSelectedItem());
-                bn.setDiaChi(oDiaChi.getText());
-                bn.setCccd(oCccd.getText());
-                bn.setEmail(oEmail.getText());
-                bn.setNgheNghiep(oNgheNghiep.getText());
-                bn.setTenNguoiLienHe(oTenLienHe.getText());
-                bn.setSdtNguoiLienHe(oSdtLienHe.getText());
-                bn.setDiUng(oDiUng.getText());
-                bn.setTienSuBenh(oTienSu.getText());
-                bn.setMaBN(benhNhanDao.them(bn));
+                if (!ngaySinh.isEmpty()) bn.datNgaySinh(docNgay(ngaySinh));
+                bn.datGioiTinh((String) cbGioiTinh.getSelectedItem());
+                bn.datDiaChi(oDiaChi.getText());
+                bn.datCccd(oCccd.getText());
+                bn.datEmail(oEmail.getText());
+                bn.datNgheNghiep(oNgheNghiep.getText());
+                bn.datTenNguoiLienHe(oTenLienHe.getText());
+                bn.datSdtNguoiLienHe(oSdtLienHe.getText());
+                bn.datDiUng(oDiUng.getText());
+                bn.datTienSuBenh(oTienSu.getText());
+                bn.datMaBN(benhNhanDao.them(bn));
             }
 
-            PhieuKham pk = phieuKhamDao.capSoThuTu(bn.getMaBNSo(), phong.getMaPhong());
-            String noiDung = "Đã cấp số thứ tự " + pk.getSoThuTu() + " cho " + bn.getHoTen()
-                    + " (" + phong.getTenPhong() + ").\n"
+            PhieuKham pk = phieuKhamDao.capSoThuTu(bn.layMaBNSo(), phong.layMaPhong());
+            String noiDung = "Đã cấp số thứ tự " + pk.laySoThuTu() + " cho " + bn.layHoTen()
+                    + " (" + phong.layTenPhong() + ").\n"
                     + (dungLaiHoSo ? "Hồ sơ có sẵn được dùng lại (thông tin nhập mới không ghi đè hồ sơ cũ).\n"
                             + "Muốn cập nhật: vào mục Bệnh nhân → Sửa thông tin." : "Đã tạo hồ sơ bệnh nhân mới.")
-                    + (bn.getDiUng() == null ? "" : "\n\n⚠ Bệnh nhân có dị ứng: " + bn.getDiUng());
+                    + (bn.layDiUng() == null ? "" : "\n\n⚠ Bệnh nhân có dị ứng: " + bn.layDiUng());
             thongBao(this, noiDung);
             nhapLai();
             taiDuLieu();
 
-            if (xacNhan(this, "In phiếu khám cho " + bn.getHoTen() + "?", "In phiếu khám")) {
+            if (xacNhan(this, "In phiếu khám cho " + bn.layHoTen() + "?", "In phiếu khám")) {
                 XuatPhieuKham.xuat(this, pk, bn, null);
             }
         } catch (DateTimeParseException e) {
@@ -451,14 +451,14 @@ public class TrangChuLeTan extends JPanel {
         PhieuKham pk = dsPhieu.get(dong);
         String tenPhong = String.valueOf(modelPhieu.getValueAt(dong, 4));
         String trangThai = String.valueOf(modelPhieu.getValueAt(dong, 5));
-        String phongCu = pk.getTenPhong() == null ? "" : pk.getTenPhong();
-        if (Objects.equals(tenPhong, phongCu) && Objects.equals(trangThai, pk.getTrangThai())) {
+        String phongCu = pk.layTenPhong() == null ? "" : pk.layTenPhong();
+        if (Objects.equals(tenPhong, phongCu) && Objects.equals(trangThai, pk.layTrangThai())) {
             return;
         }
         try {
             Integer maPhong = null;
             for (PhongKham p : dsPhong) {
-                if (p.getTenPhong().equals(tenPhong)) maPhong = p.getMaPhong();
+                if (p.layTenPhong().equals(tenPhong)) maPhong = p.layMaPhong();
             }
             phieuKhamDao.capNhat(pk, maPhong, trangThai);
         } catch (Exception ex) {
@@ -483,7 +483,7 @@ public class TrangChuLeTan extends JPanel {
         PhieuKham pk = phieuDangChon();
         if (pk == null) return;
         try {
-            phieuKhamDao.batDauKham(pk.getMaPK());
+            phieuKhamDao.batDauKham(pk.layMaPK());
             taiDuLieu();
         } catch (Exception e) {
             GiaoDien.baoLoi(this, e);
@@ -493,9 +493,9 @@ public class TrangChuLeTan extends JPanel {
     private void hoanThanhKham() {
         PhieuKham pk = phieuDangChon();
         if (pk == null) return;
-        if (!xacNhan(this, "Hoàn thành phiếu khám của " + pk.getTenBenhNhan() + "?", "Hoàn thành khám")) return;
+        if (!xacNhan(this, "Hoàn thành phiếu khám của " + pk.layTenBenhNhan() + "?", "Hoàn thành khám")) return;
         try {
-            phieuKhamDao.hoanThanh(pk.getMaPK());
+            phieuKhamDao.hoanThanh(pk.layMaPK());
             taiDuLieu();
         } catch (Exception e) {
             GiaoDien.baoLoi(this, e);
@@ -509,7 +509,7 @@ public class TrangChuLeTan extends JPanel {
                 JOptionPane.WARNING_MESSAGE);
         if (lyDo == null) return;
         try {
-            phieuKhamDao.huy(pk.getMaPK(), lyDo);
+            phieuKhamDao.huy(pk.layMaPK(), lyDo);
             taiDuLieu();
         } catch (Exception e) {
             GiaoDien.baoLoi(this, e);
@@ -520,7 +520,7 @@ public class TrangChuLeTan extends JPanel {
         PhieuKham pk = phieuDangChon();
         if (pk == null) return;
         try {
-            BenhNhan bn = benhNhanDao.findById(pk.getMaBN());
+            BenhNhan bn = benhNhanDao.timTheoMa(pk.layMaBN());
             XuatPhieuKham.xuat(this, pk, bn, null);
         } catch (Exception e) {
             GiaoDien.baoLoi(this, e);

@@ -17,11 +17,11 @@ public class BacSiDao {
 
     private static final String COT = "MaBS, HoTen, ChuyenKhoa, TrangThai";
 
-    public List<BacSi> findAll() throws SQLException {
+    public List<BacSi> timTatCa() throws SQLException {
         return tim(null, false);
     }
 
-    public List<BacSi> findDangHoatDong() throws SQLException {
+    public List<BacSi> timDangHoatDong() throws SQLException {
         return tim(null, true);
     }
 
@@ -33,7 +33,7 @@ public class BacSiDao {
         }
         sql.append(" ORDER BY HoTen");
         List<BacSi> ds = new ArrayList<>();
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             if (tuKhoa != null && !tuKhoa.isBlank()) {
                 String mau = "%" + tuKhoa.trim() + "%";
@@ -47,8 +47,8 @@ public class BacSiDao {
         return ds;
     }
 
-    public BacSi findById(int maBS) throws SQLException {
-        try (Connection conn = ConnectDB.getConnection();
+    public BacSi timTheoMa(int maBS) throws SQLException {
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement("SELECT " + COT + " FROM BacSi WHERE MaBS = ?")) {
             ps.setInt(1, maBS);
             try (ResultSet rs = ps.executeQuery()) {
@@ -59,13 +59,13 @@ public class BacSiDao {
 
     public int them(BacSi bs) throws SQLException {
         kiemTra(bs);
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "INSERT INTO BacSi (HoTen, ChuyenKhoa, TrangThai) VALUES (?, ?, ?)",
                      Statement.RETURN_GENERATED_KEYS)) {
-            ps.setString(1, bs.getHoTen().trim());
-            ps.setString(2, rong(bs.getChuyenKhoa()));
-            ps.setString(3, bs.getTrangThai() == null ? HOAT_DONG : bs.getTrangThai());
+            ps.setString(1, bs.layHoTen().trim());
+            ps.setString(2, rong(bs.layChuyenKhoa()));
+            ps.setString(3, bs.layTrangThai() == null ? HOAT_DONG : bs.layTrangThai());
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 return keys.next() ? keys.getInt(1) : 0;
@@ -75,13 +75,13 @@ public class BacSiDao {
 
     public void capNhat(BacSi bs) throws SQLException {
         kiemTra(bs);
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "UPDATE BacSi SET HoTen = ?, ChuyenKhoa = ?, TrangThai = ? WHERE MaBS = ?")) {
-            ps.setString(1, bs.getHoTen().trim());
-            ps.setString(2, rong(bs.getChuyenKhoa()));
-            ps.setString(3, bs.getTrangThai() == null ? HOAT_DONG : bs.getTrangThai());
-            ps.setInt(4, bs.getMaBS());
+            ps.setString(1, bs.layHoTen().trim());
+            ps.setString(2, rong(bs.layChuyenKhoa()));
+            ps.setString(3, bs.layTrangThai() == null ? HOAT_DONG : bs.layTrangThai());
+            ps.setInt(4, bs.layMaBS());
             if (ps.executeUpdate() == 0) {
                 throw new IllegalArgumentException("Không tìm thấy bác sĩ.");
             }
@@ -92,7 +92,7 @@ public class BacSiDao {
         if (!HOAT_DONG.equals(trangThai) && !NGUNG_HOAT_DONG.equals(trangThai)) {
             throw new IllegalArgumentException("Trạng thái bác sĩ không hợp lệ.");
         }
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "UPDATE BacSi SET TrangThai = ? WHERE MaBS = ?")) {
             ps.setString(1, trangThai);
@@ -104,7 +104,7 @@ public class BacSiDao {
     }
 
     private void kiemTra(BacSi bs) {
-        if (bs.getHoTen() == null || bs.getHoTen().isBlank()) {
+        if (bs.layHoTen() == null || bs.layHoTen().isBlank()) {
             throw new IllegalArgumentException("Họ tên bác sĩ không được để trống.");
         }
     }
@@ -117,10 +117,10 @@ public class BacSiDao {
 
     private BacSi doc(ResultSet rs) throws SQLException {
         BacSi bs = new BacSi();
-        bs.setMaBS(rs.getInt("MaBS"));
-        bs.setHoTen(rs.getString("HoTen"));
-        bs.setChuyenKhoa(rs.getString("ChuyenKhoa"));
-        bs.setTrangThai(rs.getString("TrangThai"));
+        bs.datMaBS(rs.getInt("MaBS"));
+        bs.datHoTen(rs.getString("HoTen"));
+        bs.datChuyenKhoa(rs.getString("ChuyenKhoa"));
+        bs.datTrangThai(rs.getString("TrangThai"));
         return bs;
     }
 }

@@ -74,7 +74,7 @@ public class Regex_NhanVien {
     // NVARCHAR(20) NOT NULL
     // =========================
 
-    public static boolean isValidMaNV(String maNV) {
+    public static boolean laMaNVHopLe(String maNV) {
 
         if (rong(maNV)) {
             return false;
@@ -90,7 +90,7 @@ public class Regex_NhanVien {
     // NVARCHAR(150) NOT NULL
     // =========================
 
-    public static boolean isValidHoTen(String hoTen) {
+    public static boolean laHoTenHopLe(String hoTen) {
 
         if (rong(hoTen)) {
             return false;
@@ -107,7 +107,7 @@ public class Regex_NhanVien {
     // Không dùng Regex
     // =========================
 
-    public static boolean isValidNgaySinh(LocalDate ngaySinh) {
+    public static boolean laNgaySinhHopLe(LocalDate ngaySinh) {
 
         return ngaySinh == null
                 || !ngaySinh.isAfter(LocalDate.now());
@@ -120,7 +120,7 @@ public class Regex_NhanVien {
     // Kiểm tra theo Enum
     // =========================
 
-    public static boolean isValidGioiTinh(String gioiTinh) {
+    public static boolean laGioiTinhHopLe(String gioiTinh) {
 
         if (rong(gioiTinh)) {
             return true;
@@ -135,7 +135,7 @@ public class Regex_NhanVien {
     // NVARCHAR(20) NULL
     // =========================
 
-    public static boolean isValidSDT(String sdt) {
+    public static boolean laSDTHopLe(String sdt) {
 
         if (rong(sdt)) {
             return true;
@@ -151,7 +151,7 @@ public class Regex_NhanVien {
     // NVARCHAR(150) NULL
     // =========================
 
-    public static boolean isValidEmail(String email) {
+    public static boolean laEmailHopLe(String email) {
 
         if (rong(email)) {
             return true;
@@ -167,7 +167,7 @@ public class Regex_NhanVien {
     // NVARCHAR(300) NULL
     // =========================
 
-    public static boolean isValidDiaChi(String diaChi) {
+    public static boolean laDiaChiHopLe(String diaChi) {
 
         if (rong(diaChi)) {
             return true;
@@ -183,7 +183,7 @@ public class Regex_NhanVien {
     // NVARCHAR(100) NULL
     // =========================
 
-    public static boolean isValidChucVu(String chucVu) {
+    public static boolean laChucVuHopLe(String chucVu) {
 
         if (rong(chucVu)) {
             return true;
@@ -200,7 +200,7 @@ public class Regex_NhanVien {
     // Kiểm tra theo Enum
     // =========================
 
-    public static boolean isValidTrangThai(String trangThai) {
+    public static boolean laTrangThaiHopLe(String trangThai) {
 
         if (rong(trangThai)) {
             return true;
@@ -219,7 +219,7 @@ public class Regex_NhanVien {
     // NVARCHAR(20) NULL
     // =========================
 
-    public static boolean isValidMaTK(String maTK) {
+    public static boolean laMaTKHopLe(String maTK) {
 
         if (rong(maTK)) {
             return true;
@@ -227,5 +227,9 @@ public class Regex_NhanVien {
 
         return kiemTraDoDai(maTK, 20)
                 && REGEX_MATK.matcher(maTK.trim()).matches();
+    }
+    /** Chỉ kiểm tra chuỗi đang nhập; xác thực cuối dùng các hàm la...HopLe hiện có. */
+    public static boolean laSDTDangNhapHopLe(String giaTri) {
+        return giaTri != null && giaTri.matches("[0-9]{0,10}");
     }
 }

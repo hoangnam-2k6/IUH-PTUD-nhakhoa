@@ -1,10 +1,10 @@
 package UI.LeTan;
 
 import DAO.BacSiDao;
-import Dao.BenhNhanDao;
-import Dao.HoaDonDao;
-import Dao.KetQuaKhamDao;
-import Dao.PhieuKhamDao;
+import DAO.BenhNhanLeTanDAO;
+import DAO.HoaDonLeTanDAO;
+import DAO.KetQuaKhamDao;
+import DAO.PhieuKhamDao;
 import Entity.BacSi;
 import Entity.BenhNhan;
 import Entity.HoaDon;
@@ -31,10 +31,10 @@ import static UI.LeTan.GiaoDien.*;
 public class KhamBenhLeTan extends JPanel {
     private final TaiKhoan taiKhoan;
     private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
-    private final BenhNhanDao benhNhanDao = new BenhNhanDao();
+    private final BenhNhanLeTanDAO benhNhanDao = new BenhNhanLeTanDAO();
     private final BacSiDao bacSiDao = new BacSiDao();
     private final KetQuaKhamDao ketQuaKhamDao = new KetQuaKhamDao();
-    private final HoaDonDao hoaDonDao = new HoaDonDao();
+    private final HoaDonLeTanDAO hoaDonDao = new HoaDonLeTanDAO();
 
     private List<PhieuKham> dsPhieu = new ArrayList<>();
     private List<BacSi> dsBacSi = new ArrayList<>();
@@ -101,10 +101,10 @@ public class KhamBenhLeTan extends JPanel {
                 BorderFactory.createEmptyBorder(12, 18, 12, 18)));
 
         JLabel tieuDe = new JLabel("Khám bệnh & hồ sơ kết quả");
-        tieuDe.setFont(font(Font.BOLD, 19));
+        tieuDe.setFont(taoPhongChu(Font.BOLD, 19));
         tieuDe.setForeground(CHU_CHINH);
         JLabel moTa = new JLabel("Chọn phiếu khám bên trái, nhập kết quả và cập nhật trạng thái điều trị.");
-        moTa.setFont(font(Font.PLAIN, 12));
+        moTa.setFont(taoPhongChu(Font.PLAIN, 12));
         moTa.setForeground(CHU_PHU);
         JPanel chu = new JPanel(new GridLayout(2, 1, 0, 2));
         chu.setOpaque(false);
@@ -129,7 +129,7 @@ public class KhamBenhLeTan extends JPanel {
 
     private JLabel nhan(String chu) {
         JLabel l = new JLabel(chu);
-        l.setFont(font(Font.PLAIN, 13));
+        l.setFont(taoPhongChu(Font.PLAIN, 13));
         l.setForeground(CHU_PHU);
         return l;
     }
@@ -160,7 +160,7 @@ public class KhamBenhLeTan extends JPanel {
         hangTim.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
         hangTim.add(nhan("Tìm kiếm:"), BorderLayout.WEST);
         hangTim.add(oTimKiem, BorderLayout.CENTER);
-        soLuong.setFont(font(Font.BOLD, 12));
+        soLuong.setFont(taoPhongChu(Font.BOLD, 12));
         soLuong.setForeground(MAU_CHINH);
         hangTim.add(soLuong, BorderLayout.EAST);
 
@@ -192,13 +192,13 @@ public class KhamBenhLeTan extends JPanel {
         JPanel the = GiaoDien.taoThe("Hồ sơ kết quả khám",
                 "Thông tin do bác sĩ/lễ tân nhập sau khi khám. Lưu lại để in cùng phiếu khám.");
 
-        lblBenhNhan.setFont(font(Font.BOLD, 16));
+        lblBenhNhan.setFont(taoPhongChu(Font.BOLD, 16));
         lblBenhNhan.setForeground(CHU_CHINH);
-        lblThongTin.setFont(font(Font.PLAIN, 12));
+        lblThongTin.setFont(taoPhongChu(Font.PLAIN, 12));
         lblThongTin.setForeground(CHU_PHU);
-        lblDiUng.setFont(font(Font.BOLD, 12));
+        lblDiUng.setFont(taoPhongChu(Font.BOLD, 12));
         lblDiUng.setForeground(Color.decode("#B91C1C"));
-        lblTrangThai.setFont(font(Font.BOLD, 12));
+        lblTrangThai.setFont(taoPhongChu(Font.BOLD, 12));
 
         JPanel thongTinBenh = new JPanel(new GridLayout(0, 1, 0, 3));
         thongTinBenh.setOpaque(false);
@@ -216,7 +216,7 @@ public class KhamBenhLeTan extends JPanel {
         dau.add(thongTinBenh, BorderLayout.CENTER);
         the.add(dau, BorderLayout.NORTH);
 
-        cbBacSi.setFont(font(Font.PLAIN, 14));
+        cbBacSi.setFont(taoPhongChu(Font.PLAIN, 14));
 
         JPanel noi = new JPanel();
         noi.setLayout(new BoxLayout(noi, BoxLayout.Y_AXIS));
@@ -252,7 +252,7 @@ public class KhamBenhLeTan extends JPanel {
 
     private void taiBacSi() {
         try {
-            dsBacSi = bacSiDao.findDangHoatDong();
+            dsBacSi = bacSiDao.timDangHoatDong();
         } catch (Exception e) {
             baoLoi(this, e);
             dsBacSi = new ArrayList<>();
@@ -271,9 +271,9 @@ public class KhamBenhLeTan extends JPanel {
             return;
         }
 
-        int maDangChon = dangChon == null ? -1 : dangChon.getMaPK();
+        int maDangChon = dangChon == null ? -1 : dangChon.layMaPK();
         try {
-            dsPhieu = phieuKhamDao.findTheoNgay(ngay);
+            dsPhieu = phieuKhamDao.timTheoNgay(ngay);
         } catch (Exception e) {
             baoLoi(this, e);
             return;
@@ -286,13 +286,13 @@ public class KhamBenhLeTan extends JPanel {
             for (int i = 0; i < dsPhieu.size(); i++) {
                 PhieuKham pk = dsPhieu.get(i);
                 model.addRow(new Object[]{
-                        pk.getSoThuTu(),
-                        String.format("PK%03d", pk.getMaPK()),
-                        pk.getTenBenhNhan(),
-                        pk.getTenPhong() == null ? "—" : pk.getTenPhong(),
-                        pk.getTrangThai()
+                        pk.laySoThuTu(),
+                        String.format("PK%03d", pk.layMaPK()),
+                        pk.layTenBenhNhan(),
+                        pk.layTenPhong() == null ? "—" : pk.layTenPhong(),
+                        pk.layTrangThai()
                 });
-                if (pk.getMaPK() == maDangChon) dongChon = i;
+                if (pk.layMaPK() == maDangChon) dongChon = i;
             }
             soLuong.setText(dsPhieu.size() + " phiếu");
             if (dongChon >= 0) {
@@ -334,18 +334,18 @@ public class KhamBenhLeTan extends JPanel {
 
     private void chonPhieu(PhieuKham pk) {
         dangChon = pk;
-        lblBenhNhan.setText(pk.getTenBenhNhan() == null ? "—" : pk.getTenBenhNhan());
-        lblThongTin.setText(String.format("PK%03d", pk.getMaPK())
-                + "  ·  STT " + pk.getSoThuTu()
-                + "  ·  " + (pk.getTenPhong() == null ? "Chưa phân phòng" : pk.getTenPhong())
-                + "  ·  " + (pk.getNgayKham() == null ? "" : pk.getNgayKham().format(NGAY)));
-        lblTrangThai.setText(pk.getTrangThai());
-        lblTrangThai.setForeground(mauTrangThai(pk.getTrangThai()));
+        lblBenhNhan.setText(pk.layTenBenhNhan() == null ? "—" : pk.layTenBenhNhan());
+        lblThongTin.setText(String.format("PK%03d", pk.layMaPK())
+                + "  ·  STT " + pk.laySoThuTu()
+                + "  ·  " + (pk.layTenPhong() == null ? "Chưa phân phòng" : pk.layTenPhong())
+                + "  ·  " + (pk.layNgayKham() == null ? "" : pk.layNgayKham().format(NGAY)));
+        lblTrangThai.setText(pk.layTrangThai());
+        lblTrangThai.setForeground(mauTrangThai(pk.layTrangThai()));
 
         try {
-            BenhNhan bn = benhNhanDao.findById(pk.getMaBN());
-            if (bn != null && bn.getDiUng() != null && !bn.getDiUng().isBlank()) {
-                lblDiUng.setText("⚠ Dị ứng: " + bn.getDiUng());
+            BenhNhan bn = benhNhanDao.timTheoMa(pk.layMaBN());
+            if (bn != null && bn.layDiUng() != null && !bn.layDiUng().isBlank()) {
+                lblDiUng.setText("⚠ Dị ứng: " + bn.layDiUng());
             } else {
                 lblDiUng.setText(" ");
             }
@@ -355,7 +355,7 @@ public class KhamBenhLeTan extends JPanel {
 
         KetQuaKham kq;
         try {
-            kq = ketQuaKhamDao.findByMaPK(pk.getMaPK());
+            kq = ketQuaKhamDao.timTheoMaPK(pk.layMaPK());
         } catch (Exception e) {
             baoLoi(this, e);
             kq = null;
@@ -372,14 +372,14 @@ public class KhamBenhLeTan extends JPanel {
                 oNgayTaiKham.setText("");
                 cbBacSi.setSelectedItem(null);
             } else {
-                oTrieuChung.setText(nz(kq.getTrieuChung()));
-                oKetQua.setText(nz(kq.getKetQuaLamSang()));
-                oChanDoan.setText(nz(kq.getChanDoan()));
-                oHuongDieuTri.setText(nz(kq.getHuongDieuTri()));
-                oDonThuoc.setText(nz(kq.getDonThuoc()));
-                oGhiChu.setText(nz(kq.getGhiChu()));
-                oNgayTaiKham.setText(kq.getNgayTaiKham() == null ? "" : kq.getNgayTaiKham().format(NGAY));
-                chonBacSi(kq.getMaBS());
+                oTrieuChung.setText(chuoiKhongNull(kq.layTrieuChung()));
+                oKetQua.setText(chuoiKhongNull(kq.layKetQuaLamSang()));
+                oChanDoan.setText(chuoiKhongNull(kq.layChanDoan()));
+                oHuongDieuTri.setText(chuoiKhongNull(kq.layHuongDieuTri()));
+                oDonThuoc.setText(chuoiKhongNull(kq.layDonThuoc()));
+                oGhiChu.setText(chuoiKhongNull(kq.layGhiChu()));
+                oNgayTaiKham.setText(kq.layNgayTaiKham() == null ? "" : kq.layNgayTaiKham().format(NGAY));
+                chonBacSi(kq.layMaBS());
             }
         } finally {
             dangNap = false;
@@ -393,7 +393,7 @@ public class KhamBenhLeTan extends JPanel {
             return;
         }
         for (int i = 0; i < cbBacSi.getItemCount(); i++) {
-            if (cbBacSi.getItemAt(i).getMaBS() == maBS) {
+            if (cbBacSi.getItemAt(i).layMaBS() == maBS) {
                 cbBacSi.setSelectedIndex(i);
                 return;
             }
@@ -409,10 +409,10 @@ public class KhamBenhLeTan extends JPanel {
         nutHoanThanh.setEnabled(coPhieu && !daKetThuc);
         nutIn.setEnabled(coPhieu);
         nutLapHoaDon.setEnabled(coPhieu && !dangChon.daHuy());
-        setFormEnabled(coPhieu && !daKetThuc);
+        datFormEnabled(coPhieu && !daKetThuc);
     }
 
-    private void setFormEnabled(boolean bat) {
+    private void datFormEnabled(boolean bat) {
         cbBacSi.setEnabled(bat);
         oNgayTaiKham.setEnabled(bat);
         for (JTextArea a : new JTextArea[]{oTrieuChung, oKetQua, oChanDoan, oHuongDieuTri, oDonThuoc, oGhiChu}) {
@@ -459,23 +459,23 @@ public class KhamBenhLeTan extends JPanel {
         try {
             LocalDate ngayTaiKham = docNgay(oNgayTaiKham.getText());
             KetQuaKham kq = new KetQuaKham();
-            kq.setMaPK(dangChon.getMaPK());
+            kq.datMaPK(dangChon.layMaPK());
             BacSi bs = (BacSi) cbBacSi.getSelectedItem();
-            kq.setMaBS(bs == null ? null : bs.getMaBS());
-            kq.setTrieuChung(oTrieuChung.getText());
-            kq.setKetQuaLamSang(oKetQua.getText());
-            kq.setChanDoan(oChanDoan.getText());
-            kq.setHuongDieuTri(oHuongDieuTri.getText());
-            kq.setDonThuoc(oDonThuoc.getText());
-            kq.setGhiChu(oGhiChu.getText());
-            kq.setNgayTaiKham(ngayTaiKham);
+            kq.datMaBS(bs == null ? null : bs.layMaBS());
+            kq.datTrieuChung(oTrieuChung.getText());
+            kq.datKetQuaLamSang(oKetQua.getText());
+            kq.datChanDoan(oChanDoan.getText());
+            kq.datHuongDieuTri(oHuongDieuTri.getText());
+            kq.datDonThuoc(oDonThuoc.getText());
+            kq.datGhiChu(oGhiChu.getText());
+            kq.datNgayTaiKham(ngayTaiKham);
             ketQuaKhamDao.luu(kq);
 
             if (dangChon.choKham()) {
-                phieuKhamDao.batDauKham(dangChon.getMaPK());
+                phieuKhamDao.batDauKham(dangChon.layMaPK());
             }
             if (hienThongBao) {
-                thongBao(this, "Đã lưu kết quả khám cho " + dangChon.getTenBenhNhan() + ".");
+                thongBao(this, "Đã lưu kết quả khám cho " + dangChon.layTenBenhNhan() + ".");
             }
             return true;
         } catch (DateTimeParseException e) {
@@ -489,7 +489,7 @@ public class KhamBenhLeTan extends JPanel {
     private void batDauKham() {
         if (dangChon == null) return;
         try {
-            phieuKhamDao.batDauKham(dangChon.getMaPK());
+            phieuKhamDao.batDauKham(dangChon.layMaPK());
             taiDuLieu();
         } catch (Exception e) {
             baoLoi(this, e);
@@ -498,13 +498,13 @@ public class KhamBenhLeTan extends JPanel {
 
     private void hoanThanhKham() {
         if (dangChon == null) return;
-        if (!xacNhan(this, "Hoàn thành phiếu khám của " + dangChon.getTenBenhNhan()
+        if (!xacNhan(this, "Hoàn thành phiếu khám của " + dangChon.layTenBenhNhan()
                 + "?\nKết quả đang nhập trên form sẽ được lưu trước khi hoàn thành.", "Hoàn thành khám")) {
             return;
         }
         if (!luuKetQua(false)) return;
         try {
-            phieuKhamDao.hoanThanh(dangChon.getMaPK());
+            phieuKhamDao.hoanThanh(dangChon.layMaPK());
             thongBao(this, "Đã hoàn thành phiếu khám.");
             taiDuLieu();
         } catch (Exception e) {
@@ -515,8 +515,8 @@ public class KhamBenhLeTan extends JPanel {
     private void inPhieuKham() {
         if (dangChon == null) return;
         try {
-            BenhNhan bn = benhNhanDao.findById(dangChon.getMaBN());
-            KetQuaKham kq = ketQuaKhamDao.findByMaPK(dangChon.getMaPK());
+            BenhNhan bn = benhNhanDao.timTheoMa(dangChon.layMaBN());
+            KetQuaKham kq = ketQuaKhamDao.timTheoMaPK(dangChon.layMaPK());
             XuatPhieuKham.xuat(this, dangChon, bn, kq);
         } catch (Exception e) {
             baoLoi(this, e);
@@ -531,11 +531,11 @@ public class KhamBenhLeTan extends JPanel {
             return;
         }
         try {
-            HoaDon daCo = hoaDonDao.findByMaPK(dangChon.getMaPK());
+            HoaDon daCo = hoaDonDao.timTheoMaPK(dangChon.layMaPK());
             if (daCo != null) {
                 JOptionPane.showMessageDialog(this,
-                        "Phiếu khám này đã có hóa đơn " + String.format("HD%03d", daCo.getMaHD())
-                                + " (" + daCo.getTrangThai() + ").\nVào mục Thanh toán & hóa đơn để xử lý.",
+                        "Phiếu khám này đã có hóa đơn " + String.format("HD%03d", daCo.layMaHD())
+                                + " (" + daCo.layTrangThai() + ").\nVào mục Thanh toán & hóa đơn để xử lý.",
                         "Thông báo", JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
@@ -548,7 +548,7 @@ public class KhamBenhLeTan extends JPanel {
         }
     }
 
-    private static String nz(String s) {
+    private static String chuoiKhongNull(String s) {
         return s == null ? "" : s;
     }
 

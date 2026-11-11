@@ -1,12 +1,15 @@
 package UI.LeTan;
 
-import Dao.BenhNhanDao;
+
 import Entity.BenhNhan;
 import Entity.TaiKhoan;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+
+import DAO.BenhNhanLeTanDAO;
+
 import java.awt.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -21,7 +24,7 @@ public class TraCuuThongTin extends JPanel {
             "Số điện thoại", "Địa chỉ", "Trạng thái"};
 
     private final TaiKhoan taiKhoan;
-    private final BenhNhanDao benhNhanDao = new BenhNhanDao();
+    private final BenhNhanLeTanDAO benhNhanDao = new BenhNhanLeTanDAO();
     private List<BenhNhan> dsKetQua = new ArrayList<>();
     private BenhNhan dangChon;
 
@@ -61,7 +64,7 @@ public class TraCuuThongTin extends JPanel {
         JPanel the = GiaoDien.taoThe("Bệnh nhân",
                 "Tìm theo mã bệnh nhân, họ tên, số điện thoại hoặc CMND/CCCD. Bấm đúp để xem lịch sử khám.");
 
-        cbTrangThai.setFont(font(Font.PLAIN, 13));
+        cbTrangThai.setFont(taoPhongChu(Font.PLAIN, 13));
         cbTrangThai.addActionListener(e -> taiDuLieu());
 
         oTimKiem.setToolTipText("Nhập mã bệnh nhân, họ tên, số điện thoại hoặc CMND/CCCD");
@@ -71,7 +74,7 @@ public class TraCuuThongTin extends JPanel {
         JButton nutThem = taoNutTrang("+ Thêm bệnh nhân");
         nutThem.addActionListener(e -> themMoi());
 
-        soLuong.setFont(font(Font.BOLD, 12));
+        soLuong.setFont(taoPhongChu(Font.BOLD, 12));
         soLuong.setForeground(MAU_CHINH);
 
         JPanel nutPhai = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
@@ -139,9 +142,9 @@ public class TraCuuThongTin extends JPanel {
                 BorderFactory.createEmptyBorder(12, 14, 8, 14)));
 
         JLabel tieuDe = new JLabel("Hồ sơ bệnh nhân");
-        tieuDe.setFont(font(Font.BOLD, 14));
+        tieuDe.setFont(taoPhongChu(Font.BOLD, 14));
         tieuDe.setForeground(CHU_CHINH);
-        canhBaoDiUng.setFont(font(Font.BOLD, 12));
+        canhBaoDiUng.setFont(taoPhongChu(Font.BOLD, 12));
         canhBaoDiUng.setForeground(Color.decode("#B91C1C"));
         canhBaoDiUng.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 0));
 
@@ -171,31 +174,31 @@ public class TraCuuThongTin extends JPanel {
         JPanel luoi = new JPanel(new GridLayout(0, 4, 16, 8));
         luoi.setOpaque(false);
         luoi.setAlignmentX(Component.LEFT_ALIGNMENT);
-        luoi.add(o("Mã bệnh nhân", vMa));
-        luoi.add(o("Họ tên", vTen));
-        luoi.add(o("Ngày sinh (tuổi)", vNgaySinh));
-        luoi.add(o("Giới tính", vGioiTinh));
-        luoi.add(o("CMND/CCCD", vCccd));
-        luoi.add(o("Nghề nghiệp", vNghe));
-        luoi.add(o("Số điện thoại", vSdt));
-        luoi.add(o("Email", vEmail));
-        luoi.add(o("Địa chỉ", vDiaChi));
-        luoi.add(o("Người liên hệ khẩn cấp", vNguoiLh));
-        luoi.add(o("SĐT người liên hệ", vSdtLh));
-        luoi.add(o("Trạng thái hồ sơ", vTrangThai));
-        luoi.add(o("Ngày tạo hồ sơ", vNgayTao));
-        luoi.add(o("Số lần khám", vSoLan));
-        luoi.add(o("Lần khám gần nhất", vGanNhat));
-        luoi.add(o("Tổng đã thanh toán", vTongChi));
+        luoi.add(taoOThongTin("Mã bệnh nhân", vMa));
+        luoi.add(taoOThongTin("Họ tên", vTen));
+        luoi.add(taoOThongTin("Ngày sinh (tuổi)", vNgaySinh));
+        luoi.add(taoOThongTin("Giới tính", vGioiTinh));
+        luoi.add(taoOThongTin("CMND/CCCD", vCccd));
+        luoi.add(taoOThongTin("Nghề nghiệp", vNghe));
+        luoi.add(taoOThongTin("Số điện thoại", vSdt));
+        luoi.add(taoOThongTin("Email", vEmail));
+        luoi.add(taoOThongTin("Địa chỉ", vDiaChi));
+        luoi.add(taoOThongTin("Người liên hệ khẩn cấp", vNguoiLh));
+        luoi.add(taoOThongTin("SĐT người liên hệ", vSdtLh));
+        luoi.add(taoOThongTin("Trạng thái hồ sơ", vTrangThai));
+        luoi.add(taoOThongTin("Ngày tạo hồ sơ", vNgayTao));
+        luoi.add(taoOThongTin("Số lần khám", vSoLan));
+        luoi.add(taoOThongTin("Lần khám gần nhất", vGanNhat));
+        luoi.add(taoOThongTin("Tổng đã thanh toán", vTongChi));
         noi.add(luoi);
         noi.add(Box.createVerticalStrut(10));
 
         JPanel yTe = new JPanel(new GridLayout(1, 3, 16, 0));
         yTe.setOpaque(false);
         yTe.setAlignmentX(Component.LEFT_ALIGNMENT);
-        yTe.add(o("Dị ứng", vanBanCuon(vDiUng)));
-        yTe.add(o("Tiền sử bệnh", vanBanCuon(vTienSu)));
-        yTe.add(o("Ghi chú", vanBanCuon(vGhiChu)));
+        yTe.add(taoOThongTin("Dị ứng", vanBanCuon(vDiUng)));
+        yTe.add(taoOThongTin("Tiền sử bệnh", vanBanCuon(vTienSu)));
+        yTe.add(taoOThongTin("Ghi chú", vanBanCuon(vGhiChu)));
         noi.add(yTe);
 
         JScrollPane cuon = new JScrollPane(noi);
@@ -206,7 +209,7 @@ public class TraCuuThongTin extends JPanel {
 
     private static JLabel giaTri() {
         JLabel l = new JLabel("—");
-        l.setFont(font(Font.BOLD, 13));
+        l.setFont(taoPhongChu(Font.BOLD, 13));
         l.setForeground(CHU_CHINH);
         return l;
     }
@@ -216,7 +219,7 @@ public class TraCuuThongTin extends JPanel {
         a.setEditable(false);
         a.setLineWrap(true);
         a.setWrapStyleWord(true);
-        a.setFont(font(Font.PLAIN, 13));
+        a.setFont(taoPhongChu(Font.PLAIN, 13));
         a.setForeground(CHU_CHINH);
         a.setBackground(NEN_THE);
         a.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
@@ -230,9 +233,9 @@ public class TraCuuThongTin extends JPanel {
     }
 
     /** Nhãn nhỏ màu xám phía trên, giá trị phía dưới. */
-    private static JPanel o(String nhan, JComponent giaTri) {
+    private static JPanel taoOThongTin(String nhan, JComponent giaTri) {
         JLabel l = new JLabel(nhan);
-        l.setFont(font(Font.PLAIN, 12));
+        l.setFont(taoPhongChu(Font.PLAIN, 12));
         l.setForeground(CHU_PHU);
         JPanel p = new JPanel(new BorderLayout(0, 2));
         p.setOpaque(false);
@@ -244,14 +247,14 @@ public class TraCuuThongTin extends JPanel {
     // ===================== Dữ liệu =====================
 
     public void taiDuLieu() {
-        taiDuLieu(dangChon == null ? -1 : dangChon.getMaBNSo());
+        taiDuLieu(dangChon == null ? -1 : dangChon.layMaBNSo());
     }
 
     /** Tải lại danh sách theo ô tìm kiếm; nếu {@code chonMa} có trong kết quả thì chọn lại dòng đó. */
     private void taiDuLieu(int chonMa) {
         List<BenhNhan> tatCa;
         try {
-            tatCa = benhNhanDao.search(oTimKiem.getText());
+            tatCa = benhNhanDao.tim(oTimKiem.getText());
         } catch (Exception e) {
             GiaoDien.baoLoi(this, e);
             return;
@@ -260,7 +263,7 @@ public class TraCuuThongTin extends JPanel {
         String locTrangThai = (String) cbTrangThai.getSelectedItem();
         dsKetQua = new ArrayList<>();
         for (BenhNhan bn : tatCa) {
-            if (locTrangThai == null || TAT_CA.equals(locTrangThai) || locTrangThai.equals(bn.getTrangThai())) {
+            if (locTrangThai == null || TAT_CA.equals(locTrangThai) || locTrangThai.equals(bn.layTrangThai())) {
                 dsKetQua.add(bn);
             }
         }
@@ -269,12 +272,12 @@ public class TraCuuThongTin extends JPanel {
         int dongChon = -1;
         for (int i = 0; i < dsKetQua.size(); i++) {
             BenhNhan bn = dsKetQua.get(i);
-            Integer tuoi = bn.getTuoi();
-            model.addRow(new Object[]{String.format("BN%03d", bn.getMaBNSo()), bn.getHoTen(),
-                    bn.getNgaySinh() == null ? "" : dinhDangNgay(bn.getNgaySinh()),
-                    tuoi == null ? "" : tuoi, bn.getGioiTinh(), bn.getSoDienThoai(), bn.getDiaChi(),
-                    bn.getTrangThai()});
-            if (bn.getMaBNSo() == chonMa) dongChon = i;
+            Integer tuoi = bn.layTuoi();
+            model.addRow(new Object[]{String.format("BN%03d", bn.layMaBNSo()), bn.layHoTen(),
+                    bn.layNgaySinh() == null ? "" : dinhDangNgay(bn.layNgaySinh()),
+                    tuoi == null ? "" : tuoi, bn.layGioiTinh(), bn.laySoDienThoai(), bn.layDiaChi(),
+                    bn.layTrangThai()});
+            if (bn.layMaBNSo() == chonMa) dongChon = i;
         }
         soLuong.setText(dsKetQua.size() + " bệnh nhân"
                 + (TAT_CA.equals(locTrangThai) || locTrangThai == null ? "" : " (" + locTrangThai.toLowerCase() + ")"));
@@ -288,47 +291,47 @@ public class TraCuuThongTin extends JPanel {
 
     private void hienChiTiet(BenhNhan bn) {
         dangChon = bn;
-        boolean hoatDong = bn.getTrangThai() == null || bn.dangHoatDong();
+        boolean hoatDong = bn.layTrangThai() == null || bn.dangHoatDong();
         nutSua.setEnabled(true);
         nutLichSu.setEnabled(true);
         nutTrangThai.setEnabled(true);
         nutTrangThai.setText(hoatDong ? "Ngừng hoạt động" : "Kích hoạt lại");
         nutTrangThai.setBackground(hoatDong ? CANH_BAO : THANH_CONG);
 
-        vMa.setText(String.format("BN%03d", bn.getMaBNSo()));
-        vTen.setText(bn.getHoTen());
-        Integer tuoi = bn.getTuoi();
-        vNgaySinh.setText(bn.getNgaySinh() == null ? "—" : dinhDangNgay(bn.getNgaySinh())
+        vMa.setText(String.format("BN%03d", bn.layMaBNSo()));
+        vTen.setText(bn.layHoTen());
+        Integer tuoi = bn.layTuoi();
+        vNgaySinh.setText(bn.layNgaySinh() == null ? "—" : dinhDangNgay(bn.layNgaySinh())
                 + (tuoi == null ? "" : " (" + tuoi + " tuổi)"));
-        vGioiTinh.setText(hoac(bn.getGioiTinh()));
-        vCccd.setText(hoac(bn.getCccd()));
-        vNghe.setText(hoac(bn.getNgheNghiep()));
-        vSdt.setText(hoac(bn.getSoDienThoai()));
-        vEmail.setText(hoac(bn.getEmail()));
-        vDiaChi.setText(hoac(bn.getDiaChi()));
-        vNguoiLh.setText(hoac(bn.getTenNguoiLienHe()));
-        vSdtLh.setText(hoac(bn.getSdtNguoiLienHe()));
-        vTrangThai.setText(hoac(bn.getTrangThai()));
+        vGioiTinh.setText(hoac(bn.layGioiTinh()));
+        vCccd.setText(hoac(bn.layCccd()));
+        vNghe.setText(hoac(bn.layNgheNghiep()));
+        vSdt.setText(hoac(bn.laySoDienThoai()));
+        vEmail.setText(hoac(bn.layEmail()));
+        vDiaChi.setText(hoac(bn.layDiaChi()));
+        vNguoiLh.setText(hoac(bn.layTenNguoiLienHe()));
+        vSdtLh.setText(hoac(bn.laySdtNguoiLienHe()));
+        vTrangThai.setText(hoac(bn.layTrangThai()));
         vTrangThai.setForeground(hoatDong ? Color.decode("#047857") : Color.decode("#B91C1C"));
-        vDiUng.setText(bn.getDiUng() == null ? "Không ghi nhận" : bn.getDiUng());
-        vTienSu.setText(bn.getTienSuBenh() == null ? "Không ghi nhận" : bn.getTienSuBenh());
-        vGhiChu.setText(bn.getGhiChu() == null ? "" : bn.getGhiChu());
+        vDiUng.setText(bn.layDiUng() == null ? "Không ghi nhận" : bn.layDiUng());
+        vTienSu.setText(bn.layTienSuBenh() == null ? "Không ghi nhận" : bn.layTienSuBenh());
+        vGhiChu.setText(bn.layGhiChu() == null ? "" : bn.layGhiChu());
         vDiUng.setCaretPosition(0);
         vTienSu.setCaretPosition(0);
-        canhBaoDiUng.setText(bn.getDiUng() == null || bn.getDiUng().isBlank()
-                ? " " : "⚠ Có dị ứng: " + bn.getDiUng());
+        canhBaoDiUng.setText(bn.layDiUng() == null || bn.layDiUng().isBlank()
+                ? " " : "⚠ Có dị ứng: " + bn.layDiUng());
 
         try {
-            Object[] tk = benhNhanDao.thongKeKham(bn.getMaBNSo());
+            Object[] tk = benhNhanDao.thongKeKham(bn.layMaBNSo());
             vSoLan.setText(String.valueOf(tk[0]));
             vGanNhat.setText(tk[1] == null ? "Chưa khám" : dinhDangNgay((LocalDate) tk[1]));
-            vTongChi.setText(tien(benhNhanDao.tongDaThanhToan(bn.getMaBNSo())) + " đ");
+            vTongChi.setText(tien(benhNhanDao.tongDaThanhToan(bn.layMaBNSo())) + " đ");
         } catch (Exception e) {
             vSoLan.setText("—");
             vGanNhat.setText("—");
             vTongChi.setText("—");
         }
-        vNgayTao.setText(bn.getNgayTao() == null ? "—" : bn.getNgayTao().toLocalDate().format(NGAY));
+        vNgayTao.setText(bn.layNgayTao() == null ? "—" : bn.layNgayTao().toLocalDate().format(NGAY));
     }
 
     private void xoaChiTiet() {
@@ -367,7 +370,7 @@ public class TraCuuThongTin extends JPanel {
         // Sửa trên bản sao để nếu hủy/lỗi thì dữ liệu đang hiển thị không bị lệch
         BenhNhan ban = saoChep(dangChon);
         if (BenhNhanDialog.hienThi(this, ban)) {
-            taiDuLieu(ban.getMaBNSo());
+            taiDuLieu(ban.layMaBNSo());
         }
     }
 
@@ -376,15 +379,15 @@ public class TraCuuThongTin extends JPanel {
         boolean hoatDong = dangChon.dangHoatDong();
         String moi = hoatDong ? BenhNhan.NGUNG_HOAT_DONG : BenhNhan.HOAT_DONG;
         String cauHoi = hoatDong
-                ? "Ngừng hoạt động hồ sơ " + dangChon.getHoTen() + "?\n"
+                ? "Ngừng hoạt động hồ sơ " + dangChon.layHoTen() + "?\n"
                 + "Hồ sơ và lịch sử khám vẫn được giữ lại, chỉ không hiện trong danh sách đang hoạt động."
-                : "Kích hoạt lại hồ sơ " + dangChon.getHoTen() + "?";
+                : "Kích hoạt lại hồ sơ " + dangChon.layHoTen() + "?";
         if (!xacNhan(this, cauHoi, hoatDong ? "Ngừng hoạt động hồ sơ" : "Kích hoạt hồ sơ")) return;
         try {
-            benhNhanDao.doiTrangThai(dangChon.getMaBNSo(), moi);
-            thongBao(this, "Đã chuyển hồ sơ " + String.format("BN%03d", dangChon.getMaBNSo())
+            benhNhanDao.doiTrangThai(dangChon.layMaBNSo(), moi);
+            thongBao(this, "Đã chuyển hồ sơ " + String.format("BN%03d", dangChon.layMaBNSo())
                     + " sang trạng thái \"" + moi + "\".");
-            taiDuLieu(dangChon.getMaBNSo());
+            taiDuLieu(dangChon.layMaBNSo());
         } catch (Exception e) {
             baoLoi(this, e);
         }
@@ -400,17 +403,17 @@ public class TraCuuThongTin extends JPanel {
     }
 
     private BenhNhan saoChep(BenhNhan g) {
-        BenhNhan b = new BenhNhan(g.getMaBNSo(), g.getHoTen(), g.getNgaySinh(), g.getGioiTinh(),
-                g.getSoDienThoai(), g.getDiaChi());
-        b.setCccd(g.getCccd());
-        b.setEmail(g.getEmail());
-        b.setNgheNghiep(g.getNgheNghiep());
-        b.setTenNguoiLienHe(g.getTenNguoiLienHe());
-        b.setSdtNguoiLienHe(g.getSdtNguoiLienHe());
-        b.setDiUng(g.getDiUng());
-        b.setTienSuBenh(g.getTienSuBenh());
-        b.setGhiChu(g.getGhiChu());
-        b.setTrangThai(g.getTrangThai());
+        BenhNhan b = new BenhNhan(g.layMaBNSo(), g.layHoTen(), g.layNgaySinh(), g.layGioiTinh(),
+                g.laySoDienThoai(), g.layDiaChi());
+        b.datCccd(g.layCccd());
+        b.datEmail(g.layEmail());
+        b.datNgheNghiep(g.layNgheNghiep());
+        b.datTenNguoiLienHe(g.layTenNguoiLienHe());
+        b.datSdtNguoiLienHe(g.laySdtNguoiLienHe());
+        b.datDiUng(g.layDiUng());
+        b.datTienSuBenh(g.layTienSuBenh());
+        b.datGhiChu(g.layGhiChu());
+        b.datTrangThai(g.layTrangThai());
         return b;
     }
 

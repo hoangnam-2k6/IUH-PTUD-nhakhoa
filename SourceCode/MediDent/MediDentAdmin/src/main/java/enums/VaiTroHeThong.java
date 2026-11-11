@@ -1,4 +1,4 @@
-package Enum;
+package enums;
 
 /** Các vai trò đăng nhập được hỗ trợ bởi hệ thống. */
 public enum VaiTroHeThong {

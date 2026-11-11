@@ -32,13 +32,13 @@ public class PhieuKhamDao {
             + "JOIN BenhNhan bn ON bn.MaBN = pk.MaBN "
             + "LEFT JOIN PhongKham p ON p.MaPhong = pk.MaPhong ";
 
-    public List<PhieuKham> findHomNay() throws SQLException {
-        return findTheoNgay(LocalDate.now());
+    public List<PhieuKham> timHomNay() throws SQLException {
+        return timTheoNgay(LocalDate.now());
     }
 
-    public List<PhieuKham> findTheoNgay(LocalDate ngay) throws SQLException {
+    public List<PhieuKham> timTheoNgay(LocalDate ngay) throws SQLException {
         List<PhieuKham> ds = new ArrayList<>();
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(SELECT + "WHERE pk.NgayKham = ? ORDER BY pk.SoThuTu")) {
             ps.setDate(1, Date.valueOf(ngay));
             try (ResultSet rs = ps.executeQuery()) {
@@ -48,9 +48,9 @@ public class PhieuKhamDao {
         return ds;
     }
 
-    public List<PhieuKham> findByBenhNhan(int maBN) throws SQLException {
+    public List<PhieuKham> timTheoBenhNhan(int maBN) throws SQLException {
         List<PhieuKham> ds = new ArrayList<>();
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      SELECT + "WHERE pk.MaBN = ? ORDER BY pk.NgayKham DESC, pk.SoThuTu DESC")) {
             ps.setInt(1, maBN);
@@ -61,8 +61,8 @@ public class PhieuKhamDao {
         return ds;
     }
 
-    public PhieuKham findById(int maPK) throws SQLException {
-        try (Connection conn = ConnectDB.getConnection();
+    public PhieuKham timTheoMa(int maPK) throws SQLException {
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(SELECT + "WHERE pk.MaPK = ?")) {
             ps.setInt(1, maPK);
             try (ResultSet rs = ps.executeQuery()) {
@@ -86,7 +86,7 @@ public class PhieuKhamDao {
      */
     public PhieuKham capSoThuTu(int maBN, Integer maPhong, Integer maLH) throws SQLException {
         LocalDate homNay = LocalDate.now();
-        try (Connection conn = ConnectDB.getConnection()) {
+        try (Connection conn = ConnectDB.layConnection()) {
             conn.setAutoCommit(false);
             try {
                 String tenBN = layTenBenhNhan(conn, maBN);
@@ -101,19 +101,19 @@ public class PhieuKhamDao {
                 int soThuTu = layMaxSoThuTu(conn, homNay) + 1;
 
                 PhieuKham pk = new PhieuKham();
-                pk.setMaBN(maBN);
-                pk.setMaPhong(maPhong);
-                pk.setMaLH(maLH);
-                pk.setNgayKham(homNay);
-                pk.setSoThuTu(soThuTu);
-                pk.setTrangThai(CHO_KHAM);
-                pk.setTenBenhNhan(tenBN);
-                pk.setMaPK(insert(conn, pk));
+                pk.datMaBN(maBN);
+                pk.datMaPhong(maPhong);
+                pk.datMaLH(maLH);
+                pk.datNgayKham(homNay);
+                pk.datSoThuTu(soThuTu);
+                pk.datTrangThai(CHO_KHAM);
+                pk.datTenBenhNhan(tenBN);
+                pk.datMaPK(themMoi(conn, pk));
 
                 if (maLH != null) {
                     try (PreparedStatement ps = conn.prepareStatement(
                             "UPDATE LichHen SET TrangThai = ? WHERE MaLH = ?")) {
-                        ps.setString(1, LichHenDAO.DA_DEN);
+                        ps.setString(1, LichHenLeTanDAO.DA_DEN);
                         ps.setInt(2, maLH);
                         ps.executeUpdate();
                     }
@@ -131,11 +131,11 @@ public class PhieuKhamDao {
         if (pk.daKetThuc()) {
             throw new IllegalArgumentException("Phiếu khám đã kết thúc, không thể chỉ định phòng.");
         }
-        try (Connection conn = ConnectDB.getConnection()) {
+        try (Connection conn = ConnectDB.layConnection()) {
             conn.setAutoCommit(false);
             try {
-                kiemTraSucChuaPhong(conn, maPhong, pk.getNgayKham() == null ? LocalDate.now() : pk.getNgayKham());
-                update(conn, pk.getMaPK(), maPhong, pk.getTrangThai(), pk.getGhiChu(), false);
+                kiemTraSucChuaPhong(conn, maPhong, pk.layNgayKham() == null ? LocalDate.now() : pk.layNgayKham());
+                capNhat(conn, pk.layMaPK(), maPhong, pk.layTrangThai(), pk.layGhiChu(), false);
                 conn.commit();
             } catch (SQLException | RuntimeException e) {
                 conn.rollback();
@@ -145,7 +145,7 @@ public class PhieuKhamDao {
     }
 
     public void capNhat(PhieuKham pk, Integer maPhong, String trangThai) throws SQLException {
-        capNhat(pk, maPhong, trangThai, pk.getGhiChu());
+        capNhat(pk, maPhong, trangThai, pk.layGhiChu());
     }
 
     /**
@@ -156,27 +156,27 @@ public class PhieuKhamDao {
         if (!Arrays.asList(TRANG_THAI).contains(trangThai)) {
             throw new IllegalArgumentException("Trạng thái phiếu khám không hợp lệ.");
         }
-        try (Connection conn = ConnectDB.getConnection()) {
+        try (Connection conn = ConnectDB.layConnection()) {
             conn.setAutoCommit(false);
             try {
-                PhieuKham hienTai = layVoiKhoa(conn, pk.getMaPK());
+                PhieuKham hienTai = layVoiKhoa(conn, pk.layMaPK());
                 if (hienTai == null) {
                     throw new IllegalArgumentException("Không tìm thấy phiếu khám.");
                 }
-                if (hienTai.daKetThuc() && !hienTai.getTrangThai().equals(trangThai)) {
+                if (hienTai.daKetThuc() && !hienTai.layTrangThai().equals(trangThai)) {
                     throw new IllegalArgumentException("Phiếu khám đã kết thúc, không thể đổi trạng thái.");
                 }
-                if (maPhong != null && !maPhong.equals(hienTai.getMaPhong())) {
-                    kiemTraSucChuaPhong(conn, maPhong, hienTai.getNgayKham());
+                if (maPhong != null && !maPhong.equals(hienTai.layMaPhong())) {
+                    kiemTraSucChuaPhong(conn, maPhong, hienTai.layNgayKham());
                 }
-                update(conn, pk.getMaPK(), maPhong, trangThai, ghiChu, true);
+                capNhat(conn, pk.layMaPK(), maPhong, trangThai, ghiChu, true);
 
-                if (hienTai.getMaLH() != null) {
+                if (hienTai.layMaLH() != null) {
                     if (HOAN_THANH.equals(trangThai)) {
-                        capNhatLichHen(conn, hienTai.getMaLH(), LichHenDao.HOAN_THANH);
+                        capNhatLichHen(conn, hienTai.layMaLH(), LichHenLeTanDAO.HOAN_THANH);
                     } else if (DA_HUY.equals(trangThai)) {
                         // Trả lịch hẹn về trạng thái có thể check-in lại.
-                        capNhatLichHenNeuDang(conn, hienTai.getMaLH(), LichHenDao.DA_DEN, LichHenDao.DA_XAC_NHAN);
+                        capNhatLichHenNeuDang(conn, hienTai.layMaLH(), LichHenLeTanDAO.DA_DEN, LichHenLeTanDAO.DA_XAC_NHAN);
                     }
                 }
                 conn.commit();
@@ -185,47 +185,47 @@ public class PhieuKhamDao {
                 throw e;
             }
         }
-        pk.setMaPhong(maPhong);
-        pk.setTrangThai(trangThai);
-        pk.setGhiChu(ghiChu);
+        pk.datMaPhong(maPhong);
+        pk.datTrangThai(trangThai);
+        pk.datGhiChu(ghiChu);
     }
 
     public void batDauKham(int maPK) throws SQLException {
-        PhieuKham pk = findById(maPK);
+        PhieuKham pk = timTheoMa(maPK);
         if (pk == null) throw new IllegalArgumentException("Không tìm thấy phiếu khám.");
         if (!pk.choKham()) {
             throw new IllegalArgumentException("Chỉ có thể bắt đầu khám phiếu đang ở trạng thái \"Chờ khám\".");
         }
-        capNhat(pk, pk.getMaPhong(), DANG_KHAM, pk.getGhiChu());
+        capNhat(pk, pk.layMaPhong(), DANG_KHAM, pk.layGhiChu());
     }
 
     public void hoanThanh(int maPK) throws SQLException {
-        PhieuKham pk = findById(maPK);
+        PhieuKham pk = timTheoMa(maPK);
         if (pk == null) throw new IllegalArgumentException("Không tìm thấy phiếu khám.");
         if (pk.daKetThuc()) {
             throw new IllegalArgumentException("Phiếu khám đã kết thúc.");
         }
-        capNhat(pk, pk.getMaPhong(), HOAN_THANH, pk.getGhiChu());
+        capNhat(pk, pk.layMaPhong(), HOAN_THANH, pk.layGhiChu());
     }
 
     public void huy(int maPK, String lyDo) throws SQLException {
-        PhieuKham pk = findById(maPK);
+        PhieuKham pk = timTheoMa(maPK);
         if (pk == null) throw new IllegalArgumentException("Không tìm thấy phiếu khám.");
         if (pk.daKetThuc()) {
             throw new IllegalArgumentException("Phiếu khám đã kết thúc.");
         }
-        String ghiChu = lyDo == null || lyDo.isBlank() ? pk.getGhiChu() : lyDo.trim();
-        capNhat(pk, pk.getMaPhong(), DA_HUY, ghiChu);
+        String ghiChu = lyDo == null || lyDo.isBlank() ? pk.layGhiChu() : lyDo.trim();
+        capNhat(pk, pk.layMaPhong(), DA_HUY, ghiChu);
     }
 
     public int demTheoPhong(int maPhong, LocalDate ngay) throws SQLException {
-        try (Connection conn = ConnectDB.getConnection()) {
+        try (Connection conn = ConnectDB.layConnection()) {
             return demPhieuTheoPhong(conn, maPhong, ngay);
         }
     }
 
     public int demTheoNgay(LocalDate ngay) throws SQLException {
-        try (Connection conn = ConnectDB.getConnection();
+        try (Connection conn = ConnectDB.layConnection();
              PreparedStatement ps = conn.prepareStatement(
                      "SELECT COUNT(*) FROM PhieuKham WHERE NgayKham = ? AND TrangThai <> ?")) {
             ps.setDate(1, Date.valueOf(ngay));
@@ -251,7 +251,7 @@ public class PhieuKhamDao {
                     throw new IllegalArgumentException("Lịch hẹn không thuộc bệnh nhân đang chọn.");
                 }
                 String tt = rs.getString("TrangThai");
-                if (!LichHenDao.CHO_XAC_NHAN.equals(tt) && !LichHenDao.DA_XAC_NHAN.equals(tt)) {
+                if (!LichHenLeTanDAO.CHO_XAC_NHAN.equals(tt) && !LichHenLeTanDAO.DA_XAC_NHAN.equals(tt)) {
                     throw new IllegalArgumentException("Lịch hẹn đang ở trạng thái \"" + tt
                             + "\", không thể check-in.");
                 }
@@ -344,19 +344,19 @@ public class PhieuKhamDao {
         }
     }
 
-    private int insert(Connection conn, PhieuKham pk) throws SQLException {
+    private int themMoi(Connection conn, PhieuKham pk) throws SQLException {
         String sql = "INSERT INTO PhieuKham (MaBN, MaPhong, MaLH, NgayKham, SoThuTu, TrangThai, GhiChu) "
                 + "VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, pk.getMaBN());
-            if (pk.getMaPhong() == null) ps.setNull(2, Types.INTEGER);
-            else ps.setInt(2, pk.getMaPhong());
-            if (pk.getMaLH() == null) ps.setNull(3, Types.INTEGER);
-            else ps.setInt(3, pk.getMaLH());
-            ps.setDate(4, Date.valueOf(pk.getNgayKham()));
-            ps.setInt(5, pk.getSoThuTu());
-            ps.setString(6, pk.getTrangThai());
-            ps.setString(7, pk.getGhiChu());
+            ps.setInt(1, pk.layMaBN());
+            if (pk.layMaPhong() == null) ps.setNull(2, Types.INTEGER);
+            else ps.setInt(2, pk.layMaPhong());
+            if (pk.layMaLH() == null) ps.setNull(3, Types.INTEGER);
+            else ps.setInt(3, pk.layMaLH());
+            ps.setDate(4, Date.valueOf(pk.layNgayKham()));
+            ps.setInt(5, pk.laySoThuTu());
+            ps.setString(6, pk.layTrangThai());
+            ps.setString(7, pk.layGhiChu());
             ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 return keys.next() ? keys.getInt(1) : 0;
@@ -364,7 +364,7 @@ public class PhieuKhamDao {
         }
     }
 
-    private int update(Connection conn, int maPK, Integer maPhong, String trangThai,
+    private int capNhat(Connection conn, int maPK, Integer maPhong, String trangThai,
                        String ghiChu, boolean capNhatGhiChu) throws SQLException {
         String sql = "UPDATE PhieuKham SET MaPhong = ?, TrangThai = ?"
                 + (capNhatGhiChu ? ", GhiChu = ?" : "") + " WHERE MaPK = ?";
@@ -401,20 +401,20 @@ public class PhieuKhamDao {
 
     private PhieuKham doc(ResultSet rs) throws SQLException {
         PhieuKham pk = new PhieuKham();
-        pk.setMaPK(rs.getInt("MaPK"));
-        pk.setMaBN(rs.getInt("MaBN"));
+        pk.datMaPK(rs.getInt("MaPK"));
+        pk.datMaBN(rs.getInt("MaBN"));
         int maPhong = rs.getInt("MaPhong");
-        pk.setMaPhong(rs.wasNull() ? null : maPhong);
+        pk.datMaPhong(rs.wasNull() ? null : maPhong);
         int maLH = rs.getInt("MaLH");
-        pk.setMaLH(rs.wasNull() ? null : maLH);
+        pk.datMaLH(rs.wasNull() ? null : maLH);
         Date ngay = rs.getDate("NgayKham");
-        pk.setNgayKham(ngay == null ? null : ngay.toLocalDate());
-        pk.setSoThuTu(rs.getInt("SoThuTu"));
-        pk.setTrangThai(rs.getString("TrangThai"));
-        pk.setGhiChu(rs.getString("GhiChu"));
-        pk.setTenBenhNhan(rs.getString("TenBN"));
-        pk.setMaBenhNhanHienThi(String.format("BN%03d", pk.getMaBN()));
-        pk.setTenPhong(rs.getString("TenPhong"));
+        pk.datNgayKham(ngay == null ? null : ngay.toLocalDate());
+        pk.datSoThuTu(rs.getInt("SoThuTu"));
+        pk.datTrangThai(rs.getString("TrangThai"));
+        pk.datGhiChu(rs.getString("GhiChu"));
+        pk.datTenBenhNhan(rs.getString("TenBN"));
+        pk.datMaBenhNhanHienThi(String.format("BN%03d", pk.layMaBN()));
+        pk.datTenPhong(rs.getString("TenPhong"));
         return pk;
     }
 }

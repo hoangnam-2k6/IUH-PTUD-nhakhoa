@@ -4,6 +4,6 @@ package Entity;
 public class LeTan extends NhanVien {
     private String caLamViec;
     public LeTan() { super(); }
-    public String getCaLamViec() { return caLamViec; }
-    public void setCaLamViec(String caLamViec) { this.caLamViec = caLamViec; }
+    public String layCaLamViec() { return caLamViec; }
+    public void datCaLamViec(String caLamViec) { this.caLamViec = caLamViec; }
 }

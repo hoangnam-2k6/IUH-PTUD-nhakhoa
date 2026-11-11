@@ -34,11 +34,11 @@ public class BenhNhanDAO {
     }
 
     // 1. Lấy tất cả bệnh nhân
-    public ArrayList<BenhNhan> getallbenhnhan() {
+    public ArrayList<BenhNhan> layTatCaBenhnhan() {
 
         ArrayList<BenhNhan> dsbn = new ArrayList<BenhNhan>();
 
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.layConnection()) {
 
         String sql = "SELECT maBN, hoten, ngaysinh, gioitinh, "
                    + "sdt, email, diachi, tiensubenh, trangthai "
@@ -95,9 +95,9 @@ public class BenhNhanDAO {
 }
 
     // 2. Thêm bệnh nhân
-    public boolean create(BenhNhan bn) {
+    public boolean themMoi(BenhNhan bn) {
 
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.layConnection()) {
 
         int n = 0;
 
@@ -108,27 +108,27 @@ public class BenhNhanDAO {
 
         try (PreparedStatement stmt = con.prepareStatement(sql)) {
 
-            stmt.setString(1, bn.getHoten());
+            stmt.setString(1, bn.layHoten());
 
-            if (bn.getNgaysinh() != null) {
-                stmt.setDate(2, Date.valueOf(bn.getNgaysinh()));
+            if (bn.layNgaysinh() != null) {
+                stmt.setDate(2, Date.valueOf(bn.layNgaysinh()));
             } else {
                 stmt.setNull(2, Types.DATE);
             }
 
-            if (bn.getGioitinh() != null) {
-                stmt.setString(3, bn.getGioitinh().name());
+            if (bn.layGioitinh() != null) {
+                stmt.setString(3, bn.layGioitinh().name());
             } else {
                 stmt.setNull(3, Types.NVARCHAR);
             }
 
-            stmt.setString(4, bn.getSdt());
-            stmt.setString(5, bn.getEmail());
-            stmt.setString(6, bn.getDiachi());
-            stmt.setString(7, bn.getTiensubenh());
+            stmt.setString(4, bn.laySdt());
+            stmt.setString(5, bn.layEmail());
+            stmt.setString(6, bn.layDiachi());
+            stmt.setString(7, bn.layTiensubenh());
 
-            if (bn.getTrangthai() != null) {
-                stmt.setString(8, bn.getTrangthai().name());
+            if (bn.layTrangthai() != null) {
+                stmt.setString(8, bn.layTrangthai().name());
             } else {
                 stmt.setNull(8, Types.NVARCHAR);
             }
@@ -147,9 +147,9 @@ public class BenhNhanDAO {
 }
 
     // 3. Cập nhật bệnh nhân
-    public boolean update(BenhNhan bn) {
+    public boolean capNhat(BenhNhan bn) {
 
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.layConnection()) {
 
         int n = 0;
 
@@ -166,32 +166,32 @@ public class BenhNhanDAO {
 
         try (PreparedStatement stmt = con.prepareStatement(sql)) {
 
-            stmt.setString(1, bn.getHoten());
+            stmt.setString(1, bn.layHoten());
 
-            if (bn.getNgaysinh() != null) {
-                stmt.setDate(2, Date.valueOf(bn.getNgaysinh()));
+            if (bn.layNgaysinh() != null) {
+                stmt.setDate(2, Date.valueOf(bn.layNgaysinh()));
             } else {
                 stmt.setNull(2, Types.DATE);
             }
 
-            if (bn.getGioitinh() != null) {
-                stmt.setString(3, bn.getGioitinh().name());
+            if (bn.layGioitinh() != null) {
+                stmt.setString(3, bn.layGioitinh().name());
             } else {
                 stmt.setNull(3, Types.NVARCHAR);
             }
 
-            stmt.setString(4, bn.getSdt());
-            stmt.setString(5, bn.getEmail());
-            stmt.setString(6, bn.getDiachi());
-            stmt.setString(7, bn.getTiensubenh());
+            stmt.setString(4, bn.laySdt());
+            stmt.setString(5, bn.layEmail());
+            stmt.setString(6, bn.layDiachi());
+            stmt.setString(7, bn.layTiensubenh());
 
-            if (bn.getTrangthai() != null) {
-                stmt.setString(8, bn.getTrangthai().name());
+            if (bn.layTrangthai() != null) {
+                stmt.setString(8, bn.layTrangthai().name());
             } else {
                 stmt.setNull(8, Types.NVARCHAR);
             }
 
-            stmt.setString(9, bn.getMaBN());
+            stmt.setString(9, bn.layMaBN());
 
             n = stmt.executeUpdate();
 
@@ -207,9 +207,9 @@ public class BenhNhanDAO {
 }
 
     // 4. Xóa bệnh nhân
-    public boolean delete(String maBN) {
+    public boolean xoa(String maBN) {
 
-        try (Connection con = ConnectDB.getConnection()) {
+        try (Connection con = ConnectDB.layConnection()) {
 
         int n = 0;
 
@@ -239,7 +239,7 @@ public class BenhNhanDAO {
 	
 	    ArrayList<BenhNhan> dsbn = new ArrayList<>();
 	
-		    try (Connection con = ConnectDB.getConnection()) {
+		    try (Connection con = ConnectDB.layConnection()) {
 	
 	    StringBuilder sql = new StringBuilder(
 	        "SELECT maBN, hoten, ngaysinh, gioitinh, "
@@ -328,10 +328,10 @@ public class BenhNhanDAO {
         }
 }
 	// Lấy một bệnh nhân theo mã
-	public BenhNhan getBenhNhanByMaBN(String maBN) throws SQLException {
+	public BenhNhan layBenhNhanByMaBN(String maBN) throws SQLException {
 
 	
-	    try (Connection con = ConnectDB.getConnection()) {
+	    try (Connection con = ConnectDB.layConnection()) {
 
 	    if (con == null) {
 	        throw new SQLException("Chưa kết nối SQL Server!");
@@ -397,4 +397,13 @@ public class BenhNhanDAO {
 	
         } // đóng handle JDBC sau mỗi thao tác
 }
+
+    /** Mã dự kiến để hiển thị form; ID chính thức do SQL Server IDENTITY cấp. */
+    public String layMaBenhNhanTiepTheo() throws java.sql.SQLException {
+        try (java.sql.Connection c=ConnectDB.taoKetNoiMoi();
+             java.sql.PreparedStatement q=c.prepareStatement("SELECT ISNULL(MAX(MaBN),0)+1 FROM dbo.BenhNhan");
+             java.sql.ResultSet r=q.executeQuery()) {
+            return "BN" + String.format("%06d",r.next()?r.getInt(1):1);
+        }
+    }
 }

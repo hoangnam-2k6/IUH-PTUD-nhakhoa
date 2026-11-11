@@ -1,7 +1,7 @@
 package UI.LeTan;
 
-import Dao.DichVuDao;
-import Dao.HoaDonDao;
+import DAO.DichVuDAO;
+import DAO.HoaDonLeTanDAO;
 import Entity.ChiTietHoaDon;
 import Entity.DichVu;
 import Entity.HoaDon;
@@ -27,8 +27,8 @@ import static UI.LeTan.GiaoDien.*;
  * Chỉ sửa được hóa đơn chưa thanh toán; mọi thay đổi được ghi thẳng xuống CSDL qua DAO.
  */
 public class HoaDonDialog extends JDialog {
-    private final HoaDonDao hoaDonDao = new HoaDonDao();
-    private final DichVuDao dichVuDao = new DichVuDao();
+    private final HoaDonLeTanDAO hoaDonDao = new HoaDonLeTanDAO();
+    private final DichVuDAO dichVuDao = new DichVuDAO();
     private final TaiKhoan taiKhoan;
     private final PhieuKham phieuKham;
     private final HoaDon hoaDon;
@@ -59,7 +59,7 @@ public class HoaDonDialog extends JDialog {
         this.phieuKham = phieuKham;
         this.hoaDon = hoaDon;
         if (hoaDon != null) {
-            chiTiet.addAll(hoaDon.getChiTiet());
+            chiTiet.addAll(hoaDon.layChiTiet());
         }
 
         setLayout(new BorderLayout());
@@ -96,7 +96,7 @@ public class HoaDonDialog extends JDialog {
             return false;
         }
         try {
-            HoaDon dayDu = new HoaDonDao().findDayDu(hoaDon.getMaHD());
+            HoaDon dayDu = new HoaDonLeTanDAO().timDayDu(hoaDon.layMaHD());
             if (dayDu == null) {
                 throw new IllegalArgumentException("Hóa đơn không còn tồn tại, vui lòng làm mới danh sách.");
             }
@@ -114,11 +114,11 @@ public class HoaDonDialog extends JDialog {
 
     private static String tieuDe(PhieuKham pk, HoaDon hd) {
         if (hd != null) {
-            return String.format("Sửa hóa đơn HD%03d", hd.getMaHD());
+            return String.format("Sửa hóa đơn HD%03d", hd.layMaHD());
         }
         if (pk == null) return "Lập hóa đơn";
-        return String.format("Lập hóa đơn cho PK%03d - %s", pk.getMaPK(),
-                pk.getTenBenhNhan() == null ? "bệnh nhân" : pk.getTenBenhNhan());
+        return String.format("Lập hóa đơn cho PK%03d - %s", pk.layMaPK(),
+                pk.layTenBenhNhan() == null ? "bệnh nhân" : pk.layTenBenhNhan());
     }
 
     // ===================== Giao diện =====================
@@ -129,30 +129,30 @@ public class HoaDonDialog extends JDialog {
         dau.setBorder(BorderFactory.createEmptyBorder(14, 18, 10, 18));
 
         JLabel tieuDe = new JLabel(hoaDon == null ? "LẬP HÓA ĐƠN" : "SỬA HÓA ĐƠN");
-        tieuDe.setFont(font(Font.BOLD, 19));
+        tieuDe.setFont(taoPhongChu(Font.BOLD, 19));
         tieuDe.setForeground(CHU_CHINH);
 
         String benhNhan;
         String thongTin;
         if (hoaDon != null) {
-            benhNhan = hoaDon.getTenBenhNhan();
+            benhNhan = hoaDon.layTenBenhNhan();
             thongTin = String.format("HD%03d  ·  PK%03d  ·  Ngày khám %s  ·  %s",
-                    hoaDon.getMaHD(), hoaDon.getMaPK(),
-                    hoaDon.getNgayKham() == null ? "—" : dinhDangNgay(hoaDon.getNgayKham()),
-                    hoaDon.getTenPhong() == null ? "Chưa phân phòng" : hoaDon.getTenPhong());
+                    hoaDon.layMaHD(), hoaDon.layMaPK(),
+                    hoaDon.layNgayKham() == null ? "—" : dinhDangNgay(hoaDon.layNgayKham()),
+                    hoaDon.layTenPhong() == null ? "Chưa phân phòng" : hoaDon.layTenPhong());
         } else {
-            benhNhan = phieuKham == null ? "—" : phieuKham.getTenBenhNhan();
+            benhNhan = phieuKham == null ? "—" : phieuKham.layTenBenhNhan();
             thongTin = phieuKham == null ? "—" : String.format("PK%03d  ·  Ngày khám %s  ·  %s",
-                    phieuKham.getMaPK(),
-                    phieuKham.getNgayKham() == null ? "—" : dinhDangNgay(phieuKham.getNgayKham()),
-                    phieuKham.getTenPhong() == null ? "Chưa phân phòng" : phieuKham.getTenPhong());
+                    phieuKham.layMaPK(),
+                    phieuKham.layNgayKham() == null ? "—" : dinhDangNgay(phieuKham.layNgayKham()),
+                    phieuKham.layTenPhong() == null ? "Chưa phân phòng" : phieuKham.layTenPhong());
         }
 
         JLabel lblBenhNhan = new JLabel(benhNhan);
-        lblBenhNhan.setFont(font(Font.BOLD, 14));
+        lblBenhNhan.setFont(taoPhongChu(Font.BOLD, 14));
         lblBenhNhan.setForeground(MAU_CHINH_DAM);
         JLabel lblThongTin = new JLabel(thongTin);
-        lblThongTin.setFont(font(Font.PLAIN, 12));
+        lblThongTin.setFont(taoPhongChu(Font.PLAIN, 12));
         lblThongTin.setForeground(CHU_PHU);
 
         JPanel chu = new JPanel(new GridLayout(0, 1, 0, 3));
@@ -163,8 +163,8 @@ public class HoaDonDialog extends JDialog {
         dau.add(chu, BorderLayout.WEST);
 
         if (hoaDon != null) {
-            JLabel trangThai = new JLabel(hoaDon.getTrangThai());
-            trangThai.setFont(font(Font.BOLD, 13));
+            JLabel trangThai = new JLabel(hoaDon.layTrangThai());
+            trangThai.setFont(taoPhongChu(Font.BOLD, 13));
             trangThai.setForeground(hoaDon.chuaThanhToan()
                     ? Color.decode("#B45309") : Color.decode("#047857"));
             dau.add(trangThai, BorderLayout.EAST);
@@ -182,9 +182,9 @@ public class HoaDonDialog extends JDialog {
         tieuDeDichVu.setAlignmentX(Component.LEFT_ALIGNMENT);
         noi.add(tieuDeDichVu);
 
-        cbDichVu.setFont(font(Font.PLAIN, 14));
+        cbDichVu.setFont(taoPhongChu(Font.PLAIN, 14));
         cbDichVu.setPreferredSize(new Dimension(360, 34));
-        oSoLuong.setFont(font(Font.PLAIN, 14));
+        oSoLuong.setFont(taoPhongChu(Font.PLAIN, 14));
         oSoLuong.setPreferredSize(new Dimension(70, 34));
         JButton nutThem = taoNut("+ Thêm dòng", MAU_CHINH, MAU_CHINH_DAM);
         nutThem.addActionListener(e -> themDong());
@@ -228,7 +228,7 @@ public class HoaDonDialog extends JDialog {
         hangDong.add(nutSuaSl);
         hangDong.add(nutXoaDong);
         JLabel goiY = new JLabel("Bấm đúp vào một dòng để đổi số lượng.");
-        goiY.setFont(font(Font.PLAIN, 12));
+        goiY.setFont(taoPhongChu(Font.PLAIN, 12));
         goiY.setForeground(CHU_PHU);
         hangDong.add(goiY);
         noi.add(hangDong);
@@ -247,7 +247,7 @@ public class HoaDonDialog extends JDialog {
         JPanel ghiChu = new JPanel(new BorderLayout(0, 4));
         ghiChu.setOpaque(false);
         JLabel lblGhiChu = new JLabel("Ghi chú hóa đơn");
-        lblGhiChu.setFont(font(Font.BOLD, 13));
+        lblGhiChu.setFont(taoPhongChu(Font.BOLD, 13));
         lblGhiChu.setForeground(CHU_CHINH);
         ghiChu.add(lblGhiChu, BorderLayout.NORTH);
         ghiChu.add(boc(oGhiChu), BorderLayout.CENTER);
@@ -269,7 +269,7 @@ public class HoaDonDialog extends JDialog {
 
         soTien.add(nhanTien("TỔNG CỘNG"));
         dinhDangTien(lblTongTien, MAU_CHINH_DAM);
-        lblTongTien.setFont(font(Font.BOLD, 18));
+        lblTongTien.setFont(taoPhongChu(Font.BOLD, 18));
         soTien.add(lblTongTien);
 
         oGiamGia.getDocument().addDocumentListener(new DocumentListener() {
@@ -285,13 +285,13 @@ public class HoaDonDialog extends JDialog {
 
     private static JLabel nhanTien(String chu) {
         JLabel l = new JLabel(chu);
-        l.setFont(font(Font.BOLD, 13));
+        l.setFont(taoPhongChu(Font.BOLD, 13));
         l.setForeground(CHU_CHINH);
         return l;
     }
 
     private static void dinhDangTien(JLabel l, Color mau) {
-        l.setFont(font(Font.BOLD, 14));
+        l.setFont(taoPhongChu(Font.BOLD, 14));
         l.setForeground(mau);
         l.setHorizontalAlignment(SwingConstants.RIGHT);
     }
@@ -314,7 +314,7 @@ public class HoaDonDialog extends JDialog {
 
     private void taiDichVu() {
         try {
-            dsDichVu.addAll(dichVuDao.findDangHoatDong());
+            dsDichVu.addAll(dichVuDao.timDangHoatDong());
         } catch (Exception e) {
             baoLoi(this, e);
         }
@@ -327,10 +327,10 @@ public class HoaDonDialog extends JDialog {
 
     private void napDuLieu() {
         if (hoaDon != null) {
-            if (hoaDon.getGiamGia().signum() > 0) {
-                oGiamGia.setText(tien(hoaDon.getGiamGia()));
+            if (hoaDon.layGiamGia().signum() > 0) {
+                oGiamGia.setText(tien(hoaDon.layGiamGia()));
             }
-            oGhiChu.setText(nz(hoaDon.getGhiChu()));
+            oGhiChu.setText(chuoiKhongNull(hoaDon.layGhiChu()));
         }
         capNhatBang();
     }
@@ -344,13 +344,13 @@ public class HoaDonDialog extends JDialog {
         }
         int soLuong = (Integer) oSoLuong.getValue();
         for (ChiTietHoaDon ct : chiTiet) {
-            if (Objects.equals(ct.getMaDV(), dv.getMaDVSo())) {
-                ct.setSoLuong(ct.getSoLuong() + soLuong);
+            if (Objects.equals(ct.layMaDV(), dv.layMaDVSo())) {
+                ct.datSoLuong(ct.laySoLuong() + soLuong);
                 capNhatBang();
                 return;
             }
         }
-        chiTiet.add(new ChiTietHoaDon(dv.getMaDVSo(), dv.getTenDichVu(), soLuong, dv.getDonGia()));
+        chiTiet.add(new ChiTietHoaDon(dv.layMaDVSo(), dv.layTenDichVu(), soLuong, dv.layDonGia()));
         capNhatBang();
         oSoLuong.setValue(1);
     }
@@ -364,14 +364,14 @@ public class HoaDonDialog extends JDialog {
         }
         ChiTietHoaDon ct = chiTiet.get(dong);
         String nhap = JOptionPane.showInputDialog(this,
-                "Số lượng cho \"" + ct.getTenDichVu() + "\":", String.valueOf(ct.getSoLuong()));
+                "Số lượng cho \"" + ct.layTenDichVu() + "\":", String.valueOf(ct.laySoLuong()));
         if (nhap == null) return;
         try {
             int soLuong = Integer.parseInt(nhap.trim());
             if (soLuong <= 0) {
                 throw new NumberFormatException();
             }
-            ct.setSoLuong(soLuong);
+            ct.datSoLuong(soLuong);
             capNhatBang();
             bang.setRowSelectionInterval(dong, dong);
         } catch (NumberFormatException e) {
@@ -397,10 +397,10 @@ public class HoaDonDialog extends JDialog {
         for (ChiTietHoaDon ct : chiTiet) {
             model.addRow(new Object[]{
                     stt++,
-                    ct.getTenDichVu(),
-                    ct.getSoLuong(),
-                    tien(ct.getDonGia()),
-                    tien(ct.getThanhTien())
+                    ct.layTenDichVu(),
+                    ct.laySoLuong(),
+                    tien(ct.layDonGia()),
+                    tien(ct.layThanhTien())
             });
         }
         capNhatTong();
@@ -419,7 +419,7 @@ public class HoaDonDialog extends JDialog {
     private BigDecimal tinhTamTinh() {
         BigDecimal tong = BigDecimal.ZERO;
         for (ChiTietHoaDon ct : chiTiet) {
-            tong = tong.add(ct.getThanhTien());
+            tong = tong.add(ct.layThanhTien());
         }
         return tong;
     }
@@ -444,11 +444,11 @@ public class HoaDonDialog extends JDialog {
         }
         try {
             if (hoaDon == null) {
-                hoaDonDao.taoHoaDon(phieuKham.getMaPK(),
-                        taiKhoan == null ? null : taiKhoan.getMaTK(),
+                hoaDonDao.taoHoaDon(phieuKham.layMaPK(),
+                        taiKhoan == null ? null : taiKhoan.layMaTK(),
                         chiTiet, giam, oGhiChu.getText());
             } else {
-                hoaDonDao.capNhatHoaDon(hoaDon.getMaHD(), chiTiet, giam, oGhiChu.getText());
+                hoaDonDao.capNhatHoaDon(hoaDon.layMaHD(), chiTiet, giam, oGhiChu.getText());
             }
             daLuu = true;
             dispose();
@@ -457,7 +457,7 @@ public class HoaDonDialog extends JDialog {
         }
     }
 
-    private static String nz(String s) {
+    private static String chuoiKhongNull(String s) {
         return s == null ? "" : s;
     }
 }

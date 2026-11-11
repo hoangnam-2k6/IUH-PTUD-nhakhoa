@@ -16,6 +16,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
 import javax.swing.*;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
@@ -24,6 +28,7 @@ import DAO.BenhNhanDAO;
 import Entity.BenhNhan;
 import enums.gioitinh;
 import enums.trangthaidieutri;
+import validation.Regex_BenhNhan;
 
 @SuppressWarnings("serial")
 public class SuaBenhNhanPanel extends JPanel implements ActionListener {
@@ -80,14 +85,15 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
         txtHoTen = taoTextField();
         txtNgaySinh = taoTextField();
         txtSDT = taoTextField();
+        chiChoNhapSo(txtSDT);
         txtEmail = taoTextField();
         txtDiaChi = taoTextArea();
         txtTienSuBenh = taoTextArea();
 
         cboGioiTinh = new JComboBox<>(gioitinh.values());
         cboTrangThai = new JComboBox<>(trangthaidieutri.values());
-        styleCombo(cboGioiTinh);
-        styleCombo(cboTrangThai);
+        dinhDangHopChon(cboGioiTinh);
+        dinhDangHopChon(cboTrangThai);
 
         JPanel form = taoPanelForm();
         themTruong(form, "Mã bệnh nhân", txtMaBN, 0, 0, 1);
@@ -103,8 +109,8 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
 
         btnHuy = new JButton("Hủy");
         btnLuu = new JButton("Lưu thay đổi");
-        styleButton(btnHuy, false);
-        styleButton(btnLuu, true);
+        dinhDangButton(btnHuy, false);
+        dinhDangButton(btnLuu, true);
         btnHuy.addActionListener(this);
         btnLuu.addActionListener(this);
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
@@ -150,7 +156,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
         return s;
     }
 
-    private void styleCombo(JComboBox<?> c) {
+    private void dinhDangHopChon(JComboBox<?> c) {
         c.setFont(new Font("Arial", Font.PLAIN, 14));
         c.setBackground(WHITE);
         c.setForeground(TEXT);
@@ -178,7 +184,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
         panel.add(field, gbc);
     }
 
-    private void styleButton(JButton b, boolean primary) {
+    private void dinhDangButton(JButton b, boolean primary) {
         b.setFont(new Font("Arial", Font.BOLD, 14));
         b.setBackground(primary ? PRIMARY : WHITE);
         b.setForeground(primary ? WHITE : TEXT);
@@ -190,24 +196,51 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
         b.setCursor(new Cursor(Cursor.HAND_CURSOR));
     }
 
+    // Lọc ký tự nhập vào; quy tắc chữ số được lấy từ validation.Regex_BenhNhan.
+    private void chiChoNhapSo(JTextField textField) {
+        ((AbstractDocument) textField.getDocument()).setDocumentFilter(new DocumentFilter() {
+            private boolean hopLe(String text) {
+                return Regex_BenhNhan.laSDTDangNhapHopLe(text);
+            }
+
+            @Override
+            public void insertString(FilterBypass fb, int offset, String text,
+                    AttributeSet attr) throws BadLocationException {
+                if (text == null) return;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + text + old.substring(offset);
+                if (hopLe(next)) super.insertString(fb, offset, text, attr);
+            }
+
+            @Override
+            public void replace(FilterBypass fb, int offset, int length, String text,
+                    AttributeSet attrs) throws BadLocationException {
+                String insert = text == null ? "" : text;
+                String old = fb.getDocument().getText(0, fb.getDocument().getLength());
+                String next = old.substring(0, offset) + insert + old.substring(offset + length);
+                if (hopLe(next)) super.replace(fb, offset, length, insert, attrs);
+            }
+        });
+    }
+
     private void taiThongTinBenhNhan() {
         try {
-            BenhNhan bn = bnDAO.getBenhNhanByMaBN(maBN);
+            BenhNhan bn = bnDAO.layBenhNhanByMaBN(maBN);
             if (bn == null) {
                 JOptionPane.showMessageDialog(this, "Không tìm thấy bệnh nhân: " + maBN,
                     "Thông báo", JOptionPane.WARNING_MESSAGE);
                 btnLuu.setEnabled(false);
                 return;
             }
-            txtMaBN.setText(bn.getMaBN());
-            txtHoTen.setText(bn.getHoten());
-            txtNgaySinh.setText(bn.getNgaysinh() == null ? "" : bn.getNgaysinh().toString());
-            cboGioiTinh.setSelectedItem(bn.getGioitinh());
-            txtSDT.setText(bn.getSdt());
-            txtEmail.setText(bn.getEmail());
-            txtDiaChi.setText(bn.getDiachi());
-            txtTienSuBenh.setText(bn.getTiensubenh());
-            cboTrangThai.setSelectedItem(bn.getTrangthai());
+            txtMaBN.setText(bn.layMaBN());
+            txtHoTen.setText(bn.layHoten());
+            txtNgaySinh.setText(bn.layNgaysinh() == null ? "" : bn.layNgaysinh().toString());
+            cboGioiTinh.setSelectedItem(bn.layGioitinh());
+            txtSDT.setText(bn.laySdt());
+            txtEmail.setText(bn.layEmail());
+            txtDiaChi.setText(bn.layDiachi());
+            txtTienSuBenh.setText(bn.layTiensubenh());
+            cboTrangThai.setSelectedItem(bn.layTrangthai());
         } catch (SQLException | IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(this,
                 "Lỗi lấy thông tin bệnh nhân: " + ex.getMessage(),
@@ -228,29 +261,71 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
     private void xuLySua() {
         try {
             String hoTen = txtHoTen.getText().trim();
-            if (hoTen.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Họ tên không được để trống!");
-                txtHoTen.requestFocusInWindow();
-                return;
-            }
-
             String ngay = txtNgaySinh.getText().trim();
             LocalDate ngaySinh = ngay.isEmpty() ? null : LocalDate.parse(ngay);
+            String sdt = txtSDT.getText().trim();
+            String email = txtEmail.getText().trim();
+            String diaChi = txtDiaChi.getText().trim();
+            String tienSuBenh = txtTienSuBenh.getText().trim();
+
             gioitinh gt = (gioitinh) cboGioiTinh.getSelectedItem();
             trangthaidieutri tt = (trangthaidieutri) cboTrangThai.getSelectedItem();
 
+            if (!Regex_BenhNhan.laMaBNHopLe(maBN)) {
+                JOptionPane.showMessageDialog(this, "Mã bệnh nhân không hợp lệ!");
+                return;
+            }
+            if (!Regex_BenhNhan.laHoTenHopLe(hoTen)) {
+                JOptionPane.showMessageDialog(this, "Họ tên không hợp lệ hoặc bị để trống!");
+                txtHoTen.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_BenhNhan.laNgaySinhHopLe(ngaySinh)) {
+                JOptionPane.showMessageDialog(this, "Ngày sinh không được lớn hơn ngày hiện tại!");
+                txtNgaySinh.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_BenhNhan.laGioiTinhHopLe(gt == null ? null : gt.name())) {
+                JOptionPane.showMessageDialog(this, "Giới tính không hợp lệ!");
+                return;
+            }
+            if (!Regex_BenhNhan.laSDTHopLe(sdt)) {
+                JOptionPane.showMessageDialog(this, "Số điện thoại không đúng định dạng!");
+                txtSDT.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_BenhNhan.laEmailHopLe(email)) {
+                JOptionPane.showMessageDialog(this, "Email không đúng định dạng!");
+                txtEmail.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_BenhNhan.laDiaChiHopLe(diaChi)) {
+                JOptionPane.showMessageDialog(this, "Địa chỉ không hợp lệ!");
+                txtDiaChi.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_BenhNhan.laTienSuBenhHopLe(tienSuBenh)) {
+                JOptionPane.showMessageDialog(this, "Tiền sử bệnh không hợp lệ!");
+                txtTienSuBenh.requestFocusInWindow();
+                return;
+            }
+            if (!Regex_BenhNhan.laTrangThaiHopLe(tt == null ? null : tt.name())) {
+                JOptionPane.showMessageDialog(this, "Trạng thái điều trị không hợp lệ!");
+                return;
+            }
+
             BenhNhan bn = new BenhNhan(
-                maBN, hoTen, ngaySinh, gt,
-                txtSDT.getText().trim(), txtEmail.getText().trim(),
-                txtDiaChi.getText().trim(), txtTienSuBenh.getText().trim(), tt
+                maBN, hoTen, ngaySinh, gt, sdt, email,
+                diaChi, tienSuBenh, tt
             );
 
-            boolean ketQua = bnDAO.update(bn);
+            boolean ketQua = bnDAO.capNhat(bn);
             if (!ketQua) {
                 JOptionPane.showMessageDialog(this, "Cập nhật bệnh nhân thất bại!",
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+
             JOptionPane.showMessageDialog(this, "Cập nhật bệnh nhân thành công!");
             suaThanhCong();
 
@@ -273,7 +348,7 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
         if (quayLai != null) quayLai.run();
     }
 
-    public void moframe() {
+    public void moKhung() {
         JFrame frame = new JFrame("Sửa bệnh nhân");
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setContentPane(this);
@@ -283,6 +358,6 @@ public class SuaBenhNhanPanel extends JPanel implements ActionListener {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new SuaBenhNhanPanel("BN001", null).moframe());
+        SwingUtilities.invokeLater(() -> new SuaBenhNhanPanel("BN001", null).moKhung());
     }
 }

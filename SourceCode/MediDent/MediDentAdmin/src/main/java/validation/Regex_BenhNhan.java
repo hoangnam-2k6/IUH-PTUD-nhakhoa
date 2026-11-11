@@ -68,7 +68,7 @@ public class Regex_BenhNhan {
     // NVARCHAR(20) NOT NULL
     // =====================================
 
-    public static boolean isValidMaBN(String maBN) {
+    public static boolean laMaBNHopLe(String maBN) {
 
         if (rong(maBN)) {
             return false;
@@ -84,7 +84,7 @@ public class Regex_BenhNhan {
     // NVARCHAR(150) NOT NULL
     // =====================================
 
-    public static boolean isValidHoTen(String hoTen) {
+    public static boolean laHoTenHopLe(String hoTen) {
 
         if (rong(hoTen)) {
             return false;
@@ -100,7 +100,7 @@ public class Regex_BenhNhan {
     // DATE NULL
     // =====================================
 
-    public static boolean isValidNgaySinh(LocalDate ngaySinh) {
+    public static boolean laNgaySinhHopLe(LocalDate ngaySinh) {
 
         // Không nhập ngày sinh vẫn hợp lệ
         if (ngaySinh == null) {
@@ -117,7 +117,7 @@ public class Regex_BenhNhan {
     // NVARCHAR(20) NULL
     // =====================================
 
-    public static boolean isValidGioiTinh(String gioiTinh) {
+    public static boolean laGioiTinhHopLe(String gioiTinh) {
 
         if (rong(gioiTinh)) {
             return true;
@@ -138,7 +138,7 @@ public class Regex_BenhNhan {
     // NVARCHAR(20) NULL
     // =====================================
 
-    public static boolean isValidSDT(String sdt) {
+    public static boolean laSDTHopLe(String sdt) {
 
         if (rong(sdt)) {
             return true;
@@ -154,7 +154,7 @@ public class Regex_BenhNhan {
     // NVARCHAR(150) NULL
     // =====================================
 
-    public static boolean isValidEmail(String email) {
+    public static boolean laEmailHopLe(String email) {
 
         if (rong(email)) {
             return true;
@@ -170,7 +170,7 @@ public class Regex_BenhNhan {
     // NVARCHAR(300) NULL
     // =====================================
 
-    public static boolean isValidDiaChi(String diaChi) {
+    public static boolean laDiaChiHopLe(String diaChi) {
 
         if (rong(diaChi)) {
             return true;
@@ -186,7 +186,7 @@ public class Regex_BenhNhan {
     // NVARCHAR(1000) NULL
     // =====================================
 
-    public static boolean isValidTienSuBenh(String tienSuBenh) {
+    public static boolean laTienSuBenhHopLe(String tienSuBenh) {
 
         if (rong(tienSuBenh)) {
             return true;
@@ -202,7 +202,7 @@ public class Regex_BenhNhan {
     // NVARCHAR(50) NULL
     // =====================================
 
-    public static boolean isValidTrangThai(String trangThai) {
+    public static boolean laTrangThaiHopLe(String trangThai) {
 
         if (rong(trangThai)) {
             return true;
@@ -219,5 +219,9 @@ public class Regex_BenhNhan {
         } catch (IllegalArgumentException e) {
             return false;
         }
+    }
+    /** Chỉ kiểm tra chuỗi đang nhập; xác thực cuối dùng các hàm la...HopLe hiện có. */
+    public static boolean laSDTDangNhapHopLe(String giaTri) {
+        return giaTri != null && giaTri.matches("[0-9]{0,10}");
     }
 }

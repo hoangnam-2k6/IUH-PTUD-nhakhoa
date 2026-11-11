@@ -1,129 +1,325 @@
+
 package UI.QuanLy;
 
-import ConnectDB.ConnectDB;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.Font;
+import DAO.ThongKeMoRongDAO;
+import UI.QuanLy.*;
+import util.XuatBaoCaoCSV;
+import java.awt.*;
+import java.io.File;
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 
-/** Báo cáo hoạt động đọc dữ liệu SQL, không dùng số giả hoặc kết nối riêng cho mỗi ô. */
 public class BaoCaoThongKePanel extends JPanel {
-    private static final Color XANH=new Color(0x0284C7);
-    private final JLabel doanhThu=new JLabel("—"),daThu=new JLabel("—"),choThu=new JLabel("—"),benhNhan=new JLabel("—");
-    private final JLabel tinhTrang=new JLabel("Đang tải dữ liệu...");
-    private final JComboBox<Integer> nam=new JComboBox<>();
-    private final DefaultTableModel model=new DefaultTableModel(
-        new String[]{"Tháng", "Giao dịch thành công", "Doanh thu", "Số bệnh nhân khám"},0){
-        @Override public boolean isCellEditable(int row,int col){return false;}
-    };
-    private final JButton taiLai=new JButton("Tải lại");
-    private int phienBaoCao;
-    private final NumberFormat tien=NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"));
+    private final ChucNangThongKe chucNang = new ChucNangThongKe();
+    private final ChonKhoangNgay khoangNgay = new ChonKhoangNgay();
+    private final JComboBox<String> loaiBaoCao = new JComboBox<>(new String[]{"Doanh thu", "Lượt khám"});
+    private final JLabel tongKet = new JLabel("Chưa có dữ liệu thống kê.");
+    private final JLabel thongBao = new JLabel("Chọn thời gian và loại báo cáo.");
 
-    public BaoCaoThongKePanel(){
-        setLayout(new BorderLayout(12,16));setBackground(new Color(0xF8FAFC));
-        setBorder(new EmptyBorder(22,25,22,25));
-        JPanel dau=new JPanel(new BorderLayout());dau.setOpaque(false);
-        JLabel title=new JLabel("Báo cáo hoạt động phòng khám");
-        title.setFont(new Font("Segoe UI",Font.BOLD,23));title.setForeground(new Color(0x0F172A));
-        dau.add(title,BorderLayout.WEST);
-        JPanel chon=new JPanel(new FlowLayout(FlowLayout.RIGHT,8,0));chon.setOpaque(false);
-        chon.add(new JLabel("Năm"));
-        int now=LocalDate.now().getYear();for(int y=now-3;y<=now+1;y++) nam.addItem(y);
-        nam.setSelectedItem(now);chon.add(nam);chon.add(taiLai);dau.add(chon,BorderLayout.EAST);
-        add(dau,BorderLayout.NORTH);
-        JPanel giua=new JPanel(new BorderLayout(0,14));giua.setOpaque(false);
-        JPanel chiSo=new JPanel(new java.awt.GridLayout(1,4,12,0));chiSo.setOpaque(false);
-        chiSo.add(o("Doanh thu năm",doanhThu));chiSo.add(o("Phiếu đã thu",daThu));
-        chiSo.add(o("Hóa đơn chờ thu",choThu));chiSo.add(o("Tổng bệnh nhân",benhNhan));
-        giua.add(chiSo,BorderLayout.NORTH);
-        JTable bang=new JTable(model);bang.setRowHeight(35);bang.setFillsViewportHeight(true);
-        bang.setAutoCreateRowSorter(true);
-        JPanel bao=new JPanel(new BorderLayout());bao.setBackground(Color.WHITE);
-        bao.setBorder(new EmptyBorder(10,10,10,10));bao.add(new JScrollPane(bang),BorderLayout.CENTER);
-        giua.add(bao,BorderLayout.CENTER);add(giua,BorderLayout.CENTER);
-        tinhTrang.setForeground(new Color(0x64748B));add(tinhTrang,BorderLayout.SOUTH);
-        taiLai.addActionListener(e->napDuLieu());nam.addActionListener(e->napDuLieu());
-        napDuLieu();
-    }
-    private JPanel o(String title,JLabel value){
-        JPanel p=new JPanel(new BorderLayout(0,7));p.setBackground(Color.WHITE);
-        p.setBorder(new EmptyBorder(15,17,15,17));
-        JLabel l=new JLabel(title);l.setForeground(new Color(0x64748B));
-        value.setForeground(XANH);value.setFont(new Font("Segoe UI",Font.BOLD,18));
-        p.add(l,BorderLayout.NORTH);p.add(value,BorderLayout.CENTER);
-        p.setPreferredSize(new Dimension(170,90));return p;
-    }
-    private static final class DuLieu {
-        BigDecimal doanhThu=BigDecimal.ZERO;
-        int daThu,choThu,benhNhan;
-        final int[] soGiaoDich=new int[13],luotKham=new int[13];
-        final BigDecimal[] theoThang=new BigDecimal[13];
-        DuLieu(){for(int i=0;i<13;i++)theoThang[i]=BigDecimal.ZERO;}
-    }
-    private void napDuLieu(){
-        if(nam.getSelectedItem()==null)return;
-        final int year=(Integer)nam.getSelectedItem();
-        final int phien=++phienBaoCao;
-        taiLai.setEnabled(false);
-        tinhTrang.setText("Đang đọc thống kê SQL năm "+year+"...");
-        new SwingWorker<DuLieu,Void>(){
-            @Override protected DuLieu doInBackground() throws SQLException {
-                DuLieu a=new DuLieu();
-                try(Connection c=ConnectDB.getConnection()){
-                    try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*),ISNULL(SUM(SoTien),0) FROM dbo.ThanhToan "
-                            +"WHERE TrangThai IN(N'Thành công',N'Đã thanh toán') AND YEAR(NgayThanhToan)=?")){
-                        p.setInt(1,year);try(ResultSet r=p.executeQuery()){
-                            if(r.next()){a.daThu=r.getInt(1);a.doanhThu=r.getBigDecimal(2);}
-                        }
-                    }
-                    try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*) FROM dbo.HoaDon WHERE TrangThai=N'Chưa thanh toán'")){
-                        try(ResultSet r=p.executeQuery()){if(r.next())a.choThu=r.getInt(1);}
-                    }
-                    try(PreparedStatement p=c.prepareStatement("SELECT COUNT(*) FROM dbo.BenhNhan")){
-                        try(ResultSet r=p.executeQuery()){if(r.next())a.benhNhan=r.getInt(1);}
-                    }
-                    try(PreparedStatement p=c.prepareStatement("SELECT MONTH(NgayThanhToan),COUNT(*),SUM(SoTien) FROM dbo.ThanhToan "
-                            +"WHERE TrangThai IN(N'Thành công',N'Đã thanh toán') AND YEAR(NgayThanhToan)=? "
-                            +"GROUP BY MONTH(NgayThanhToan)")){
-                        p.setInt(1,year);try(ResultSet r=p.executeQuery()){
-                            while(r.next()){int i=r.getInt(1);a.soGiaoDich[i]=r.getInt(2);a.theoThang[i]=r.getBigDecimal(3);}
-                        }
-                    }
-                    try(PreparedStatement p=c.prepareStatement("SELECT MONTH(NgayKham),COUNT(*) FROM dbo.PhieuKham "
-                            +"WHERE TrangThai<>N'Đã hủy' AND YEAR(NgayKham)=? GROUP BY MONTH(NgayKham)")){
-                        p.setInt(1,year);try(ResultSet r=p.executeQuery()){
-                            while(r.next())a.luotKham[r.getInt(1)]=r.getInt(2);
-                        }
-                    }
-                }return a;
+    private final JButton apDung = GiaoDienChung.nut("Áp dụng");
+    private final JButton xuat = GiaoDienChung.nut("Xuất CSV");
+
+    private final DefaultTableModel model = new DefaultTableModel(
+            new String[]{"STT", "Kỳ báo cáo", "Hóa đơn đã thu", "Hóa đơn chờ", "Doanh thu (VNĐ)"}, 0) {
+
+        @Override
+        public boolean isCellEditable(int r, int c) {
+            return false;
+        }
+
+        @Override
+        public Class<?> getColumnClass(int c) {
+            for (int i = 0; i < getRowCount(); i++) {
+                Object value = getValueAt(i, c);
+                if (value != null) return value.getClass();
             }
-            @Override protected void done(){
-                if(phien!=phienBaoCao)return;
-                taiLai.setEnabled(true);
-                try{
-                    DuLieu a=get();doanhThu.setText(tien.format(a.doanhThu)+" đ");
-                    daThu.setText(String.valueOf(a.daThu));choThu.setText(String.valueOf(a.choThu));
-                    benhNhan.setText(String.valueOf(a.benhNhan));model.setRowCount(0);
-                    for(int i=1;i<=12;i++)model.addRow(new Object[]{i+"/"+year,
-                        a.soGiaoDich[i],tien.format(a.theoThang[i])+" đ",a.luotKham[i]});
-                    tinhTrang.setText("Số liệu trực tiếp từ SQL Server, tính theo trạng thái thanh toán thành công.");
-                }catch(Exception ex){
-                    tinhTrang.setText("Không tải được báo cáo: "+(ex.getCause()==null?ex.getMessage():ex.getCause().getMessage()));
+            return c == 0 ? Integer.class : Object.class;
+        }
+    };
+
+    private final JTable bang = new JTable(model);
+    private final NumberFormat dinhDang = NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN"));
+
+    private String loaiDaLoc;
+    private LocalDate tuDaLoc, denDaLoc;
+    private boolean dangTai = false;
+
+    public BaoCaoThongKePanel() {
+        setLayout(new BorderLayout(8, 8));
+        setBackground(Color.WHITE);
+        setBorder(BorderFactory.createEmptyBorder(14, 15, 14, 15));
+
+        // Tiêu đề và thanh công cụ.
+        JPanel tren = new JPanel(new BorderLayout(0, 10));
+        tren.setOpaque(false);
+        tren.add(GiaoDienChung.tieuDe("BÁO CÁO - THỐNG KÊ"), BorderLayout.NORTH);
+
+        khoangNgay.setPreferredSize(new Dimension(245, 30));
+        loaiBaoCao.setPreferredSize(new Dimension(135, 30));
+
+        JPanel congCu = GiaoDienChung.hang();
+        congCu.add(new JLabel("Thời gian:"));
+        congCu.add(khoangNgay);
+        congCu.add(new JLabel("Loại báo cáo:"));
+        congCu.add(loaiBaoCao);
+        congCu.add(apDung);
+        congCu.add(xuat);
+
+        tren.add(congCu, BorderLayout.CENTER);
+        add(tren, BorderLayout.NORTH);
+
+        // Bảng thống kê cơ bản.
+        GiaoDienChung.bang(bang);
+        bang.setRowHeight(30);
+        bang.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
+        add(new JScrollPane(bang), BorderLayout.CENTER);
+
+        // Tổng kết và thông báo.
+        JPanel duoi = new JPanel(new GridLayout(2, 1, 0, 5));
+        duoi.setOpaque(false);
+
+        tongKet.setFont(new Font("Arial", Font.BOLD, 13));
+        thongBao.setFont(new Font("Arial", Font.PLAIN, 12));
+
+        duoi.add(tongKet);
+        duoi.add(thongBao);
+        add(duoi, BorderLayout.SOUTH);
+
+        dinhDang.setMaximumFractionDigits(0);
+        dinhDang.setMinimumFractionDigits(0);
+        xuat.setEnabled(false);
+
+        // Các sự kiện chức năng.
+        apDung.addActionListener(e -> taiBaoCao());
+        xuat.addActionListener(e -> xuatCSV());
+
+        khoangNgay.datKhiThayDoi(() -> {
+            xuat.setEnabled(false);
+            thongBao.setText("Thời gian đã thay đổi. Nhấn Áp dụng.");
+        });
+
+        loaiBaoCao.addActionListener(e -> {
+            xuat.setEnabled(false);
+            thongBao.setText("Loại báo cáo đã thay đổi. Nhấn Áp dụng.");
+        });
+
+        // Tự tải khi mở Panel.
+        addHierarchyListener(e -> {
+            if ((e.getChangeFlags() & java.awt.event.HierarchyEvent.SHOWING_CHANGED) != 0
+                    && isShowing()) taiBaoCao();
+        });
+    }
+
+    // Chức năng 1: Tải dữ liệu thống kê từ SQL Server.
+    public void taiBaoCao() {
+        if (dangTai) return;
+
+        String loai = (String) loaiBaoCao.getSelectedItem();
+        LocalDate tu = khoangNgay.layTuNgay();
+        LocalDate den = khoangNgay.layDenNgay();
+
+        dangTai = true;
+        apDung.setEnabled(false);
+        xuat.setEnabled(false);
+        khoangNgay.setEnabled(false);
+        loaiBaoCao.setEnabled(false);
+        thongBao.setText("Đang tải dữ liệu...");
+
+        new SwingWorker<ChucNangThongKe.BaoCao, Void>() {
+            @Override
+            protected ChucNangThongKe.BaoCao doInBackground() throws Exception {
+                return chucNang.tai(loai, tu, den);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    ChucNangThongKe.BaoCao ketQua = get();
+
+                    loaiDaLoc = loai;
+                    tuDaLoc = tu;
+                    denDaLoc = den;
+
+                    hienThiBaoCao(loai, ketQua.bang());
+
+                    int tongThu = 0;
+                    int tongCho = 0;
+                    int tongKham = 0;
+                    java.math.BigDecimal tongTien = java.math.BigDecimal.ZERO;
+
+                    for (Object[] dong : ketQua.bang().dong()) {
+                        if (loai.equals("Doanh thu")) {
+                            tongThu += ((Number) dong[2]).intValue();
+                            tongCho += ((Number) dong[3]).intValue();
+                            tongTien = tongTien.add((java.math.BigDecimal) dong[4]);
+                        } else {
+                            tongKham += ((Number) dong[4]).intValue();
+                        }
+                    }
+
+                    if (loai.equals("Doanh thu")) {
+                        tongKet.setText("Hóa đơn đã thu: " + tongThu
+                                + " | Hóa đơn chờ: " + tongCho
+                                + " | Tổng doanh thu: " + dinhDang.format(tongTien) + " VNĐ");
+                    } else {
+                        tongKet.setText("Tổng lượt khám hoàn thành: " + tongKham);
+                    }
+
+                    String thoiGian = tu == null ? "Tất cả thời gian" : tu + " đến " + den;
+                    thongBao.setText("Đã tải " + model.getRowCount() + " kỳ báo cáo"+ " | Nhóm theo " + ketQua.nhom() + " | " + thoiGian);
+                    
+                    if (model.getRowCount() > 0) {
+                        xuat.setEnabled(true);
+                    } else {
+                        xuat.setEnabled(false);
+                        tongKet.setText("Không có dữ liệu.");
+                        thongBao.setText("Không có dữ liệu trong khoảng thời gian đã chọn.");
+                    }
+                    
+                    
+                } catch (Exception loi) {
+                    loaiDaLoc = null;
+                    model.setRowCount(0);
+                    tongKet.setText("Không có dữ liệu.");
+                    thongBao.setText("Không tải được báo cáo.");
+                    GiaoDienChung.baoLoi(BaoCaoThongKePanel.this, loi);
+                } finally {
+                    dangTai = false;
+                    apDung.setEnabled(true);
+                    khoangNgay.setEnabled(true);
+                    loaiBaoCao.setEnabled(true);
                 }
             }
         }.execute();
+    }
+
+    // Chức năng 2: Hiển thị bảng tùy theo loại thống kê.
+    private void hienThiBaoCao(String loai, ThongKeMoRongDAO.Bang duLieu) {
+        // Lấy tên cột trực tiếp từ DAO để đồng bộ dữ liệu.
+        model.setColumnIdentifiers(duLieu.cot());
+        model.setRowCount(0);
+
+        // Thêm dữ liệu từ SQL vào JTable.
+        for (Object[] dong : duLieu.dong()) {
+            model.addRow(dong);
+        }
+
+        // Cập nhật giao diện bảng.
+        GiaoDienChung.bang(bang);
+        dinhDangBang();
+    }
+
+    // Định dạng JTable cơ bản và số tiền Việt Nam.
+    private void dinhDangBang() {
+        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean selected,
+                    boolean focus, int row, int column) {
+
+                super.getTableCellRendererComponent(table, value, selected, focus, row, column);
+
+                String tenCot = table.getColumnName(column);
+
+                if (value instanceof BigDecimal || value instanceof Number) {
+                    setText(dinhDang.format(value));
+                }
+
+                if (column == 0) {
+                    setHorizontalAlignment(SwingConstants.CENTER);
+                } else if (value instanceof Number) {
+                    setHorizontalAlignment(SwingConstants.RIGHT);
+                } else {
+                    setHorizontalAlignment(SwingConstants.LEFT);
+                }
+
+                setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));
+                setToolTipText(value == null ? null : value.toString());
+                return this;
+            }
+        };
+
+        for (int i = 0; i < bang.getColumnCount(); i++) {
+            bang.getColumnModel().getColumn(i).setCellRenderer(renderer);
+        }
+
+        bang.getColumnModel().getColumn(0).setPreferredWidth(55);
+        bang.getColumnModel().getColumn(1).setPreferredWidth(170);
+        bang.getTableHeader().setReorderingAllowed(false);
+    }
+
+    // Chức năng 3: Xuất báo cáo ra file CSV.
+    private void xuatCSV() {
+        if (dangTai || loaiDaLoc == null
+                || !Objects.equals(loaiDaLoc, loaiBaoCao.getSelectedItem())
+                || !Objects.equals(tuDaLoc, khoangNgay.layTuNgay())
+                || !Objects.equals(denDaLoc, khoangNgay.layDenNgay())) {
+            JOptionPane.showMessageDialog(this, "Hãy nhấn Áp dụng trước khi xuất CSV.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setSelectedFile(new File("ThongKeMediDent.csv"));
+
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+
+        File tep = chooser.getSelectedFile();
+
+        if (!tep.getName().toLowerCase(Locale.ROOT).endsWith(".csv")) {
+            tep = new File(tep.getPath() + ".csv");
+        }
+
+        if (tep.exists() && JOptionPane.showConfirmDialog(this,
+                "Ghi đè file đã có?", "Xác nhận",
+                JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
+
+        try {
+            String[] cot = new String[model.getColumnCount()];
+            for (int i = 0; i < cot.length; i++) cot[i] = model.getColumnName(i);
+
+            List<Object[]> danhSach = new ArrayList<>();
+
+            for (int i = 0; i < bang.getRowCount(); i++) {
+                int dongGoc = bang.convertRowIndexToModel(i);
+                Object[] dong = new Object[model.getColumnCount()];
+
+                for (int j = 0; j < dong.length; j++) {
+                    dong[j] = model.getValueAt(dongGoc, j);
+                }
+
+                danhSach.add(dong);
+            }
+
+            String thoiGian = tuDaLoc == null ? "Tất cả thời gian"
+                    : tuDaLoc + " đến " + denDaLoc;
+
+            XuatBaoCaoCSV.xuat(tep.toPath(), loaiDaLoc, thoiGian, cot, danhSach);
+
+            JOptionPane.showMessageDialog(this, "Xuất CSV thành công.");
+        } catch (Exception loi) {
+            GiaoDienChung.baoLoi(this, loi);
+        }
+    }
+
+    // Chạy Panel độc lập để kiểm tra giao diện.
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("MediDent - Báo cáo thống kê");
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setContentPane(new BaoCaoThongKePanel());
+            frame.setSize(1150, 720);
+            frame.setMinimumSize(new Dimension(950, 600));
+            frame.setLocationRelativeTo(null);
+            frame.setVisible(true);
+        });
     }
 }

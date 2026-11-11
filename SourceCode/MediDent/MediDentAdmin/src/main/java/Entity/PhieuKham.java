@@ -9,17 +9,17 @@ public class PhieuKham {
     private Integer maPhong, maLH;
     private LocalDate ngayKham;
     private String tenBenhNhan,tenPhong,maBenhNhanHienThi,trangThai=CHO_KHAM,ghiChu;
-    public int getMaPK(){return maPK;} public void setMaPK(int v){maPK=v;}
-    public int getMaBN(){return maBN;} public void setMaBN(int v){maBN=v;}
-    public int getSoThuTu(){return soThuTu;} public void setSoThuTu(int v){soThuTu=v;}
-    public Integer getMaPhong(){return maPhong;} public void setMaPhong(Integer v){maPhong=v;}
-    public Integer getMaLH(){return maLH;} public void setMaLH(Integer v){maLH=v;}
-    public LocalDate getNgayKham(){return ngayKham;} public void setNgayKham(LocalDate v){ngayKham=v;}
-    public String getTenBenhNhan(){return tenBenhNhan;} public void setTenBenhNhan(String v){tenBenhNhan=v;}
-    public String getTenPhong(){return tenPhong;} public void setTenPhong(String v){tenPhong=v;}
-    public String getMaBenhNhanHienThi(){return maBenhNhanHienThi;} public void setMaBenhNhanHienThi(String v){maBenhNhanHienThi=v;}
-    public String getTrangThai(){return trangThai;} public void setTrangThai(String v){trangThai=v;}
-    public String getGhiChu(){return ghiChu;} public void setGhiChu(String v){ghiChu=v;}
+    public int layMaPK(){return maPK;} public void datMaPK(int v){maPK=v;}
+    public int layMaBN(){return maBN;} public void datMaBN(int v){maBN=v;}
+    public int laySoThuTu(){return soThuTu;} public void datSoThuTu(int v){soThuTu=v;}
+    public Integer layMaPhong(){return maPhong;} public void datMaPhong(Integer v){maPhong=v;}
+    public Integer layMaLH(){return maLH;} public void datMaLH(Integer v){maLH=v;}
+    public LocalDate layNgayKham(){return ngayKham;} public void datNgayKham(LocalDate v){ngayKham=v;}
+    public String layTenBenhNhan(){return tenBenhNhan;} public void datTenBenhNhan(String v){tenBenhNhan=v;}
+    public String layTenPhong(){return tenPhong;} public void datTenPhong(String v){tenPhong=v;}
+    public String layMaBenhNhanHienThi(){return maBenhNhanHienThi;} public void datMaBenhNhanHienThi(String v){maBenhNhanHienThi=v;}
+    public String layTrangThai(){return trangThai;} public void datTrangThai(String v){trangThai=v;}
+    public String layGhiChu(){return ghiChu;} public void datGhiChu(String v){ghiChu=v;}
     public boolean daHuy(){return DA_HUY.equals(trangThai);}
     public boolean choKham(){return CHO_KHAM.equals(trangThai);}
     public boolean daKetThuc(){return HOAN_THANH.equals(trangThai)||DA_HUY.equals(trangThai);}

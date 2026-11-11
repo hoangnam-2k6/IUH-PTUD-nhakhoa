@@ -43,7 +43,7 @@ public final class XuatHoaDon {
     private XuatHoaDon() {}
 
     public static String tenFileGoiY(HoaDon hd) {
-        return String.format("HoaDon_HD%03d.html", hd.getMaHD());
+        return String.format("HoaDon_HD%03d.html", hd.layMaHD());
     }
 
     public static void ghiFile(HoaDon hd, Path duongDan) throws IOException {
@@ -60,7 +60,7 @@ public final class XuatHoaDon {
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        luuHtml(cha, tenFileGoiY(hd), taoHtml(hd), "Lưu hóa đơn " + String.format("HD%03d", hd.getMaHD()));
+        luuHtml(cha, tenFileGoiY(hd), taoHtml(hd), "Lưu hóa đơn " + String.format("HD%03d", hd.layMaHD()));
     }
 
     /** Xuất danh sách hóa đơn đang xem thành một trang HTML để in hoặc lưu trữ. */
@@ -116,15 +116,15 @@ public final class XuatHoaDon {
 
     public static String taoHtml(HoaDon hd) {
         NumberFormat tien = NumberFormat.getInstance(Locale.forLanguageTag("vi-VN"));
-        BenhNhan bn = hd.getBenhNhan();
-        String maHD = String.format("HD%03d", hd.getMaHD());
+        BenhNhan bn = hd.layBenhNhan();
+        String maHD = String.format("HD%03d", hd.layMaHD());
 
         StringBuilder h = new StringBuilder(6000);
         h.append("<!DOCTYPE html>\n<html lang=\"vi\"><head><meta charset=\"UTF-8\">")
                 .append("<title>Hóa đơn ").append(maHD).append("</title><style>")
                 .append("*{box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#f1f5f9;margin:0;padding:24px}")
                 .append("table{width:100%;border-collapse:collapse;font-size:13px}td,th{vertical-align:top}")
-                .append(".trang{max-width:800px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;padding:36px 40px;position:relative}")
+                .append(".trang{max-width:800px;margin:0 auto;background:#fff;border:3px double #0284c7;padding:36px 40px;position:relative;box-shadow:0 5px 25px #cbd5e1}")
                 .append(".dau{border-bottom:3px solid #0284c7;margin-bottom:18px}.dau td{padding:0 0 14px}")
                 .append(".dau h1{margin:0;font-size:20px;color:#0284c7}.dau p{margin:3px 0 0;font-size:12px;color:#64748b}")
                 .append(".so{text-align:right}.so b{font-size:15px}")
@@ -139,43 +139,38 @@ public final class XuatHoaDon {
                 .append(".ky{margin-top:34px;text-align:center;font-size:13px}.ky td{width:50%}")
                 .append(".ky small{color:#64748b;display:block;margin-bottom:56px}")
                 .append(".cam{text-align:center;margin-top:26px;color:#64748b;font-size:12px}")
-                .append(".tem{position:absolute;top:78px;right:40px;border:3px solid;padding:4px 14px;font-weight:700;font-size:15px;transform:rotate(8deg);opacity:.85;background:#fff}")
+                .append(".dauMoc{display:flex;align-items:center;justify-content:center;width:124px;height:124px;margin:0 auto 8px;border:3px double #0369a1;border-radius:50%;color:#0369a1;transform:rotate(-10deg);text-align:center;font-size:12px;font-weight:700;line-height:1.5;letter-spacing:.8px}")
                 .append(".xanh{color:#059669}.vang{color:#d97706}.do{color:#dc2626}")
                 .append(".nut{max-width:800px;margin:0 auto 14px;text-align:right}.nut button{background:#0284c7;color:#fff;border:0;padding:9px 20px;border-radius:6px;font-size:14px;cursor:pointer}")
-                .append("@media print{body{background:#fff;padding:0}.trang{border:0;max-width:none;padding:0}.nut{display:none}@page{margin:12mm}}")
+                .append("@media print{body{background:#fff;padding:0}.trang{border:3px double #0284c7;box-shadow:none;max-width:none;padding:28px 30px}.nut{display:none}@page{margin:12mm}}")
                 .append("</style></head><body>\n");
 
         h.append("<div class=\"nut\"><button onclick=\"window.print()\">In / Lưu PDF</button></div>\n");
         h.append("<div class=\"trang\">\n");
 
-        // Đóng dấu trạng thái
-        String loaiTem = "vang";
-        if ("Đã thanh toán".equals(hd.getTrangThai())) loaiTem = "xanh";
-        else if ("Đã hủy".equals(hd.getTrangThai())) loaiTem = "do";
-        h.append("<div class=\"tem ").append(loaiTem).append("\">").append(e(hd.getTrangThai()).toUpperCase(Locale.ROOT)).append("</div>\n");
-
-        h.append("<table class=\"dau\"><tr><td><h1>").append(e(TEN_PHONG_KHAM)).append("</h1><p>")
-                .append(e(DIA_CHI)).append("</p><p>").append(e(LIEN_HE)).append("</p></td>")
+        h.append("<table class=\"dau\"><tr><td><h1>").append(thoatHtml(TEN_PHONG_KHAM)).append("</h1><p>")
+                .append(thoatHtml(DIA_CHI)).append("</p><p>").append(thoatHtml(LIEN_HE)).append("</p></td>")
                 .append("<td class=\"so\"><b>Số: ").append(maHD).append("</b><p>Phiếu khám: ")
-                .append(String.format("PK%03d", hd.getMaPK())).append("</p></td></tr></table>\n");
+                .append(String.format("PK%03d", hd.layMaPK())).append("</p></td></tr></table>\n");
 
         h.append("<h2>HÓA ĐƠN THANH TOÁN</h2><div class=\"ngay\">Ngày lập: ")
-                .append(hd.getNgayLap().format(NGAY_GIO)).append("</div>\n");
+                .append(hd.layNgayLap().format(NGAY_GIO)).append("</div>\n");
 
         // Thông tin bệnh nhân (2 cột)
         List<String[]> thongTin = new ArrayList<>();
-        thongTin.add(new String[]{"Bệnh nhân:", bn != null ? bn.getHoTen() : hd.getTenBenhNhan()});
-        thongTin.add(new String[]{"Mã bệnh nhân:", bn != null ? String.format("BN%03d", bn.getMaBNSo()) : ""});
+        thongTin.add(new String[]{"Bệnh nhân:", bn != null ? bn.layHoTen() : hd.layTenBenhNhan()});
+        thongTin.add(new String[]{"Mã bệnh nhân:", bn != null ? String.format("BN%03d", bn.layMaBNSo()) : ""});
         if (bn != null) {
-            thongTin.add(new String[]{"Ngày sinh:", bn.getNgaySinh() == null ? "" : bn.getNgaySinh().format(NGAY) + " (" + bn.getTuoi() + " tuổi)"});
-            thongTin.add(new String[]{"Giới tính:", bn.getGioiTinh()});
-            thongTin.add(new String[]{"Số điện thoại:", bn.getSoDienThoai()});
-            thongTin.add(new String[]{"CMND/CCCD:", bn.getCccd()});
-            thongTin.add(new String[]{"Địa chỉ:", bn.getDiaChi()});
-            thongTin.add(new String[]{"Email:", bn.getEmail()});
+            thongTin.add(new String[]{"Ngày sinh:", bn.layNgaySinh() == null ? "" : bn.layNgaySinh().format(NGAY) + " (" + bn.layTuoi() + " tuổi)"});
+            thongTin.add(new String[]{"Giới tính:", bn.layGioiTinh()});
+            thongTin.add(new String[]{"Số điện thoại:", bn.laySoDienThoai()});
+            thongTin.add(new String[]{"CMND/CCCD:", bn.layCccd()});
+            thongTin.add(new String[]{"Địa chỉ:", bn.layDiaChi()});
+            thongTin.add(new String[]{"Email:", bn.layEmail()});
         }
-        thongTin.add(new String[]{"Ngày khám:", hd.getNgayKham() == null ? "" : hd.getNgayKham().format(NGAY)});
-        thongTin.add(new String[]{"STT / Phòng khám:", hd.getSoThuTu() + (hd.getTenPhong() == null ? "" : " / " + hd.getTenPhong())});
+        thongTin.add(new String[]{"Bác sĩ đã khám:", hd.layTenBacSi() == null || hd.layTenBacSi().isBlank() ? "Chưa cập nhật" : hd.layTenBacSi()});
+        thongTin.add(new String[]{"Ngày khám:", hd.layNgayKham() == null ? "" : hd.layNgayKham().format(NGAY)});
+        thongTin.add(new String[]{"STT / Phòng khám:", hd.laySoThuTu() + (hd.layTenPhong() == null ? "" : " / " + hd.layTenPhong())});
         h.append("<table class=\"tt\">");
         for (int i = 0; i < thongTin.size(); i += 2) {
             h.append("<tr>");
@@ -192,44 +187,46 @@ public final class XuatHoaDon {
                 .append("<th class=\"g\" style=\"width:60px\">SL</th><th class=\"p\" style=\"width:120px\">Đơn giá</th>")
                 .append("<th class=\"p\" style=\"width:130px\">Thành tiền</th></tr></thead><tbody>\n");
         int stt = 1;
-        for (ChiTietHoaDon ct : hd.getChiTiet()) {
-            h.append("<tr><td class=\"g\">").append(stt++).append("</td><td>").append(e(ct.getTenDichVu()))
-                    .append("</td><td class=\"g\">").append(ct.getSoLuong())
-                    .append("</td><td class=\"p\">").append(tien.format(ct.getDonGia()))
-                    .append("</td><td class=\"p\">").append(tien.format(ct.getThanhTien())).append("</td></tr>\n");
+        for (ChiTietHoaDon ct : hd.layChiTiet()) {
+            h.append("<tr><td class=\"g\">").append(stt++).append("</td><td>").append(thoatHtml(ct.layTenDichVu()))
+                    .append("</td><td class=\"g\">").append(ct.laySoLuong())
+                    .append("</td><td class=\"p\">").append(tien.format(ct.layDonGia()))
+                    .append("</td><td class=\"p\">").append(tien.format(ct.layThanhTien())).append("</td></tr>\n");
         }
         h.append("</tbody></table>\n");
 
         // Tổng kết
-        h.append("<table class=\"tong\"><tr><td>Tạm tính</td><td>").append(tien.format(hd.getTamTinh())).append(" đ</td></tr>");
-        if (hd.getGiamGia().signum() > 0) {
-            h.append("<tr><td>Giảm giá</td><td>- ").append(tien.format(hd.getGiamGia())).append(" đ</td></tr>");
+        h.append("<table class=\"tong\"><tr><td>Tạm tính</td><td>").append(tien.format(hd.layTamTinh())).append(" đ</td></tr>");
+        if (hd.layGiamGia().signum() > 0) {
+            h.append("<tr><td>Giảm giá</td><td>- ").append(tien.format(hd.layGiamGia())).append(" đ</td></tr>");
         }
-        h.append("<tr class=\"cuoi\"><td>TỔNG CỘNG</td><td>").append(tien.format(hd.getTongTien())).append(" đ</td></tr>");
-        h.append("<tr><td>Phương thức</td><td>").append(e(hd.getPhuongThucTT() == null ? "—" : hd.getPhuongThucTT())).append("</td></tr>");
-        if (hd.getNgayThanhToan() != null) {
-            h.append("<tr><td>Ngày thanh toán</td><td>").append(hd.getNgayThanhToan().format(NGAY_GIO)).append("</td></tr>");
+        h.append("<tr class=\"cuoi\"><td>TỔNG CỘNG</td><td>").append(tien.format(hd.layTongTien())).append(" đ</td></tr>");
+        h.append("<tr><td>Phương thức</td><td>").append(thoatHtml(hd.layPhuongThucTT() == null ? "—" : hd.layPhuongThucTT())).append("</td></tr>");
+        if (hd.layNgayThanhToan() != null) {
+            h.append("<tr><td>Ngày thanh toán</td><td>").append(hd.layNgayThanhToan().format(NGAY_GIO)).append("</td></tr>");
         }
-        if (hd.getTienKhachDua() != null) {
-            h.append("<tr><td>Tiền khách đưa</td><td>").append(tien.format(hd.getTienKhachDua())).append(" đ</td></tr>");
+        if (hd.layTienKhachDua() != null) {
+            h.append("<tr><td>Tiền khách đưa</td><td>").append(tien.format(hd.layTienKhachDua())).append(" đ</td></tr>");
         }
-        if (hd.getTienThua() != null) {
-            h.append("<tr><td>Tiền thừa trả khách</td><td>").append(tien.format(hd.getTienThua())).append(" đ</td></tr>");
+        if (hd.layTienThua() != null) {
+            h.append("<tr><td>Tiền thừa trả khách</td><td>").append(tien.format(hd.layTienThua())).append(" đ</td></tr>");
         }
         h.append("</table>\n");
 
-        if (hd.getGhiChu() != null && !hd.getGhiChu().isBlank()) {
-            h.append("<div class=\"chu\"><b>Ghi chú:</b> <i>").append(e(hd.getGhiChu())).append("</i></div>\n");
+        if (hd.layGhiChu() != null && !hd.layGhiChu().isBlank()) {
+            h.append("<div class=\"chu\"><b>Ghi chú:</b> <i>").append(thoatHtml(hd.layGhiChu())).append("</i></div>\n");
         }
-        if (hd.getLyDoHuy() != null && !hd.getLyDoHuy().isBlank()) {
-            h.append("<div class=\"chu\"><b>Lý do hủy:</b> <i>").append(e(hd.getLyDoHuy())).append("</i></div>\n");
+        if (hd.layLyDoHuy() != null && !hd.layLyDoHuy().isBlank()) {
+            h.append("<div class=\"chu\"><b>Lý do hủy:</b> <i>").append(thoatHtml(hd.layLyDoHuy())).append("</i></div>\n");
         }
 
-        h.append("<div class=\"chu\"><b>Bằng chữ:</b> <i>").append(e(docSoThanhChu(hd.getTongTien()))).append("</i></div>\n");
+        h.append("<div class=\"chu\"><b>Bằng chữ:</b> <i>").append(thoatHtml(docSoThanhChu(hd.layTongTien()))).append("</i></div>\n");
 
         h.append("<table class=\"ky\"><tr><td><small>(Ký, ghi rõ họ tên)</small><b>Người thanh toán</b></td>")
-                .append("<td><small>(Ký, ghi rõ họ tên)</small><b>Nhân viên lập hóa đơn</b></td></tr></table>\n");
-        h.append("<div class=\"cam\">Cảm ơn quý khách đã tin tưởng ").append(e(TEN_PHONG_KHAM)).append("!</div>\n");
+                .append("<td><div class=\"dauMoc\">MEDIDENT / NHA KHOA</div>")
+                .append("<small>Dấu minh họa - dùng dấu thật khi in chính thức</small>")
+                .append("<b>Nhân viên lập hóa đơn</b></td></tr></table>\n");
+        h.append("<div class=\"cam\">Cảm ơn quý khách đã tin tưởng ").append(thoatHtml(TEN_PHONG_KHAM)).append("!</div>\n");
         h.append("</div></body></html>\n");
         return h.toString();
     }
@@ -243,13 +240,13 @@ public final class XuatHoaDon {
         int soDaThu = 0, soChuaThu = 0, soHuy = 0;
 
         for (HoaDon hd : ds) {
-            tongTatCa = tongTatCa.add(hd.getTongTien());
+            tongTatCa = tongTatCa.add(hd.layTongTien());
             if (hd.daThanhToan()) {
                 soDaThu++;
-                tongDaThu = tongDaThu.add(hd.getTongTien());
+                tongDaThu = tongDaThu.add(hd.layTongTien());
             } else if (hd.chuaThanhToan()) {
                 soChuaThu++;
-                tongChuaThu = tongChuaThu.add(hd.getTongTien());
+                tongChuaThu = tongChuaThu.add(hd.layTongTien());
             } else {
                 soHuy++;
             }
@@ -278,8 +275,8 @@ public final class XuatHoaDon {
 
         h.append("<div class=\"nut\"><button onclick=\"window.print()\">In / Lưu PDF</button></div>\n");
         h.append("<div class=\"trang\">\n");
-        h.append("<table class=\"dau\"><tr><td><h1>").append(e(TEN_PHONG_KHAM)).append("</h1><p>")
-                .append(e(DIA_CHI)).append("</p><p>").append(e(LIEN_HE)).append("</p></td>")
+        h.append("<table class=\"dau\"><tr><td><h1>").append(thoatHtml(TEN_PHONG_KHAM)).append("</h1><p>")
+                .append(thoatHtml(DIA_CHI)).append("</p><p>").append(thoatHtml(LIEN_HE)).append("</p></td>")
                 .append("<td class=\"so\">Xuất lúc: ").append(LocalDateTime.now().format(NGAY_GIO)).append("</td></tr></table>\n");
         h.append("<h2>DANH SÁCH HÓA ĐƠN</h2><div class=\"ngay\">Tổng cộng ")
                 .append(ds.size()).append(" hóa đơn</div>\n");
@@ -293,33 +290,31 @@ public final class XuatHoaDon {
 
         h.append("<table class=\"ds\"><thead><tr><th style=\"width:70px\">Mã HĐ</th><th>Bệnh nhân</th>")
                 .append("<th style=\"width:130px\">Ngày lập</th><th class=\"p\" style=\"width:110px\">Tổng tiền</th>")
-                .append("<th style=\"width:110px\">Phương thức</th><th style=\"width:120px\">Trạng thái</th>")
+                .append("<th style=\"width:110px\">Phương thức</th>")
                 .append("<th style=\"width:130px\">Ngày thanh toán</th></tr></thead><tbody>\n");
         for (HoaDon hd : ds) {
-            String lop = hd.daThanhToan() ? "xanh" : (hd.daHuy() ? "do" : "vang");
-            h.append("<tr><td class=\"g\">").append(String.format("HD%03d", hd.getMaHD())).append("</td><td>")
-                    .append(e(hd.getTenBenhNhan() == null ? "—" : hd.getTenBenhNhan())).append("</td><td>")
-                    .append(hd.getNgayLap() == null ? "—" : hd.getNgayLap().format(NGAY_GIO)).append("</td><td class=\"p\">")
-                    .append(tien.format(hd.getTongTien())).append(" đ</td><td>")
-                    .append(e(hd.getPhuongThucTT() == null ? "—" : hd.getPhuongThucTT())).append("</td><td class=\"")
-                    .append(lop).append("\">").append(e(hd.getTrangThai())).append("</td><td>")
-                    .append(hd.getNgayThanhToan() == null ? "—" : hd.getNgayThanhToan().format(NGAY_GIO))
+            h.append("<tr><td class=\"g\">").append(String.format("HD%03d", hd.layMaHD())).append("</td><td>")
+                    .append(thoatHtml(hd.layTenBenhNhan() == null ? "—" : hd.layTenBenhNhan())).append("</td><td>")
+                    .append(hd.layNgayLap() == null ? "—" : hd.layNgayLap().format(NGAY_GIO)).append("</td><td class=\"p\">")
+                    .append(tien.format(hd.layTongTien())).append(" đ</td><td>")
+                    .append(thoatHtml(hd.layPhuongThucTT() == null ? "—" : hd.layPhuongThucTT())).append("</td><td>")
+                    .append(hd.layNgayThanhToan() == null ? "—" : hd.layNgayThanhToan().format(NGAY_GIO))
                     .append("</td></tr>\n");
         }
         h.append("</tbody></table>\n");
         h.append("<div class=\"cam\" style=\"text-align:center;margin-top:22px;color:#64748b;font-size:12px\">")
-                .append(e(TEN_PHONG_KHAM)).append(" · Báo cáo được tạo tự động từ phần mềm MediDent</div>\n");
+                .append(thoatHtml(TEN_PHONG_KHAM)).append(" · Báo cáo được tạo tự động từ phần mềm MediDent</div>\n");
         h.append("</div></body></html>\n");
         return h.toString();
     }
 
     private static void dong(StringBuilder h, String nhan, String giaTri) {
-        h.append("<td><span>").append(e(nhan)).append("</span>")
-                .append(giaTri == null || giaTri.isBlank() ? "—" : "<b>" + e(giaTri) + "</b>").append("</td>");
+        h.append("<td><span>").append(thoatHtml(nhan)).append("</span>")
+                .append(giaTri == null || giaTri.isBlank() ? "—" : "<b>" + thoatHtml(giaTri) + "</b>").append("</td>");
     }
 
     /** Thoát ký tự đặc biệt của HTML để dữ liệu nhập vào không phá vỡ trang hóa đơn. */
-    private static String e(String s) {
+    private static String thoatHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }

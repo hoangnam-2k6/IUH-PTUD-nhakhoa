@@ -12,6 +12,7 @@ import javax.swing.*;
 import javax.swing.border.*;
 
 import UI.Chung.HoTroPage;
+import UI.QuanLy.*;
 
 /** Frame riêng cho vai trò Lễ tân; menu lấy từ map quyền. */
 public final class LeTanGUI extends JFrame {
@@ -23,6 +24,8 @@ public final class LeTanGUI extends JFrame {
     private final Map<String,Boolean> quyenMenu = new LinkedHashMap<>();
     private final Map<String,JButton> nutMenu = new LinkedHashMap<>();
     private String maDangChon = "HOME";
+    private QuanLyPanel nhanVienManager, benhNhanManager, dichVuManager;
+    private JPanel khungNhanVien, khungBenhNhan, khungDichVu;
     private static final Color XANH = new Color(0x0284C7);
     private static final Color XANH_DAM = new Color(0x0369A1);
     private static final Color NEN = new Color(0xF8FAFC);
@@ -92,8 +95,7 @@ public final class LeTanGUI extends JFrame {
         JButton dangXuat = new JButton("Đăng xuất");
         dangXuat.setHorizontalAlignment(SwingConstants.LEFT);
         dangXuat.setFont(new Font("Segoe UI",Font.BOLD,12));
-        dangXuat.setBackground(Color.WHITE); 
-        dangXuat.setForeground(CHU_PHU);
+        dangXuat.setBackground(Color.WHITE); dangXuat.setForeground(CHU_PHU);
         dangXuat.setFocusPainted(false);
         dangXuat.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         dangXuat.setBorder(new CompoundBorder(new LineBorder(VIEN,1,true),new EmptyBorder(12,13,12,8)));
@@ -173,13 +175,56 @@ public final class LeTanGUI extends JFrame {
                 hienThiPanel(new KhamBenhLeTan(taiKhoan),"LT_KHAM"));
         if (quyenMenu.getOrDefault("LT_THANHTOAN",false))
             themNut("LT_THANHTOAN","Thanh toán và hóa đơn").addActionListener(e ->
-                hienThiPanel(new UI.QuanLy.ThanhToanPanel(new DAO.ThanhToanKhuyenMaiDAO(ConnectDB.ConnectDB::getConnection),taiKhoan.id),"LT_THANHTOAN"));
-        if (quyenMenu.getOrDefault("LT_THANHTOAN",false))
-            themNut("LT_LAP_HOADON","Lập hóa đơn theo dịch vụ").addActionListener(e ->
-                hienThiPanel(new ThanhToanHoaDonLeTan(taiKhoan),"LT_LAP_HOADON"));
+                hienThiPanel(new ThanhToanPanel(new DAO.ThanhToanKhuyenMaiDAO(ConnectDB.ConnectDB::layConnection),taiKhoan.id),"LT_THANHTOAN"));
         if (quyenMenu.getOrDefault("LT_TIEPNHAN",false))
             themNut("LT_TIEPNHAN","Tiếp nhận bệnh nhân").addActionListener(e ->
                 hienThiPanel(new TrangChuLeTan(taiKhoan),"LT_TIEPNHAN"));
+        // Quyền Quản lý được Admin cấp bổ sung cho Lễ tân; không mở nút Quản trị viên.
+        if (quyenMenu.getOrDefault("QL_NHANVIEN",false))
+            themNut("QL_NHANVIEN","Quản lý nhân viên").addActionListener(e -> {
+                if (nhanVienManager==null) {
+                    khungNhanVien=new JPanel(new BorderLayout());
+                    QuanLyNhanVienPanel ds=new QuanLyNhanVienPanel(
+                        () -> nhanVienManager.hienThi(new ThemNhanVienPanel(nhanVienManager::hienThiDanhSach)),
+                        id -> nhanVienManager.hienThi(new SuaNhanVienPanel(id,nhanVienManager::hienThiDanhSach)));
+                    nhanVienManager=new QuanLyPanel(khungNhanVien,ds,ds::taiNhanvien);
+                }
+                nhanVienManager.hienThiDanhSach();hienThiPanel(khungNhanVien,"QL_NHANVIEN");
+            });
+        if (quyenMenu.getOrDefault("QL_BENHNHAN",false))
+            themNut("QL_BENHNHAN","Quản lý bệnh nhân").addActionListener(e -> {
+                if (benhNhanManager==null) {
+                    khungBenhNhan=new JPanel(new BorderLayout());
+                    QuanLyBenhNhanPanel ds=new QuanLyBenhNhanPanel(
+                        () -> benhNhanManager.hienThi(new ThemBenhNhanPanel(benhNhanManager::hienThiDanhSach)),
+                        id -> benhNhanManager.hienThi(new SuaBenhNhanPanel(id,benhNhanManager::hienThiDanhSach)));
+                    benhNhanManager=new QuanLyPanel(khungBenhNhan,ds,() -> { try { ds.taiBenhnhan(); } catch (java.sql.SQLException ex) { throw new IllegalStateException(ex); } });
+                }
+                benhNhanManager.hienThiDanhSach();hienThiPanel(khungBenhNhan,"QL_BENHNHAN");
+            });
+        if (quyenMenu.getOrDefault("QL_DICHVU",false))
+            themNut("QL_DICHVU","Quản lý dịch vụ").addActionListener(e -> {
+                if (dichVuManager==null) {
+                    khungDichVu=new JPanel(new BorderLayout());
+                    QuanLyDichVuPanel ds=new QuanLyDichVuPanel(
+                        () -> dichVuManager.hienThi(new ThemDichVuPanel(dichVuManager::hienThiDanhSach)),
+                        id -> dichVuManager.hienThi(new SuaDichVuPanel(id,dichVuManager::hienThiDanhSach)));
+                    dichVuManager=new QuanLyPanel(khungDichVu,ds,ds::taiDichvu);
+                }
+                dichVuManager.hienThiDanhSach();hienThiPanel(khungDichVu,"QL_DICHVU");
+            });
+        if (quyenMenu.getOrDefault("QL_LICHHEN",false))
+            themNut("QL_LICHHEN","Quản lý lịch hẹn (QL)").addActionListener(e ->
+                hienThiPanel(new QuanLyLichHenLeTan(taiKhoan),"QL_LICHHEN"));
+        if (quyenMenu.getOrDefault("QL_THANHTOAN",false))
+            themNut("QL_THANHTOAN","Quản lý hóa đơn (QL)").addActionListener(e ->
+                hienThiPanel(new QuanLyHoaDonPanel(),"QL_THANHTOAN"));
+        if (quyenMenu.getOrDefault("QL_KHUYENMAI",false))
+            themNut("QL_KHUYENMAI","Quản lý khuyến mãi").addActionListener(e ->
+                hienThiPanel(new QuanLyKhuyenMaiPanel(new DAO.ThanhToanKhuyenMaiDAO(ConnectDB.ConnectDB::layConnection),taiKhoan.id),"QL_KHUYENMAI"));
+        if (quyenMenu.getOrDefault("QL_BAOCAO",false))
+            themNut("QL_BAOCAO","Báo cáo thống kê").addActionListener(e ->
+                hienThiPanel(new BaoCaoThongKePanel(),"QL_BAOCAO"));
         if (quyenMenu.getOrDefault("HOTRO",false))
             themNut("HOTRO","Hỗ trợ").addActionListener(e ->
                 hienThiPanel(new HoTroPage(taiKhoan),"HOTRO"));

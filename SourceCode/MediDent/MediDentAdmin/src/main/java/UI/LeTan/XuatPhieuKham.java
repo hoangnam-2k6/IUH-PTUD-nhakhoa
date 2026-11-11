@@ -29,7 +29,7 @@ public final class XuatPhieuKham {
     }
 
     public static String tenFileGoiY(PhieuKham pk) {
-        return String.format("PhieuKham_PK%03d.html", pk.getMaPK());
+        return String.format("PhieuKham_PK%03d.html", pk.layMaPK());
     }
 
     public static void ghiFile(PhieuKham pk, BenhNhan bn, KetQuaKham kq, Path duongDan) throws IOException {
@@ -83,7 +83,7 @@ public final class XuatPhieuKham {
 
     public static String taoHtml(PhieuKham pk, BenhNhan bn, KetQuaKham kq) {
         StringBuilder h = new StringBuilder(6000);
-        String maPK = String.format("PK%03d", pk.getMaPK());
+        String maPK = String.format("PK%03d", pk.layMaPK());
 
         h.append("<!DOCTYPE html>\n<html lang=\"vi\"><head><meta charset=\"UTF-8\">")
                 .append("<title>Phiếu khám ").append(maPK).append("</title><style>")
@@ -110,32 +110,32 @@ public final class XuatPhieuKham {
         h.append("<div class=\"nut\"><button onclick=\"window.print()\">In / Lưu PDF</button></div>\n");
         h.append("<div class=\"trang\">\n");
 
-        h.append("<table class=\"dau\"><tr><td><h1>").append(e(XuatHoaDon.TEN_PHONG_KHAM))
-                .append("</h1><p>").append(e(XuatHoaDon.DIA_CHI)).append("</p><p>")
-                .append(e(XuatHoaDon.LIEN_HE)).append("</p></td>")
+        h.append("<table class=\"dau\"><tr><td><h1>").append(thoatHtml(XuatHoaDon.TEN_PHONG_KHAM))
+                .append("</h1><p>").append(thoatHtml(XuatHoaDon.DIA_CHI)).append("</p><p>")
+                .append(thoatHtml(XuatHoaDon.LIEN_HE)).append("</p></td>")
                 .append("<td class=\"so\"><b>Số phiếu: ").append(maPK).append("</b><p>Ngày: ")
-                .append(pk.getNgayKham() == null ? "" : pk.getNgayKham().format(NGAY))
+                .append(pk.layNgayKham() == null ? "" : pk.layNgayKham().format(NGAY))
                 .append("</p></td></tr></table>\n");
 
         h.append("<h2>PHIẾU KHÁM BỆNH</h2><div class=\"ngay\">")
-                .append(kq != null && kq.getNgayCapNhat() != null
-                        ? "Cập nhật kết quả: " + kq.getNgayCapNhat().format(NGAY_GIO)
+                .append(kq != null && kq.layNgayCapNhat() != null
+                        ? "Cập nhật kết quả: " + kq.layNgayCapNhat().format(NGAY_GIO)
                         : "Phiếu tiếp nhận bệnh nhân")
                 .append("</div>\n");
 
         List<String[]> thongTin = new ArrayList<>();
-        thongTin.add(new String[]{"Bệnh nhân:", bn == null ? pk.getTenBenhNhan() : bn.getHoTen()});
-        thongTin.add(new String[]{"Mã bệnh nhân:", bn == null ? pk.getMaBenhNhanHienThi() : String.format("BN%03d", bn.getMaBNSo())});
+        thongTin.add(new String[]{"Bệnh nhân:", bn == null ? pk.layTenBenhNhan() : bn.layHoTen()});
+        thongTin.add(new String[]{"Mã bệnh nhân:", bn == null ? pk.layMaBenhNhanHienThi() : String.format("BN%03d", bn.layMaBNSo())});
         if (bn != null) {
-            thongTin.add(new String[]{"Ngày sinh:", bn.getNgaySinh() == null ? "" : bn.getNgaySinh().format(NGAY) + " (" + bn.getTuoi() + " tuổi)"});
-            thongTin.add(new String[]{"Giới tính:", bn.getGioiTinh()});
-            thongTin.add(new String[]{"Số điện thoại:", bn.getSoDienThoai()});
-            thongTin.add(new String[]{"Địa chỉ:", bn.getDiaChi()});
+            thongTin.add(new String[]{"Ngày sinh:", bn.layNgaySinh() == null ? "" : bn.layNgaySinh().format(NGAY) + " (" + bn.layTuoi() + " tuổi)"});
+            thongTin.add(new String[]{"Giới tính:", bn.layGioiTinh()});
+            thongTin.add(new String[]{"Số điện thoại:", bn.laySoDienThoai()});
+            thongTin.add(new String[]{"Địa chỉ:", bn.layDiaChi()});
         }
-        thongTin.add(new String[]{"Ngày khám:", pk.getNgayKham() == null ? "" : pk.getNgayKham().format(NGAY)});
-        thongTin.add(new String[]{"Phòng khám:", pk.getTenPhong()});
-        thongTin.add(new String[]{"Trạng thái:", pk.getTrangThai()});
-        thongTin.add(new String[]{"Bác sĩ phụ trách:", kq == null ? "" : kq.getTenBacSi()});
+        thongTin.add(new String[]{"Ngày khám:", pk.layNgayKham() == null ? "" : pk.layNgayKham().format(NGAY)});
+        thongTin.add(new String[]{"Phòng khám:", pk.layTenPhong()});
+        thongTin.add(new String[]{"Trạng thái:", pk.layTrangThai()});
+        thongTin.add(new String[]{"Bác sĩ phụ trách:", kq == null ? "" : kq.layTenBacSi()});
 
         h.append("<table class=\"tt\">");
         for (int i = 0; i < thongTin.size(); i += 2) {
@@ -148,28 +148,28 @@ public final class XuatPhieuKham {
         }
         h.append("</table>\n");
 
-        h.append("<div class=\"stt\">SỐ THỨ TỰ<b>").append(pk.getSoThuTu()).append("</b></div>\n");
+        h.append("<div class=\"stt\">SỐ THỨ TỰ<b>").append(pk.laySoThuTu()).append("</b></div>\n");
 
-        if (bn != null && bn.getDiUng() != null && !bn.getDiUng().isBlank()) {
-            h.append("<div class=\"diung\">⚠ CẢNH BÁO DỊ ỨNG: ").append(e(bn.getDiUng())).append("</div>\n");
+        if (bn != null && bn.layDiUng() != null && !bn.layDiUng().isBlank()) {
+            h.append("<div class=\"diung\">⚠ CẢNH BÁO DỊ ỨNG: ").append(thoatHtml(bn.layDiUng())).append("</div>\n");
         }
-        if (bn != null && bn.getTienSuBenh() != null && !bn.getTienSuBenh().isBlank()) {
-            muc(h, "Tiền sử bệnh", bn.getTienSuBenh());
+        if (bn != null && bn.layTienSuBenh() != null && !bn.layTienSuBenh().isBlank()) {
+            muc(h, "Tiền sử bệnh", bn.layTienSuBenh());
         }
 
         if (kq == null) {
             h.append("<div class=\"muc\"><h3>Kết quả khám</h3>")
                     .append("<div class=\"noidung\">Bác sĩ sẽ ghi kết quả sau khi khám.</div></div>\n");
         } else {
-            muc(h, "Triệu chứng", kq.getTrieuChung());
-            muc(h, "Kết quả lâm sàng", kq.getKetQuaLamSang());
-            muc(h, "Chẩn đoán", kq.getChanDoan());
-            muc(h, "Hướng điều trị", kq.getHuongDieuTri());
-            muc(h, "Đơn thuốc", kq.getDonThuoc());
-            muc(h, "Ghi chú", kq.getGhiChu());
-            if (kq.getNgayTaiKham() != null) {
+            muc(h, "Triệu chứng", kq.layTrieuChung());
+            muc(h, "Kết quả lâm sàng", kq.layKetQuaLamSang());
+            muc(h, "Chẩn đoán", kq.layChanDoan());
+            muc(h, "Hướng điều trị", kq.layHuongDieuTri());
+            muc(h, "Đơn thuốc", kq.layDonThuoc());
+            muc(h, "Ghi chú", kq.layGhiChu());
+            if (kq.layNgayTaiKham() != null) {
                 h.append("<div class=\"muc\"><h3>Ngày tái khám</h3><div class=\"noidung\">")
-                        .append(kq.getNgayTaiKham().format(NGAY)).append("</div></div>\n");
+                        .append(kq.layNgayTaiKham().format(NGAY)).append("</div></div>\n");
             }
         }
 
@@ -182,16 +182,16 @@ public final class XuatPhieuKham {
 
     private static void muc(StringBuilder h, String ten, String noiDung) {
         if (noiDung == null || noiDung.isBlank()) return;
-        h.append("<div class=\"muc\"><h3>").append(e(ten))
-                .append("</h3><div class=\"noidung\">").append(e(noiDung)).append("</div></div>\n");
+        h.append("<div class=\"muc\"><h3>").append(thoatHtml(ten))
+                .append("</h3><div class=\"noidung\">").append(thoatHtml(noiDung)).append("</div></div>\n");
     }
 
     private static void dong(StringBuilder h, String nhan, String giaTri) {
-        h.append("<td><span>").append(e(nhan)).append("</span>")
-                .append(giaTri == null || giaTri.isBlank() ? "—" : "<b>" + e(giaTri) + "</b>").append("</td>");
+        h.append("<td><span>").append(thoatHtml(nhan)).append("</span>")
+                .append(giaTri == null || giaTri.isBlank() ? "—" : "<b>" + thoatHtml(giaTri) + "</b>").append("</td>");
     }
 
-    private static String e(String s) {
+    private static String thoatHtml(String s) {
         if (s == null) return "";
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }

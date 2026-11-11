@@ -1,8 +1,8 @@
 package UI.LeTan;
 
-import Dao.HoaDonDao;
-import Dao.KetQuaKhamDao;
-import Dao.PhieuKhamDao;
+import DAO.HoaDonLeTanDAO;
+import DAO.KetQuaKhamDao;
+import DAO.PhieuKhamDao;
 import Entity.BenhNhan;
 import Entity.HoaDon;
 import Entity.KetQuaKham;
@@ -27,7 +27,7 @@ public class LichSuKhamDialog extends JDialog {
     private final BenhNhan benhNhan;
     private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
     private final KetQuaKhamDao ketQuaKhamDao = new KetQuaKhamDao();
-    private final HoaDonDao hoaDonDao = new HoaDonDao();
+    private final HoaDonLeTanDAO hoaDonDao = new HoaDonLeTanDAO();
 
     private final List<PhieuKham> dsPhieu = new ArrayList<>();
     private final Map<Integer, HoaDon> hoaDonTheoPhieu = new HashMap<>();
@@ -61,7 +61,7 @@ public class LichSuKhamDialog extends JDialog {
 
     private LichSuKhamDialog(Component cha, BenhNhan bn) {
         super(SwingUtilities.getWindowAncestor(cha),
-                "Lịch sử khám - " + String.format("BN%03d", bn.getMaBNSo()) + " " + bn.getHoTen(),
+                "Lịch sử khám - " + String.format("BN%03d", bn.layMaBNSo()) + " " + bn.layHoTen(),
                 ModalityType.APPLICATION_MODAL);
         this.benhNhan = bn;
         setLayout(new BorderLayout());
@@ -95,14 +95,14 @@ public class LichSuKhamDialog extends JDialog {
         dau.setBackground(NEN_THE);
         dau.setBorder(BorderFactory.createEmptyBorder(14, 18, 12, 18));
 
-        JLabel ten = new JLabel(benhNhan.getHoTen());
-        ten.setFont(font(Font.BOLD, 20));
+        JLabel ten = new JLabel(benhNhan.layHoTen());
+        ten.setFont(taoPhongChu(Font.BOLD, 20));
         ten.setForeground(CHU_CHINH);
-        JLabel moTa = new JLabel(String.format("BN%03d", benhNhan.getMaBNSo())
-                + (benhNhan.getNgaySinh() == null ? "" : "  ·  " + benhNhan.getNgaySinh().format(NGAY)
-                + " (" + benhNhan.getTuoi() + " tuổi)")
-                + (benhNhan.getSoDienThoai() == null ? "" : "  ·  " + benhNhan.getSoDienThoai()));
-        moTa.setFont(font(Font.PLAIN, 13));
+        JLabel moTa = new JLabel(String.format("BN%03d", benhNhan.layMaBNSo())
+                + (benhNhan.layNgaySinh() == null ? "" : "  ·  " + benhNhan.layNgaySinh().format(NGAY)
+                + " (" + benhNhan.layTuoi() + " tuổi)")
+                + (benhNhan.laySoDienThoai() == null ? "" : "  ·  " + benhNhan.laySoDienThoai()));
+        moTa.setFont(taoPhongChu(Font.PLAIN, 13));
         moTa.setForeground(CHU_PHU);
         JPanel chu = new JPanel(new GridLayout(2, 1, 0, 3));
         chu.setOpaque(false);
@@ -125,9 +125,9 @@ public class LichSuKhamDialog extends JDialog {
         p.setBackground(MAU_CHINH_NHAT);
         p.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         JLabel l = new JLabel(nhan);
-        l.setFont(font(Font.PLAIN, 11));
+        l.setFont(taoPhongChu(Font.PLAIN, 11));
         l.setForeground(CHU_PHU);
-        giaTri.setFont(font(Font.BOLD, 14));
+        giaTri.setFont(taoPhongChu(Font.BOLD, 14));
         giaTri.setForeground(MAU_CHINH_DAM);
         p.add(l);
         p.add(giaTri);
@@ -163,7 +163,7 @@ public class LichSuKhamDialog extends JDialog {
 
         JPanel dau = new JPanel(new BorderLayout());
         dau.setOpaque(false);
-        lblPhieuDangXem.setFont(font(Font.BOLD, 15));
+        lblPhieuDangXem.setFont(taoPhongChu(Font.BOLD, 15));
         lblPhieuDangXem.setForeground(CHU_CHINH);
         dau.add(lblPhieuDangXem, BorderLayout.WEST);
         JPanel phai = new JPanel(new FlowLayout(FlowLayout.RIGHT, 14, 0));
@@ -180,12 +180,12 @@ public class LichSuKhamDialog extends JDialog {
         JPanel luoi = new JPanel(new GridLayout(0, 2, 12, 8));
         luoi.setOpaque(false);
         luoi.setAlignmentX(Component.LEFT_ALIGNMENT);
-        luoi.add(o("Triệu chứng", boc(oTrieuChung)));
-        luoi.add(o("Kết quả lâm sàng", boc(oKetQua)));
-        luoi.add(o("Chẩn đoán", boc(oChanDoan)));
-        luoi.add(o("Hướng điều trị", boc(oHuong)));
-        luoi.add(o("Đơn thuốc", boc(oDonThuoc)));
-        luoi.add(o("Ghi chú", boc(oGhiChu)));
+        luoi.add(taoOThongTin("Triệu chứng", boc(oTrieuChung)));
+        luoi.add(taoOThongTin("Kết quả lâm sàng", boc(oKetQua)));
+        luoi.add(taoOThongTin("Chẩn đoán", boc(oChanDoan)));
+        luoi.add(taoOThongTin("Hướng điều trị", boc(oHuong)));
+        luoi.add(taoOThongTin("Đơn thuốc", boc(oDonThuoc)));
+        luoi.add(taoOThongTin("Ghi chú", boc(oGhiChu)));
         noi.add(luoi);
 
         JScrollPane cuon = new JScrollPane(noi);
@@ -198,19 +198,19 @@ public class LichSuKhamDialog extends JDialog {
         JPanel p = new JPanel(new GridLayout(2, 1, 0, 1));
         p.setOpaque(false);
         JLabel l = new JLabel(nhan);
-        l.setFont(font(Font.PLAIN, 10));
+        l.setFont(taoPhongChu(Font.PLAIN, 10));
         l.setForeground(CHU_PHU);
-        giaTri.setFont(font(Font.BOLD, 12));
+        giaTri.setFont(taoPhongChu(Font.BOLD, 12));
         p.add(l);
         p.add(giaTri);
         return p;
     }
 
-    private JPanel o(String nhan, JComponent oNhap) {
+    private JPanel taoOThongTin(String nhan, JComponent oNhap) {
         JPanel p = new JPanel(new BorderLayout(0, 3));
         p.setOpaque(false);
         JLabel l = new JLabel(nhan);
-        l.setFont(font(Font.BOLD, 12));
+        l.setFont(taoPhongChu(Font.BOLD, 12));
         l.setForeground(CHU_CHINH);
         p.add(l, BorderLayout.NORTH);
         p.add(oNhap, BorderLayout.CENTER);
@@ -222,7 +222,7 @@ public class LichSuKhamDialog extends JDialog {
         a.setEditable(false);
         a.setLineWrap(true);
         a.setWrapStyleWord(true);
-        a.setFont(font(Font.PLAIN, 13));
+        a.setFont(taoPhongChu(Font.PLAIN, 13));
         a.setForeground(CHU_CHINH);
         a.setBackground(NEN_APP);
         a.setBorder(BorderFactory.createEmptyBorder(5, 8, 5, 8));
@@ -231,7 +231,7 @@ public class LichSuKhamDialog extends JDialog {
 
     private static JLabel giaTri() {
         JLabel l = new JLabel("—");
-        l.setFont(font(Font.BOLD, 13));
+        l.setFont(taoPhongChu(Font.BOLD, 13));
         l.setForeground(CHU_CHINH);
         return l;
     }
@@ -257,10 +257,10 @@ public class LichSuKhamDialog extends JDialog {
     private void taiDuLieu() {
         try {
             dsPhieu.clear();
-            dsPhieu.addAll(phieuKhamDao.findByBenhNhan(benhNhan.getMaBNSo()));
+            dsPhieu.addAll(phieuKhamDao.timTheoBenhNhan(benhNhan.layMaBNSo()));
             hoaDonTheoPhieu.clear();
-            for (HoaDon hd : hoaDonDao.findAll()) {
-                hoaDonTheoPhieu.putIfAbsent(hd.getMaPK(), hd);
+            for (HoaDon hd : hoaDonDao.timTatCa()) {
+                hoaDonTheoPhieu.putIfAbsent(hd.layMaPK(), hd);
             }
         } catch (Exception e) {
             baoLoi(this, e);
@@ -269,14 +269,14 @@ public class LichSuKhamDialog extends JDialog {
 
         model.setRowCount(0);
         for (PhieuKham pk : dsPhieu) {
-            HoaDon hd = hoaDonTheoPhieu.get(pk.getMaPK());
+            HoaDon hd = hoaDonTheoPhieu.get(pk.layMaPK());
             model.addRow(new Object[]{
-                    String.format("PK%03d", pk.getMaPK()),
-                    pk.getNgayKham() == null ? "" : pk.getNgayKham().format(NGAY),
-                    pk.getSoThuTu(),
-                    pk.getTenPhong() == null ? "—" : pk.getTenPhong(),
-                    pk.getTrangThai(),
-                    hd == null ? "Chưa lập" : hd.getTrangThai()
+                    String.format("PK%03d", pk.layMaPK()),
+                    pk.layNgayKham() == null ? "" : pk.layNgayKham().format(NGAY),
+                    pk.laySoThuTu(),
+                    pk.layTenPhong() == null ? "—" : pk.layTenPhong(),
+                    pk.layTrangThai(),
+                    hd == null ? "Chưa lập" : hd.layTrangThai()
             });
         }
         if (!dsPhieu.isEmpty()) {
@@ -286,10 +286,10 @@ public class LichSuKhamDialog extends JDialog {
         }
 
         lblTongLuot.setText(String.valueOf(dsPhieu.size()));
-        lblNgayGanNhat.setText(dsPhieu.isEmpty() || dsPhieu.get(0).getNgayKham() == null
-                ? "—" : dsPhieu.get(0).getNgayKham().format(NGAY));
+        lblNgayGanNhat.setText(dsPhieu.isEmpty() || dsPhieu.get(0).layNgayKham() == null
+                ? "—" : dsPhieu.get(0).layNgayKham().format(NGAY));
         try {
-            lblTongChi.setText(tien(new Dao.BenhNhanDao().tongDaThanhToan(benhNhan.getMaBNSo())) + " đ");
+            lblTongChi.setText(tien(new DAO.BenhNhanLeTanDAO().tongDaThanhToan(benhNhan.layMaBNSo())) + " đ");
         } catch (Exception e) {
             lblTongChi.setText("—");
         }
@@ -303,17 +303,17 @@ public class LichSuKhamDialog extends JDialog {
         }
         dangChon = dsPhieu.get(dong);
         nutIn.setEnabled(true);
-        lblPhieuDangXem.setText(String.format("Phiếu PK%03d", dangChon.getMaPK())
-                + "  ·  " + (dangChon.getNgayKham() == null ? "" : dangChon.getNgayKham().format(NGAY))
-                + "  ·  STT " + dangChon.getSoThuTu()
-                + "  ·  " + dangChon.getTrangThai());
+        lblPhieuDangXem.setText(String.format("Phiếu PK%03d", dangChon.layMaPK())
+                + "  ·  " + (dangChon.layNgayKham() == null ? "" : dangChon.layNgayKham().format(NGAY))
+                + "  ·  STT " + dangChon.laySoThuTu()
+                + "  ·  " + dangChon.layTrangThai());
 
-        HoaDon hd = hoaDonTheoPhieu.get(dangChon.getMaPK());
+        HoaDon hd = hoaDonTheoPhieu.get(dangChon.layMaPK());
         lblHoaDon.setText(hd == null ? "Chưa lập"
-                : String.format("HD%03d", hd.getMaHD()) + " · " + hd.getTrangThai());
+                : String.format("HD%03d", hd.layMaHD()) + " · " + hd.layTrangThai());
 
         try {
-            KetQuaKham kq = ketQuaKhamDao.findByMaPK(dangChon.getMaPK());
+            KetQuaKham kq = ketQuaKhamDao.timTheoMaPK(dangChon.layMaPK());
             if (kq == null) {
                 oTrieuChung.setText("Chưa nhập kết quả khám.");
                 oKetQua.setText("");
@@ -325,15 +325,15 @@ public class LichSuKhamDialog extends JDialog {
                 lblTaiKham.setText("—");
                 lblCapNhat.setText("—");
             } else {
-                oTrieuChung.setText(nz(kq.getTrieuChung()));
-                oKetQua.setText(nz(kq.getKetQuaLamSang()));
-                oChanDoan.setText(nz(kq.getChanDoan()));
-                oHuong.setText(nz(kq.getHuongDieuTri()));
-                oDonThuoc.setText(nz(kq.getDonThuoc()));
-                oGhiChu.setText(nz(kq.getGhiChu()));
-                lblBacSi.setText(kq.getTenBacSi() == null ? "—" : kq.getTenBacSi());
-                lblTaiKham.setText(kq.getNgayTaiKham() == null ? "—" : kq.getNgayTaiKham().format(NGAY));
-                lblCapNhat.setText(kq.getNgayCapNhat() == null ? "—" : kq.getNgayCapNhat().format(NGAY_GIO));
+                oTrieuChung.setText(chuoiKhongNull(kq.layTrieuChung()));
+                oKetQua.setText(chuoiKhongNull(kq.layKetQuaLamSang()));
+                oChanDoan.setText(chuoiKhongNull(kq.layChanDoan()));
+                oHuong.setText(chuoiKhongNull(kq.layHuongDieuTri()));
+                oDonThuoc.setText(chuoiKhongNull(kq.layDonThuoc()));
+                oGhiChu.setText(chuoiKhongNull(kq.layGhiChu()));
+                lblBacSi.setText(kq.layTenBacSi() == null ? "—" : kq.layTenBacSi());
+                lblTaiKham.setText(kq.layNgayTaiKham() == null ? "—" : kq.layNgayTaiKham().format(NGAY));
+                lblCapNhat.setText(kq.layNgayCapNhat() == null ? "—" : kq.layNgayCapNhat().format(NGAY_GIO));
             }
         } catch (Exception e) {
             baoLoi(this, e);
@@ -359,14 +359,14 @@ public class LichSuKhamDialog extends JDialog {
     private void inPhieu() {
         if (dangChon == null) return;
         try {
-            KetQuaKham kq = ketQuaKhamDao.findByMaPK(dangChon.getMaPK());
+            KetQuaKham kq = ketQuaKhamDao.timTheoMaPK(dangChon.layMaPK());
             XuatPhieuKham.xuat(this, dangChon, benhNhan, kq);
         } catch (Exception e) {
             baoLoi(this, e);
         }
     }
 
-    private static String nz(String s) {
+    private static String chuoiKhongNull(String s) {
         return s == null ? "" : s;
     }
 }

@@ -1,9 +1,9 @@
 package UI.LeTan;
 
-import Dao.BenhNhanDao;
-import Dao.LichHenDao;
-import Dao.PhieuKhamDao;
-import Dao.PhongKhamDao;
+import DAO.BenhNhanLeTanDAO;
+import DAO.LichHenLeTanDAO;
+import DAO.PhieuKhamDao;
+import DAO.PhongKhamDao;
 import Entity.BenhNhan;
 import Entity.LichHen;
 import Entity.PhieuKham;
@@ -27,10 +27,10 @@ import static UI.LeTan.GiaoDien.*;
 /** Màn hình "Lịch hẹn": lọc, tạo/sửa, xác nhận, check-in và xử lý yêu cầu đổi/hủy. */
 public class QuanLyLichHenLeTan extends JPanel {
     private final TaiKhoan taiKhoan;
-    private final LichHenDao lichHenDao = new LichHenDao();
+    private final LichHenLeTanDAO lichHenDao = new LichHenLeTanDAO();
     private final PhieuKhamDao phieuKhamDao = new PhieuKhamDao();
     private final PhongKhamDao phongKhamDao = new PhongKhamDao();
-    private final BenhNhanDao benhNhanDao = new BenhNhanDao();
+    private final BenhNhanLeTanDAO benhNhanDao = new BenhNhanLeTanDAO();
 
     private List<LichHen> dsTatCa = new ArrayList<>();
     private List<LichHen> dsHienThi = new ArrayList<>();
@@ -47,8 +47,8 @@ public class QuanLyLichHenLeTan extends JPanel {
 
     private final JTextField oTimKiem = GiaoDien.taoOText();
     private final JComboBox<String> cbTrangThai = new JComboBox<>(
-            new String[]{"Tất cả", LichHenDao.CHO_XAC_NHAN, LichHenDao.DA_XAC_NHAN,
-                    LichHenDao.DA_DEN, LichHenDao.HOAN_THANH, LichHenDao.DA_HUY});
+            new String[]{"Tất cả", LichHenLeTanDAO.CHO_XAC_NHAN, LichHenLeTanDAO.DA_XAC_NHAN,
+                    LichHenLeTanDAO.DA_DEN, LichHenLeTanDAO.HOAN_THANH, LichHenLeTanDAO.DA_HUY});
     private final JTextField oTuNgay = GiaoDien.taoOText();
     private final JTextField oDenNgay = GiaoDien.taoOText();
 
@@ -78,7 +78,7 @@ public class QuanLyLichHenLeTan extends JPanel {
         cuon.setBorder(BorderFactory.createLineBorder(VIEN));
         the.add(cuon, BorderLayout.CENTER);
 
-        soLuong.setFont(font(Font.BOLD, 12));
+        soLuong.setFont(taoPhongChu(Font.BOLD, 12));
         soLuong.setForeground(MAU_CHINH);
         JButton nutLamMoi = taoNutTrang("Làm mới");
         JButton nutTao = taoNut("Tạo lịch hẹn", MAU_CHINH, MAU_CHINH_DAM);
@@ -92,7 +92,7 @@ public class QuanLyLichHenLeTan extends JPanel {
         nutTao.addActionListener(e -> taoLichHen());
         nutSua.addActionListener(e -> suaLichHen());
         nutXacNhan.addActionListener(e -> xacNhanLich());
-        nutCheckIn.addActionListener(e -> checkIn());
+        nutCheckIn.addActionListener(e -> tiepNhanKham());
         nutHuy.addActionListener(e -> huyLich());
         nutYeuCau.addActionListener(e -> xuLyYeuCau());
 
@@ -126,7 +126,7 @@ public class QuanLyLichHenLeTan extends JPanel {
             @Override public void removeUpdate(DocumentEvent e) { apDungLoc(); }
             @Override public void changedUpdate(DocumentEvent e) { apDungLoc(); }
         });
-        cbTrangThai.setFont(font(Font.PLAIN, 13));
+        cbTrangThai.setFont(taoPhongChu(Font.PLAIN, 13));
         cbTrangThai.addActionListener(e -> apDungLoc());
         oTuNgay.setToolTipText("dd/MM/yyyy");
         oDenNgay.setToolTipText("dd/MM/yyyy");
@@ -136,14 +136,14 @@ public class QuanLyLichHenLeTan extends JPanel {
         JPanel dong1 = new JPanel(new BorderLayout(8, 0));
         dong1.setOpaque(false);
         JLabel nhanTim = new JLabel("Tìm kiếm:");
-        nhanTim.setFont(font(Font.PLAIN, 13));
+        nhanTim.setFont(taoPhongChu(Font.PLAIN, 13));
         nhanTim.setForeground(CHU_PHU);
         dong1.add(nhanTim, BorderLayout.WEST);
         dong1.add(oTimKiem, BorderLayout.CENTER);
         JPanel trangThai = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         trangThai.setOpaque(false);
         JLabel nhanTT = new JLabel("Trạng thái:");
-        nhanTT.setFont(font(Font.PLAIN, 13));
+        nhanTT.setFont(taoPhongChu(Font.PLAIN, 13));
         nhanTT.setForeground(CHU_PHU);
         trangThai.add(nhanTT);
         trangThai.add(cbTrangThai);
@@ -169,14 +169,14 @@ public class QuanLyLichHenLeTan extends JPanel {
 
     private JLabel nhan(String chu) {
         JLabel l = new JLabel(chu);
-        l.setFont(font(Font.PLAIN, 13));
+        l.setFont(taoPhongChu(Font.PLAIN, 13));
         l.setForeground(CHU_PHU);
         return l;
     }
 
     public void taiDuLieu() {
         try {
-            dsTatCa = lichHenDao.findAll();
+            dsTatCa = lichHenDao.timTatCa();
         } catch (Exception e) {
             baoLoi(this, e);
             return;
@@ -200,7 +200,7 @@ public class QuanLyLichHenLeTan extends JPanel {
             return;
         }
 
-        Integer maDangChon = lichDangChon() == null ? null : lichDangChon().getMaLH();
+        Integer maDangChon = lichDangChon() == null ? null : lichDangChon().layMaLH();
         String tuKhoa = oTimKiem.getText().trim().toLowerCase(Locale.ROOT);
         String trangThai = (String) cbTrangThai.getSelectedItem();
 
@@ -208,11 +208,11 @@ public class QuanLyLichHenLeTan extends JPanel {
         int dongChon = -1;
         for (LichHen lh : dsTatCa) {
             if (tuKhoa.isEmpty() || khopTuKhoa(lh, tuKhoa)) {
-                if (trangThai == null || "Tất cả".equals(trangThai) || trangThai.equals(lh.getTrangThai())) {
-                    LocalDate ngay = lh.getNgayGio() == null ? null : lh.getNgayGio().toLocalDate();
+                if (trangThai == null || "Tất cả".equals(trangThai) || trangThai.equals(lh.layTrangThai())) {
+                    LocalDate ngay = lh.layNgayGio() == null ? null : lh.layNgayGio().toLocalDate();
                     if ((tu == null || (ngay != null && !ngay.isBefore(tu)))
                             && (den == null || (ngay != null && !ngay.isAfter(den)))) {
-                        if (maDangChon != null && maDangChon == lh.getMaLH()) {
+                        if (maDangChon != null && maDangChon == lh.layMaLH()) {
                             dongChon = dsHienThi.size();
                         }
                         dsHienThi.add(lh);
@@ -224,18 +224,18 @@ public class QuanLyLichHenLeTan extends JPanel {
         model.setRowCount(0);
         for (LichHen lh : dsHienThi) {
             String yeuCau = "";
-            if (lh.getYeuCau() != null) {
-                yeuCau = lh.getYeuCau();
-                if (lh.getNgayGioMoi() != null) yeuCau += " → " + lh.getNgayGioMoi().format(NGAY_GIO);
+            if (lh.layYeuCau() != null) {
+                yeuCau = lh.layYeuCau();
+                if (lh.layNgayGioMoi() != null) yeuCau += " → " + lh.layNgayGioMoi().format(NGAY_GIO);
             }
             model.addRow(new Object[]{
-                    String.format("LH%03d", lh.getMaLH()),
-                    lh.getTenBenhNhan(),
-                    lh.getNgayGio() == null ? "" : lh.getNgayGio().format(NGAY_GIO),
-                    lh.getTenBacSi(),
-                    lh.getTrangThai(),
+                    String.format("LH%03d", lh.layMaLH()),
+                    lh.layTenBenhNhan(),
+                    lh.layNgayGio() == null ? "" : lh.layNgayGio().format(NGAY_GIO),
+                    lh.layTenBacSi(),
+                    lh.layTrangThai(),
                     yeuCau,
-                    lh.getGhiChu() == null ? "" : lh.getGhiChu()
+                    lh.layGhiChu() == null ? "" : lh.layGhiChu()
             });
         }
         soLuong.setText(dsHienThi.size() + " / " + dsTatCa.size() + " lịch hẹn");
@@ -247,11 +247,11 @@ public class QuanLyLichHenLeTan extends JPanel {
     }
 
     private boolean khopTuKhoa(LichHen lh, String tuKhoa) {
-        String ma = String.format("LH%03d", lh.getMaLH()).toLowerCase(Locale.ROOT);
+        String ma = String.format("LH%03d", lh.layMaLH()).toLowerCase(Locale.ROOT);
         return ma.contains(tuKhoa)
-                || (lh.getTenBenhNhan() != null && lh.getTenBenhNhan().toLowerCase(Locale.ROOT).contains(tuKhoa))
-                || (lh.getTenBacSi() != null && lh.getTenBacSi().toLowerCase(Locale.ROOT).contains(tuKhoa))
-                || (lh.getGhiChu() != null && lh.getGhiChu().toLowerCase(Locale.ROOT).contains(tuKhoa));
+                || (lh.layTenBenhNhan() != null && lh.layTenBenhNhan().toLowerCase(Locale.ROOT).contains(tuKhoa))
+                || (lh.layTenBacSi() != null && lh.layTenBacSi().toLowerCase(Locale.ROOT).contains(tuKhoa))
+                || (lh.layGhiChu() != null && lh.layGhiChu().toLowerCase(Locale.ROOT).contains(tuKhoa));
     }
 
     private void xoaLoc() {
@@ -298,22 +298,22 @@ public class QuanLyLichHenLeTan extends JPanel {
     private void xacNhanLich() {
         LichHen lh = yeuCauChon("Vui lòng chọn một lịch hẹn để xác nhận.");
         if (lh == null) return;
-        if (!LichHenDao.CHO_XAC_NHAN.equals(lh.getTrangThai())) {
+        if (!LichHenLeTanDAO.CHO_XAC_NHAN.equals(lh.layTrangThai())) {
             JOptionPane.showMessageDialog(this,
-                    "Chỉ xác nhận được lịch đang ở trạng thái \"" + LichHenDao.CHO_XAC_NHAN + "\".",
+                    "Chỉ xác nhận được lịch đang ở trạng thái \"" + LichHenLeTanDAO.CHO_XAC_NHAN + "\".",
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         try {
-            lichHenDao.xacNhan(lh.getMaLH());
-            thongBao(this, "Đã xác nhận lịch hẹn của " + lh.getTenBenhNhan() + ".");
+            lichHenDao.xacNhan(lh.layMaLH());
+            thongBao(this, "Đã xác nhận lịch hẹn của " + lh.layTenBenhNhan() + ".");
             taiDuLieu();
         } catch (Exception e) {
             baoLoi(this, e);
         }
     }
 
-    private void checkIn() {
+    private void tiepNhanKham() {
         LichHen lh = yeuCauChon("Vui lòng chọn lịch hẹn cần check-in.");
         if (lh == null) return;
         if (lh.daKetThuc()) {
@@ -322,18 +322,18 @@ public class QuanLyLichHenLeTan extends JPanel {
             return;
         }
         try {
-            List<PhongKham> dsPhong = phongKhamDao.findDangHoatDong();
+            List<PhongKham> dsPhong = phongKhamDao.timDangHoatDong();
             if (dsPhong.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Chưa có phòng khám nào đang hoạt động.",
                         "Cảnh báo", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             JComboBox<PhongKham> cbPhong = new JComboBox<>(dsPhong.toArray(new PhongKham[0]));
-            cbPhong.setFont(font(Font.PLAIN, 14));
+            cbPhong.setFont(taoPhongChu(Font.PLAIN, 14));
             JPanel form = new JPanel(new GridLayout(0, 1, 0, 8));
-            form.add(new JLabel("Bệnh nhân: " + lh.getTenBenhNhan()));
-            form.add(new JLabel("Giờ hẹn: " + lh.getNgayGio().format(NGAY_GIO)
-                    + " · Bác sĩ " + lh.getTenBacSi()));
+            form.add(new JLabel("Bệnh nhân: " + lh.layTenBenhNhan()));
+            form.add(new JLabel("Giờ hẹn: " + lh.layNgayGio().format(NGAY_GIO)
+                    + " · Bác sĩ " + lh.layTenBacSi()));
             form.add(new JLabel("Chọn phòng khám để cấp số thứ tự:"));
             form.add(cbPhong);
 
@@ -343,12 +343,12 @@ public class QuanLyLichHenLeTan extends JPanel {
 
             PhongKham phong = (PhongKham) cbPhong.getSelectedItem();
             if (phong == null) return;
-            PhieuKham pk = phieuKhamDao.capSoThuTu(lh.getMaBN(), phong.getMaPhong(), lh.getMaLH());
-            BenhNhan bn = benhNhanDao.findById(lh.getMaBN());
-            thongBao(this, "Đã check-in " + lh.getTenBenhNhan() + ".\nSố thứ tự: " + pk.getSoThuTu()
-                    + " · " + phong.getTenPhong());
+            PhieuKham pk = phieuKhamDao.capSoThuTu(lh.layMaBN(), phong.layMaPhong(), lh.layMaLH());
+            BenhNhan bn = benhNhanDao.timTheoMa(lh.layMaBN());
+            thongBao(this, "Đã check-in " + lh.layTenBenhNhan() + ".\nSố thứ tự: " + pk.laySoThuTu()
+                    + " · " + phong.layTenPhong());
             taiDuLieu();
-            if (xacNhan(this, "In phiếu khám cho " + lh.getTenBenhNhan() + "?", "In phiếu khám")) {
+            if (xacNhan(this, "In phiếu khám cho " + lh.layTenBenhNhan() + "?", "In phiếu khám")) {
                 XuatPhieuKham.xuat(this, pk, bn, null);
             }
         } catch (Exception e) {
@@ -364,15 +364,15 @@ public class QuanLyLichHenLeTan extends JPanel {
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        if (!xacNhan(this, "Hủy lịch hẹn của " + lh.getTenBenhNhan() + " lúc "
-                + lh.getNgayGio().format(NGAY_GIO) + "?", "Hủy lịch hẹn")) {
+        if (!xacNhan(this, "Hủy lịch hẹn của " + lh.layTenBenhNhan() + " lúc "
+                + lh.layNgayGio().format(NGAY_GIO) + "?", "Hủy lịch hẹn")) {
             return;
         }
         String lyDo = JOptionPane.showInputDialog(this, "Lý do hủy:", "Hủy lịch hẹn",
                 JOptionPane.QUESTION_MESSAGE);
         if (lyDo == null) return;
         try {
-            lichHenDao.huy(lh.getMaLH(), lyDo);
+            lichHenDao.huy(lh.layMaLH(), lyDo);
             thongBao(this, "Đã hủy lịch hẹn.");
             taiDuLieu();
         } catch (Exception e) {
@@ -388,16 +388,16 @@ public class QuanLyLichHenLeTan extends JPanel {
                     "Thông báo", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        String noiDung = lh.getTenBenhNhan() + " yêu cầu: " + lh.getYeuCau();
-        if (lh.getNgayGioMoi() != null) {
-            noiDung += "\nThời gian mới: " + lh.getNgayGioMoi().format(NGAY_GIO);
+        String noiDung = lh.layTenBenhNhan() + " yêu cầu: " + lh.layYeuCau();
+        if (lh.layNgayGioMoi() != null) {
+            noiDung += "\nThời gian mới: " + lh.layNgayGioMoi().format(NGAY_GIO);
         }
         int chon = JOptionPane.showOptionDialog(this, noiDung, "Xử lý yêu cầu đổi/hủy",
                 JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
                 new String[]{"Chấp nhận", "Từ chối", "Đóng"}, "Chấp nhận");
         if (chon != 0 && chon != 1) return;
         try {
-            lichHenDao.xuLyYeuCau(lh.getMaLH(), chon == 0);
+            lichHenDao.xuLyYeuCau(lh.layMaLH(), chon == 0);
             thongBao(this, chon == 0 ? "Đã chấp nhận yêu cầu." : "Đã từ chối yêu cầu, giữ nguyên lịch hẹn.");
             taiDuLieu();
         } catch (Exception e) {
@@ -412,11 +412,11 @@ public class QuanLyLichHenLeTan extends JPanel {
             Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             String tt = value == null ? "" : value.toString();
             if (!isSelected) {
-                if (LichHenDao.CHO_XAC_NHAN.equals(tt)) c.setForeground(Color.decode("#B45309"));
-                else if (LichHenDao.DA_XAC_NHAN.equals(tt)) c.setForeground(MAU_CHINH);
-                else if (LichHenDao.DA_DEN.equals(tt)) c.setForeground(Color.decode("#7C3AED"));
-                else if (LichHenDao.HOAN_THANH.equals(tt)) c.setForeground(Color.decode("#047857"));
-                else if (LichHenDao.DA_HUY.equals(tt)) c.setForeground(Color.decode("#B91C1C"));
+                if (LichHenLeTanDAO.CHO_XAC_NHAN.equals(tt)) c.setForeground(Color.decode("#B45309"));
+                else if (LichHenLeTanDAO.DA_XAC_NHAN.equals(tt)) c.setForeground(MAU_CHINH);
+                else if (LichHenLeTanDAO.DA_DEN.equals(tt)) c.setForeground(Color.decode("#7C3AED"));
+                else if (LichHenLeTanDAO.HOAN_THANH.equals(tt)) c.setForeground(Color.decode("#047857"));
+                else if (LichHenLeTanDAO.DA_HUY.equals(tt)) c.setForeground(Color.decode("#B91C1C"));
             }
             return c;
         }

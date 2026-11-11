@@ -1,6 +1,6 @@
 package UI.LeTan;
 
-import Dao.BenhNhanDao;
+import DAO.BenhNhanLeTanDAO;
 import Entity.BenhNhan;
 
 import javax.swing.*;
@@ -16,7 +16,7 @@ import static UI.LeTan.GiaoDien.*;
 public class BenhNhanDialog extends JDialog {
     private static final DateTimeFormatter NGAY = DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
 
-    private final BenhNhanDao dao = new BenhNhanDao();
+    private final BenhNhanLeTanDAO dao = new BenhNhanLeTanDAO();
     private final BenhNhan bn;          // đang sửa (maBN > 0) hoặc hồ sơ mới
     private boolean daLuu = false;
 
@@ -35,12 +35,12 @@ public class BenhNhanDialog extends JDialog {
     private final JTextArea oGhiChu = taoOVanBan(2);
 
     private BenhNhanDialog(Component cha, BenhNhan bn) {
-        super(SwingUtilities.getWindowAncestor(cha), bn.getMaBNSo() > 0
-                ? String.format("Sửa hồ sơ BN%03d", bn.getMaBNSo()) : "Thêm bệnh nhân mới", ModalityType.APPLICATION_MODAL);
+        super(SwingUtilities.getWindowAncestor(cha), bn.layMaBNSo() > 0
+                ? String.format("Sửa hồ sơ BN%03d", bn.layMaBNSo()) : "Thêm bệnh nhân mới", ModalityType.APPLICATION_MODAL);
         this.bn = bn;
         setLayout(new BorderLayout());
         getContentPane().setBackground(NEN_THE);
-        cbGioiTinh.setFont(font(Font.PLAIN, 14));
+        cbGioiTinh.setFont(taoPhongChu(Font.PLAIN, 14));
         oTen.setToolTipText("Bắt buộc");
         oNgaySinh.setToolTipText("dd/MM/yyyy");
         oDiUng.setToolTipText("Thuốc / vật liệu / thức ăn gây dị ứng (vd: Penicillin, latex)");
@@ -91,7 +91,7 @@ public class BenhNhanDialog extends JDialog {
 
     private JLabel tieuDeNhom(String chu) {
         JLabel l = new JLabel(chu.toUpperCase());
-        l.setFont(font(Font.BOLD, 11));
+        l.setFont(taoPhongChu(Font.BOLD, 11));
         l.setForeground(MAU_CHINH);
         l.setAlignmentX(Component.LEFT_ALIGNMENT);
         l.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
@@ -121,45 +121,45 @@ public class BenhNhanDialog extends JDialog {
     }
 
     private void napDuLieu() {
-        oTen.setText(nz(bn.getHoTen()));
-        oNgaySinh.setText(bn.getNgaySinh() == null ? "" : bn.getNgaySinh().format(NGAY));
-        if (bn.getGioiTinh() != null) cbGioiTinh.setSelectedItem(bn.getGioiTinh());
-        oSdt.setText(nz(bn.getSoDienThoai()));
-        oCccd.setText(nz(bn.getCccd()));
-        oEmail.setText(nz(bn.getEmail()));
-        oNgheNghiep.setText(nz(bn.getNgheNghiep()));
-        oDiaChi.setText(nz(bn.getDiaChi()));
-        oTenLienHe.setText(nz(bn.getTenNguoiLienHe()));
-        oSdtLienHe.setText(nz(bn.getSdtNguoiLienHe()));
-        oDiUng.setText(nz(bn.getDiUng()));
-        oTienSu.setText(nz(bn.getTienSuBenh()));
-        oGhiChu.setText(nz(bn.getGhiChu()));
+        oTen.setText(chuoiKhongNull(bn.layHoTen()));
+        oNgaySinh.setText(bn.layNgaySinh() == null ? "" : bn.layNgaySinh().format(NGAY));
+        if (bn.layGioiTinh() != null) cbGioiTinh.setSelectedItem(bn.layGioiTinh());
+        oSdt.setText(chuoiKhongNull(bn.laySoDienThoai()));
+        oCccd.setText(chuoiKhongNull(bn.layCccd()));
+        oEmail.setText(chuoiKhongNull(bn.layEmail()));
+        oNgheNghiep.setText(chuoiKhongNull(bn.layNgheNghiep()));
+        oDiaChi.setText(chuoiKhongNull(bn.layDiaChi()));
+        oTenLienHe.setText(chuoiKhongNull(bn.layTenNguoiLienHe()));
+        oSdtLienHe.setText(chuoiKhongNull(bn.laySdtNguoiLienHe()));
+        oDiUng.setText(chuoiKhongNull(bn.layDiUng()));
+        oTienSu.setText(chuoiKhongNull(bn.layTienSuBenh()));
+        oGhiChu.setText(chuoiKhongNull(bn.layGhiChu()));
     }
 
-    private static String nz(String s) {
+    private static String chuoiKhongNull(String s) {
         return s == null ? "" : s;
     }
 
     private void luu() {
         try {
             String ngaySinh = oNgaySinh.getText().trim();
-            bn.setNgaySinh(ngaySinh.isEmpty() ? null : LocalDate.parse(ngaySinh, NGAY));
-            bn.setHoTen(oTen.getText());
-            bn.setGioiTinh((String) cbGioiTinh.getSelectedItem());
-            bn.setSoDienThoai(oSdt.getText());
-            bn.setCccd(oCccd.getText());
-            bn.setEmail(oEmail.getText());
-            bn.setNgheNghiep(oNgheNghiep.getText());
-            bn.setDiaChi(oDiaChi.getText());
-            bn.setTenNguoiLienHe(oTenLienHe.getText());
-            bn.setSdtNguoiLienHe(oSdtLienHe.getText());
-            bn.setDiUng(oDiUng.getText());
-            bn.setTienSuBenh(oTienSu.getText());
-            bn.setGhiChu(oGhiChu.getText());
-            if (bn.getMaBNSo() > 0) {
+            bn.datNgaySinh(ngaySinh.isEmpty() ? null : LocalDate.parse(ngaySinh, NGAY));
+            bn.datHoTen(oTen.getText());
+            bn.datGioiTinh((String) cbGioiTinh.getSelectedItem());
+            bn.datSoDienThoai(oSdt.getText());
+            bn.datCccd(oCccd.getText());
+            bn.datEmail(oEmail.getText());
+            bn.datNgheNghiep(oNgheNghiep.getText());
+            bn.datDiaChi(oDiaChi.getText());
+            bn.datTenNguoiLienHe(oTenLienHe.getText());
+            bn.datSdtNguoiLienHe(oSdtLienHe.getText());
+            bn.datDiUng(oDiUng.getText());
+            bn.datTienSuBenh(oTienSu.getText());
+            bn.datGhiChu(oGhiChu.getText());
+            if (bn.layMaBNSo() > 0) {
                 dao.capNhat(bn);
             } else {
-                bn.setMaBN(dao.them(bn));
+                bn.datMaBN(dao.themMoi(bn));
             }
             daLuu = true;
             dispose();

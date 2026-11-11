@@ -25,43 +25,43 @@ public class DichVu {
 		this.trangthai = trangthai;
 	}
 
-	public String getMaDV() {
+	public String layMaDV() {
 		return maDV;
 	}
 
-	public void setMaDV(String maDV) {
+	public void datMaDV(String maDV) {
 		this.maDV = maDV;
 	}
 
-	public String getTenDV() {
+	public String layTenDV() {
 		return tenDV;
 	}
 
-	public void setTenDV(String tenDV) {
+	public void datTenDV(String tenDV) {
 		this.tenDV = tenDV;
 	}
 
-	public String getMota() {
+	public String layMota() {
 		return mota;
 	}
 
-	public void setMota(String mota) {
+	public void datMota(String mota) {
 		this.mota = mota;
 	}
 
-	public BigDecimal getDongia() {
+	public BigDecimal layDongia() {
 		return dongia;
 	}
 
-	public void setDongia(BigDecimal dongia) {
+	public void datDongia(BigDecimal dongia) {
 		this.dongia = dongia;
 	}
 
-	public trangthai_dichvu getTrangthai() {
+	public trangthai_dichvu layTrangthai() {
 		return trangthai;
 	}
 
-	public void setTrangthai(trangthai_dichvu trangthai) {
+	public void datTrangthai(trangthai_dichvu trangthai) {
 		this.trangthai = trangthai;
 	}
 
@@ -91,7 +91,7 @@ public class DichVu {
 	}
 
     // Tên dùng trong UI Lễ tân.
-    public String getTenDichVu(){return tenDV;}
-    public BigDecimal getDonGia(){return dongia;}
-    public int getMaDVSo(){return Integer.parseInt(maDV);}
+    public String layTenDichVu(){return tenDV;}
+    public BigDecimal layDonGia(){return dongia;}
+    public int layMaDVSo(){return Integer.parseInt(maDV);}
 }

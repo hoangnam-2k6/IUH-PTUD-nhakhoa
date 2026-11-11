@@ -1,57 +1,35 @@
+
 package UI.QuanLy;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.function.Consumer;
-
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
-import javax.swing.ListSelectionModel;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 
 import DAO.BenhNhanDAO;
 import Entity.BenhNhan;
 
-@SuppressWarnings("serial")
 public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
 
-    private JLabel lbltitle;
-    private JLabel lbltimnhanh;
+    private JLabel lbltitle, lbltimnhanh;
     private JTextField txttimnhanh;
-    private JButton btnthem;
-    private JButton btnsua;
-    private JButton btnxoa;
-    private JButton btntim;
-    private JPanel pbtn;
+    private JButton btnthem, btnsua, btnxoa, btntim;
+    private JPanel pbtn, benhnhan_top, benhnhan_center;
     private DefaultTableModel modelBN;
     private JTable tableBN;
     private JScrollPane scrollBN;
-    private JPanel benhnhan_top;
-    private JPanel benhnhan_top_top;
-    private JPanel benhnhan_center;
+    private JComboBox<String> loccombo;
     private List<BenhNhan> dsBenhNhan;
-
+    public static final Color BORDER = new Color(0xE2E8F0);
+    public static final Color TEXT = new Color(0x0F172A);
     private Runnable callbackThem;
     private Consumer<String> callbackSua;
-
     private final BenhNhanDAO bnDAO = new BenhNhanDAO();
-	private JComboBox loccombo;
 
     public QuanLyBenhNhanPanel() {
         this(null, null);
@@ -61,39 +39,49 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         this.callbackThem = callbackThem;
         this.callbackSua = callbackSua;
 
+        taoGiaoDien();
+        ganSuKien();
+
+        try {
+            taiBenhnhan();
+        } catch (SQLException loi) {
+            baoLoi(loi);
+        }
+    }
+
+    // Tao giao dien benh nhan
+    private void taoGiaoDien() {
         setLayout(new BorderLayout(10, 10));
         setBorder(BorderFactory.createEmptyBorder(8, 15, 8, 15));
 
         String[] colsBN = {
-        		"STT", "Mã bệnh nhân", "Họ tên", "Ngày sinh", "Giới tính",
-        		"Số điện thoại", "Email", "Địa chỉ", "Tiền sử bệnh", "Trạng thái"
+            "STT", "Mã bệnh nhân", "Họ tên", "Ngày sinh", "Giới tính",
+            "Số điện thoại", "Email", "Địa chỉ", "Tiền sử bệnh", "Trạng thái"
         };
-        // Phần tiêu đề
+
         benhnhan_top = new JPanel(new BorderLayout(10, 10));
-        benhnhan_top_top = new JPanel();
-        Box boxlbl = Box.createVerticalBox();
+
         lbltitle = new JLabel("Quản lý bệnh nhân");
-        boxlbl.add(lbltitle);
-        benhnhan_top_top.add(boxlbl);
+        lbltitle.setFont(new Font("Arial", Font.BOLD, 20));
 
-        // Phần tìm kiếm và nút chức năng
-        Box benhnhan_top_center = Box.createHorizontalBox();
-        benhnhan_top_center.setOpaque(true);
-        benhnhan_top_center.setBackground(Color.WHITE);
-        lbltimnhanh = new JLabel("  Tìm nhanh:");
-        txttimnhanh = new JTextField();
-        txttimnhanh.setPreferredSize(new Dimension(300, 25));
+        JPanel phanTieuDe = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        phanTieuDe.add(lbltitle);
+        benhnhan_top.add(phanTieuDe, BorderLayout.NORTH);
 
-        pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
-        pbtn.setBackground(Color.WHITE);
-        
-        loccombo = new JComboBox<>();
-        loccombo.setModel(new DefaultComboBoxModel<>(colsBN));
+        lbltimnhanh = new JLabel("Tìm nhanh:");
+        txttimnhanh = new JTextField(18);
+        txttimnhanh.setPreferredSize(new Dimension(220, 30));
+
+        loccombo = new JComboBox<>(colsBN);
+
         btntim = taoNut("Tìm");
         btnthem = taoNut("+ Thêm bệnh nhân");
         btnsua = taoNut("Chỉnh sửa");
         btnxoa = taoNut("Xóa");
 
+        pbtn = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 5));
+        pbtn.setBackground(Color.WHITE);
+        pbtn.add(lbltimnhanh);
         pbtn.add(txttimnhanh);
         pbtn.add(loccombo);
         pbtn.add(btntim);
@@ -101,21 +89,17 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         pbtn.add(btnsua);
         pbtn.add(btnxoa);
 
-        benhnhan_top_center.add(lbltimnhanh);
-        benhnhan_top_center.add(pbtn);
-        benhnhan_top.add(benhnhan_top_top, BorderLayout.WEST);
-        benhnhan_top.add(benhnhan_top_center, BorderLayout.SOUTH);
+        benhnhan_top.add(pbtn, BorderLayout.CENTER);
         add(benhnhan_top, BorderLayout.NORTH);
 
-        // Bảng bệnh nhân
+        // Tao bang danh sach benh nhan
         benhnhan_center = new JPanel(new BorderLayout());
-        benhnhan_center.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
         benhnhan_center.setBackground(Color.WHITE);
-
+        benhnhan_center.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
         modelBN = new DefaultTableModel(colsBN, 0) {
             @Override
-            public boolean isCellEditable(int row, int column) {
+            public boolean isCellEditable(int dong, int cot) {
                 return false;
             }
         };
@@ -125,192 +109,178 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         tableBN.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
         tableBN.setFillsViewportHeight(true);
         tableBN.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
         scrollBN = new JScrollPane(tableBN);
         benhnhan_center.add(scrollBN, BorderLayout.CENTER);
         add(benhnhan_center, BorderLayout.CENTER);
+    }
 
-        // Listener
+    // Tao nut chuc nang
+    private JButton taoNut(String tenNut) {
+    	JButton b = new JButton(tenNut) {
+            @Override protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(getBackground());
+                g.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g.setColor(BORDER);
+                g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g.dispose();
+                super.paintComponent(graphics);
+            }
+        };
+        b.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        b.setBackground(Color.white);
+        b.setForeground(TEXT);
+        b.setContentAreaFilled(false);
+        b.setOpaque(false);
+        b.setFocusPainted(false);
+        b.setBorder(new EmptyBorder(10, 14, 10, 14));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    // Gan su kien cho cac nut
+    private void ganSuKien() {
         txttimnhanh.addActionListener(e -> timBenhNhan());
         btntim.addActionListener(this);
         btnthem.addActionListener(this);
         btnsua.addActionListener(this);
         btnxoa.addActionListener(this);
-
-        loadbenhnhan();
     }
 
-    private JButton taoNut(String text) {
-        JButton button = new JButton(text);
-        button.setBackground(Color.WHITE);
-        button.setForeground(new Color(52, 152, 219));
-        button.setFocusPainted(false);
-        button.addActionListener(this);
-        return button;
-    }
-
+    // Xu ly su kien cac nut
     @Override
     public void actionPerformed(ActionEvent e) {
-        Object o = e.getSource();
+        Object nut = e.getSource();
 
-        if (o == btntim) {
+        if (nut == btntim) {
             timBenhNhan();
-        } else if (o == btnthem) {
-            if (callbackThem != null) {
-                callbackThem.run();
-            } else {
-                JOptionPane.showMessageDialog(this, "Chưa thiết lập callback thêm bệnh nhân.");
+        } else if (nut == btnthem) {
+            themBenhNhan();
+        } else if (nut == btnsua) {
+            suaBenhNhan();
+        } else if (nut == btnxoa) {
+            try {
+                xoaBenhNhan();
+            } catch (SQLException loi) {
+                baoLoi(loi);
             }
-
-        } else if (o == btnsua) {
-            int selectedRow = tableBN.getSelectedRow();
-            if (selectedRow == -1) {
-                JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân cần sửa!");
-                return;
-            }
-
-            int modelRow = tableBN.convertRowIndexToModel(selectedRow);
-            Object value = modelBN.getValueAt(modelRow, 1);
-            if (value == null) {
-                JOptionPane.showMessageDialog(this, "Không lấy được mã bệnh nhân!");
-                return;
-            }
-
-            String maBN = value.toString();
-            if (callbackSua != null) {
-                callbackSua.accept(maBN);
-            } else {
-                JOptionPane.showMessageDialog(this, "Chưa thiết lập callback sửa bệnh nhân.");
-            }
-
-        } else if (o == btnxoa) {
-        	xoaBenhNhan();
         }
     }
 
-    private int phienTaiBenhNhan;
-    public void loadbenhnhan() {
-        final int phien=++phienTaiBenhNhan;
+    // Goi giao dien them benh nhan
+    private void themBenhNhan() {
+        if (callbackThem != null) {
+            callbackThem.run();
+        } else {
+            JOptionPane.showMessageDialog(this, "Chưa thiết lập chức năng thêm bệnh nhân.");
+        }
+    }
+
+    // Goi giao dien sua benh nhan
+    private void suaBenhNhan() {
+        String maBN = layMaBenhNhan();
+
+        if (maBN == null) return;
+
+        if (callbackSua != null) {
+            callbackSua.accept(maBN);
+        } else {
+            JOptionPane.showMessageDialog(this, "Chưa thiết lập chức năng sửa bệnh nhân.");
+        }
+    }
+
+    // Lay ma benh nhan dang chon tren bang
+    private String layMaBenhNhan() {
+        int dongChon = tableBN.getSelectedRow();
+
+        if (dongChon == -1) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân trong bảng!");
+            return null;
+        }
+
+        int dongModel = tableBN.convertRowIndexToModel(dongChon);
+        Object maBN = modelBN.getValueAt(dongModel, 1);
+
+        if (maBN == null) {
+            JOptionPane.showMessageDialog(this, "Không lấy được mã bệnh nhân!");
+            return null;
+        }
+
+        return maBN.toString();
+    }
+
+    // Lay danh sach benh nhan tu SQL
+    public void taiBenhnhan() throws SQLException {
+        dsBenhNhan = bnDAO.layTatCaBenhnhan();
         modelBN.setRowCount(0);
-        new javax.swing.SwingWorker<java.util.ArrayList<BenhNhan>,Void>() {
-            @Override protected java.util.ArrayList<BenhNhan> doInBackground() {
-                return bnDAO.getallbenhnhan();
-            }
-            @Override protected void done() {
-                if(phien!=phienTaiBenhNhan)return;
-                try {
-                    dsBenhNhan=get();
-                    modelBN.setRowCount(0);
-                    int stt=1;
-                    for (BenhNhan bn : dsBenhNhan) {
-                        modelBN.addRow(new Object[]{stt++,bn.getMaBN(), bn.getHoten(), bn.getNgaysinh(), bn.getGioitinh(), bn.getSdt(), bn.getEmail(), bn.getDiachi(), bn.getTiensubenh(), bn.getTrangthai()});
-                    }
-                } catch (Exception ex) {
-                    Throwable loi=ex.getCause()==null?ex:ex.getCause();
-                    JOptionPane.showMessageDialog(QuanLyBenhNhanPanel.this,
-                        "Không tải được dữ liệu: "+loi.getMessage(), "Lỗi truy vấn SQL",JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        }.execute();
-    }
-    private void xoaBenhNhan() {
 
-        // Kiểm tra dòng được chọn
-        int row = tableBN.getSelectedRow();
+        if (dsBenhNhan == null) return;
 
-        if (row == -1) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Vui lòng chọn bệnh nhân cần xóa!"
-            );
-            return;
-        }
+        int stt = 1;
 
-        // Lấy vị trí dòng trong Model
-        int modelRow = tableBN.convertRowIndexToModel(row);
-
-        // Lấy mã bệnh nhân ở cột 1
-        String maBN = modelBN.getValueAt(modelRow, 1).toString();
-
-        // Xác nhận xóa
-        int chon = JOptionPane.showConfirmDialog(
-            this,
-            "Bạn có chắc chắn muốn xóa bệnh nhân "
-                + maBN + " không?",
-            "Xác nhận xóa",
-            JOptionPane.YES_NO_OPTION
-        );
-
-        if (chon == JOptionPane.YES_OPTION) {
-
-            // Gọi DAO thực hiện xóa
-            boolean ketQua = bnDAO.delete(maBN);
-
-            if (ketQua) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Xóa bệnh nhân thành công!"
-                );
-
-                // Cập nhật lại bảng
-                loadbenhnhan();
-
-            } else {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Xóa bệnh nhân thất bại!"
-                );
-            }
+        for (BenhNhan bn : dsBenhNhan) {
+            modelBN.addRow(new Object[]{
+                stt++, bn.layMaBN(), bn.layHoten(), bn.layNgaysinh(),
+                bn.layGioitinh(), bn.laySdt(), bn.layEmail(),
+                bn.layDiachi(), bn.layTiensubenh(), bn.layTrangthai()
+            });
         }
     }
+
+    // Xoa benh nhan
+    private void xoaBenhNhan() throws SQLException {
+        String maBN = layMaBenhNhan();
+
+        if (maBN == null) return;
+
+        String thongBao = "Bạn có chắc chắn muốn xóa bệnh nhân " + maBN + " không?";
+        int luaChon = JOptionPane.showConfirmDialog(this, thongBao, "Xác nhận xóa", JOptionPane.YES_NO_OPTION);
+
+        if (luaChon != JOptionPane.YES_OPTION) return;
+
+        boolean ketQua = bnDAO.xoa(maBN);
+
+        if (ketQua) {
+            JOptionPane.showMessageDialog(this, "Xóa bệnh nhân thành công!");
+            taiBenhnhan();
+        } else {
+            JOptionPane.showMessageDialog(this, "Xóa bệnh nhân thất bại!");
+        }
+    }
+
+    // Tim kiem benh nhan theo cot duoc chon
     private void timBenhNhan() {
+        String tuKhoa = txttimnhanh.getText().trim().toLowerCase();
+        int cotTim = loccombo.getSelectedIndex();
 
-        String tuKhoa = txttimnhanh.getText().trim();
-
-        int cot = loccombo.getSelectedIndex();
-
-        if (cot < 0) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Vui lòng chọn cột cần tìm!"
-            );
+        if (cotTim < 0) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn cột cần tìm!");
             return;
         }
 
         if (dsBenhNhan == null || dsBenhNhan.isEmpty()) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Danh sách bệnh nhân không có dữ liệu!"
-            );
+            JOptionPane.showMessageDialog(this, "Danh sách bệnh nhân không có dữ liệu!");
             return;
         }
 
         modelBN.setRowCount(0);
-
         int sttGoc = 1;
         int sttHienThi = 1;
 
         for (BenhNhan bn : dsBenhNhan) {
-
             Object[] dong = {
-                sttGoc,
-                bn.getMaBN(),
-                bn.getHoten(),
-                bn.getNgaysinh(),
-                bn.getGioitinh(),
-                bn.getSdt(),
-                bn.getEmail(),
-                bn.getDiachi(),
-                bn.getTiensubenh(),
-                bn.getTrangthai()
+                sttGoc, bn.layMaBN(), bn.layHoten(), bn.layNgaysinh(),
+                bn.layGioitinh(), bn.laySdt(), bn.layEmail(),
+                bn.layDiachi(), bn.layTiensubenh(), bn.layTrangthai()
             };
 
-            String giaTri = String.valueOf(dong[cot]);
+            String giaTri = dong[cotTim] == null ? "" : dong[cotTim].toString().toLowerCase();
 
-            if (tuKhoa.isEmpty()
-                    || giaTri.toLowerCase().contains(tuKhoa.toLowerCase())) {
-
+            if (tuKhoa.isEmpty() || giaTri.contains(tuKhoa)) {
                 dong[0] = sttHienThi++;
-
                 modelBN.addRow(dong);
             }
 
@@ -318,22 +288,26 @@ public class QuanLyBenhNhanPanel extends JPanel implements ActionListener {
         }
 
         if (modelBN.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(
-                this,
-                "Không tìm thấy bệnh nhân phù hợp!"
-            );
+            JOptionPane.showMessageDialog(this, "Không tìm thấy bệnh nhân phù hợp!");
         }
     }
-    public void moframe() {
-        JFrame frame = new JFrame("Quản lý bệnh nhân");
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        frame.setContentPane(this);
-        frame.setSize(1000, 750);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+
+    // Hien thi loi SQL
+    private void baoLoi(SQLException loi) {
+        JOptionPane.showMessageDialog(this, loi.getMessage(), "Lỗi cơ sở dữ liệu", JOptionPane.ERROR_MESSAGE);
+    }
+
+    // Mo giao dien benh nhan
+    public void moKhung() {
+        JFrame khung = new JFrame("Quản lý bệnh nhân");
+        khung.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        khung.setContentPane(this);
+        khung.setSize(1000, 750);
+        khung.setLocationRelativeTo(null);
+        khung.setVisible(true);
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new QuanLyBenhNhanPanel().moframe());
+        SwingUtilities.invokeLater(() -> new QuanLyBenhNhanPanel().moKhung());
     }
 }

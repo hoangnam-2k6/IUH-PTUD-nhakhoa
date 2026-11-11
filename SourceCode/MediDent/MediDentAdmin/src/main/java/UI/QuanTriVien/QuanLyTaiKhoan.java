@@ -99,7 +99,7 @@ public class QuanLyTaiKhoan extends JPanel {
             return result;
         }
     };
-    private final JTextField search = GiaoDienQuanLyTaiKhoan.text("");
+    private final JTextField search = GiaoDienQuanLyTaiKhoan.taoOChu("");
     private final JComboBox<String> status = new JComboBox<>(new String[]{
         "Tất cả trạng thái", "Hoạt động", "Tạm khóa"
     });
@@ -154,7 +154,7 @@ public class QuanLyTaiKhoan extends JPanel {
         page.add(Box.createVerticalStrut(16));
 
         // 2. Bảng dữ liệu; STT luôn từ 1 đến số dòng sau khi lọc.
-        JPanel card = GiaoDienQuanLyTaiKhoan.card(new BorderLayout(0, 12));
+        JPanel card = GiaoDienQuanLyTaiKhoan.taoThe(new BorderLayout(0, 12));
         card.setPreferredSize(new Dimension(700, 550));
 
         // Đặt các nút ở ĐẦU bảng, luôn dễ nhìn thấy thay vì cuối bảng cao 550px.
@@ -167,14 +167,14 @@ public class QuanLyTaiKhoan extends JPanel {
         tools.add(remove);
         tools.add(reset);
 
-        JLabel title = GiaoDienQuanLyTaiKhoan.label("Danh sách tài khoản", 14, true);
+        JLabel title = GiaoDienQuanLyTaiKhoan.taoNhan("Danh sách tài khoản", 14, true);
         JPanel tableHeader = new JPanel(new BorderLayout(12, 0));
         tableHeader.setOpaque(false);
         tableHeader.add(title, BorderLayout.WEST);
         tableHeader.add(tools, BorderLayout.EAST);
 
         card.add(tableHeader, BorderLayout.NORTH);
-        card.add(GiaoDienQuanLyTaiKhoan.wrapTable(table), BorderLayout.CENTER);
+        card.add(GiaoDienQuanLyTaiKhoan.bocBang(table), BorderLayout.CENTER);
         page.add(card);
 
         // Chỉ cho thao tác sửa/xóa/reset sau khi người dùng chọn một tài khoản.
@@ -305,17 +305,17 @@ public class QuanLyTaiKhoan extends JPanel {
                 ? TaiKhoanDAO.tenDangNhapTheoMa(maDuKien)
                 : account.tenDangNhap;
 
-        JTextField idTuDong = GiaoDienQuanLyTaiKhoan.text(String.valueOf(maDuKien));
+        JTextField idTuDong = GiaoDienQuanLyTaiKhoan.taoOChu(String.valueOf(maDuKien));
         idTuDong.setEditable(false);
         idTuDong.setToolTipText(creating ? "Mã dự kiến"
                 : "Mã tài khoản chính thức");
 
-        JTextField username = GiaoDienQuanLyTaiKhoan.text(tenDangNhapDuKien);
+        JTextField username = GiaoDienQuanLyTaiKhoan.taoOChu(tenDangNhapDuKien);
         username.setEditable(false);
         username.setToolTipText("Tên đăng nhập hệ thống tự tạo theo mã tài khoản");
 
-        JTextField name = GiaoDienQuanLyTaiKhoan.text(creating ? "" : account.hoTen);
-        JTextField email = GiaoDienQuanLyTaiKhoan.text(creating ? "" : account.email);
+        JTextField name = GiaoDienQuanLyTaiKhoan.taoOChu(creating ? "" : account.hoTen);
+        JTextField email = GiaoDienQuanLyTaiKhoan.taoOChu(creating ? "" : account.email);
         JPasswordField password = creating ? new JPasswordField() : null;
         JLabel loiTen = nhanLoi();
         JLabel loiEmail = nhanLoi();
@@ -340,7 +340,7 @@ public class QuanLyTaiKhoan extends JPanel {
         Runnable kiemTraNgaySinh = () -> {
             try {
                 hienLoi(ngaySinh, loiNgaySinh,
-                        ngaySinh.getNgay() == null ? "Vui lòng chọn ngày sinh." : "");
+                        ngaySinh.layNgay() == null ? "Vui lòng chọn ngày sinh." : "");
             } catch (IllegalArgumentException ex) {
                 hienLoi(ngaySinh, loiNgaySinh, ex.getMessage());
             }
@@ -352,7 +352,7 @@ public class QuanLyTaiKhoan extends JPanel {
         ngaySinh.addPropertyChangeListener("roiNgayChon", event -> kiemTraNgaySinh.run());
         try {
             if (!creating) {
-                ngaySinh.setNgay(db.ngaySinhNhanVien(account.id, actor.id));
+                ngaySinh.datNgay(db.ngaySinhNhanVien(account.id, actor.id));
             }
         } catch (Exception ex) {
             GiaoDienQuanLyTaiKhoan.loi(this, ex);
@@ -360,7 +360,7 @@ public class QuanLyTaiKhoan extends JPanel {
         }
 
         // Ngày tạo vẫn xem được khi sửa, không hiện trên biểu mẫu Thêm.
-        JTextField ngayTao = creating ? null : GiaoDienQuanLyTaiKhoan.text(account.ngayTao);
+        JTextField ngayTao = creating ? null : GiaoDienQuanLyTaiKhoan.taoOChu(account.ngayTao);
         if (ngayTao != null) ngayTao.setEditable(false);
 
         JComboBox<VaiTro> roleBox = new JComboBox<>(roles.toArray(new VaiTro[0]));
@@ -377,33 +377,32 @@ public class QuanLyTaiKhoan extends JPanel {
         }
 
         JPanel form = new JPanel(new GridLayout(0, 2, 10, 12));
-        form.add(GiaoDienQuanLyTaiKhoan.label(creating ? "Mã tài khoản (dự kiến)" : "Mã tài khoản", 12, true));
+        form.add(GiaoDienQuanLyTaiKhoan.taoNhan(creating ? "Mã tài khoản (dự kiến)" : "Mã tài khoản", 12, true));
         form.add(idTuDong);
-        
-        form.add(GiaoDienQuanLyTaiKhoan.label("Tên đăng nhập (tự động)", 12, true));
+        form.add(GiaoDienQuanLyTaiKhoan.taoNhan("Tên đăng nhập (tự động)", 12, true));
         form.add(username);
         if (!creating) {
-            form.add(GiaoDienQuanLyTaiKhoan.label("Ngày tạo", 12, true));
+            form.add(GiaoDienQuanLyTaiKhoan.taoNhan("Ngày tạo", 12, true));
             form.add(ngayTao);
         }
-        form.add(GiaoDienQuanLyTaiKhoan.label("Họ và tên *", 12, true));
+        form.add(GiaoDienQuanLyTaiKhoan.taoNhan("Họ và tên *", 12, true));
         form.add(oVaLoi(name, loiTen));
-        form.add(GiaoDienQuanLyTaiKhoan.label("Email *", 12, true));
+        form.add(GiaoDienQuanLyTaiKhoan.taoNhan("Email *", 12, true));
         form.add(oVaLoi(email, loiEmail));
-        form.add(GiaoDienQuanLyTaiKhoan.label("Ngày sinh (chọn từ lịch) *", 12, true));
+        form.add(GiaoDienQuanLyTaiKhoan.taoNhan("Ngày sinh (chọn từ lịch) *", 12, true));
         form.add(oVaLoi(ngaySinh, loiNgaySinh));
         if (creating) {
-            form.add(GiaoDienQuanLyTaiKhoan.label("Mật khẩu *", 12, true));
+            form.add(GiaoDienQuanLyTaiKhoan.taoNhan("Mật khẩu *", 12, true));
             form.add(oVaLoi(password, loiMatKhau));
         }
-        form.add(GiaoDienQuanLyTaiKhoan.label("Vai trò", 12, true));
+        form.add(GiaoDienQuanLyTaiKhoan.taoNhan("Vai trò", 12, true));
         form.add(roleBox);
-        form.add(GiaoDienQuanLyTaiKhoan.label("Trạng thái", 12, true));
+        form.add(GiaoDienQuanLyTaiKhoan.taoNhan("Trạng thái", 12, true));
         form.add(statusBox);
 
         JPanel formChinh = new JPanel(new BorderLayout(0, 12));
         formChinh.add(form, BorderLayout.CENTER);
-        formChinh.setBackground(Color.white);
+        formChinh.setBackground(Color.WHITE);
         // Click vào khoảng trắng cũng làm ô hiện tại mất focus và kiểm tra ngay.
         formChinh.setFocusable(true);
         form.setFocusable(true);
@@ -422,7 +421,7 @@ public class QuanLyTaiKhoan extends JPanel {
         JPanel trangNhap = GiaoDienQuanLyTaiKhoan.trang(
                 creating ? "Thêm tài khoản" : "Sửa thông tin tài khoản",
                 creating ? "Nhập thông tin tài khoản mới." : "Cập nhật thông tin tài khoản.");
-        JPanel khungForm = GiaoDienQuanLyTaiKhoan.card(new BorderLayout());
+        JPanel khungForm = GiaoDienQuanLyTaiKhoan.taoThe(new BorderLayout());
         khungForm.add(formChinh, BorderLayout.CENTER);
         trangNhap.add(khungForm);
         trangNhap.add(Box.createVerticalStrut(18));
@@ -462,7 +461,7 @@ public class QuanLyTaiKhoan extends JPanel {
                         selectedRole.id,
                         (String) statusBox.getSelectedItem(),
                         creating ? new String(password.getPassword()) : null,
-                        ngaySinh.getNgay(),
+                        ngaySinh.layNgay(),
                         actor.id);
                 taiLai();
                 hienDanhSach();
@@ -506,13 +505,13 @@ public class QuanLyTaiKhoan extends JPanel {
         if (xacNhan != JOptionPane.YES_OPTION) return;
         try {
             String matKhauTam = db.datLaiMatKhauTheoNgaySinh(taiKhoan.id, actor.id);
-            JTextField hienMatKhau = GiaoDienQuanLyTaiKhoan.text(matKhauTam);
+            JTextField hienMatKhau = GiaoDienQuanLyTaiKhoan.taoOChu(matKhauTam);
             hienMatKhau.setEditable(false);
             hienMatKhau.setPreferredSize(new Dimension(320, 40));
             JPanel noiDung = new JPanel(new GridLayout(0, 1, 6, 6));
-            noiDung.add(GiaoDienQuanLyTaiKhoan.label("Mật khẩu tạm (chỉ hiển thị một lần):", 12, true));
+            noiDung.add(GiaoDienQuanLyTaiKhoan.taoNhan("Mật khẩu tạm (chỉ hiển thị một lần):", 12, true));
             noiDung.add(hienMatKhau);
-            noiDung.add(GiaoDienQuanLyTaiKhoan.label("Chuyển trực tiếp cho nhân viên đã được xác minh.", 11, false));
+            noiDung.add(GiaoDienQuanLyTaiKhoan.taoNhan("Chuyển trực tiếp cho nhân viên đã được xác minh.", 11, false));
             JOptionPane.showMessageDialog(this, noiDung, "Đặt lại mật khẩu thành công",
                     JOptionPane.INFORMATION_MESSAGE);
             hienMatKhau.setText("");
@@ -600,12 +599,11 @@ final class GiaoDienQuanLyTaiKhoan {
     }
 
     /** 2. Tạo nhãn có font và màu nhất quán. */
-    public static JLabel label(String text, int fontSize, boolean bold) {
+    public static JLabel taoNhan(String text, int fontSize, boolean bold) {
         JLabel result = new JLabel(text);
         result.setFont(new Font("Segoe UI", bold ? Font.BOLD : Font.PLAIN, fontSize));
         result.setForeground(bold ? TEXT : MUTED);
         result.setAlignmentX(Component.LEFT_ALIGNMENT);
-        result.setBackground(Color.white);
         return result;
     }
 
@@ -637,7 +635,7 @@ final class GiaoDienQuanLyTaiKhoan {
     }
 
     /** 5. Khung trắng và viền nhạt dùng cho form, bảng và biểu đồ. */
-    public static JPanel card(LayoutManager layout) {
+    public static JPanel taoThe(LayoutManager layout) {
         JPanel panel = new JPanel(layout) {
             @Override
             protected void paintComponent(Graphics graphics) {
@@ -711,11 +709,11 @@ final class GiaoDienQuanLyTaiKhoan {
     public static JPanel trang(String title, String description) {
         JPanel page = new CotNoiDung();
         page.setBorder(new EmptyBorder(26, 28, 44, 28));
-        page.add(label("Tổng quan   ›   " + title, 11, false));
+        page.add(taoNhan("Tổng quan   ›   " + title, 11, false));
         page.add(Box.createVerticalStrut(18));
-        page.add(label(title, 24, true));
+        page.add(taoNhan(title, 24, true));
         page.add(Box.createVerticalStrut(7));
-        page.add(label(description, 12, false));
+        page.add(taoNhan(description, 12, false));
         page.add(Box.createVerticalStrut(23));
         return page;
     }
@@ -818,7 +816,7 @@ final class GiaoDienQuanLyTaiKhoan {
     }
 
     /** 11. Ô nhập liệu có padding và viền đồng nhất. */
-    public static JTextField text(String value) {
+    public static JTextField taoOChu(String value) {
         JTextField field = new JTextField(value, 23);
         field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         field.setBorder(new CompoundBorder(new LineBorder(BORDER),
@@ -865,7 +863,7 @@ final class GiaoDienQuanLyTaiKhoan {
     }
 
     /** 14. Trang trí bảng và cho phép cuộn ngang ở bảng nhiều cột. */
-    public static JComponent wrapTable(JTable table) {
+    public static JComponent bocBang(JTable table) {
         table.setRowHeight(39);
         table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
         // Không chọn nhầm dòng khi người dùng lọc/sắp xếp JTable.

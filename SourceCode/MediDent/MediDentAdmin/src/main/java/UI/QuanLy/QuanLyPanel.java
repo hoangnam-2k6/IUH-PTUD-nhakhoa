@@ -28,13 +28,14 @@ public class QuanLyPanel {
     }
 
     // Hiển thị form thêm hoặc sửa
-    public void show(JPanel panelMoi) {
+    public void hienThi(JPanel panelMoi) {
         if (panelMoi == null) {
             return;
         }
 
         container.removeAll();
         currentPanel = panelMoi;
+        GiaoDienChung.dongBo(panelMoi);
         container.add(panelMoi, BorderLayout.CENTER);
 
         container.revalidate();
@@ -42,7 +43,7 @@ public class QuanLyPanel {
     }
 
     // Quay lại danh sách và tải lại dữ liệu
-    public void showList() {
+    public void hienThiDanhSach() {
         if (reload != null) {
             reload.run();
         }
@@ -56,11 +57,11 @@ public class QuanLyPanel {
     }
 
     // Đưa chức năng về trạng thái danh sách khi chuyển sang chức năng khác
-    public void reset() {
-        showList();
+    public void datLai() {
+        hienThiDanhSach();
     }
 
-    public JPanel getCurrentPanel() {
+    public JPanel layCurrentPanel() {
         return currentPanel;
     }
 }
