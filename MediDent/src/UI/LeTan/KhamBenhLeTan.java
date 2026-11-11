@@ -48,8 +48,8 @@ public class KhamBenhLeTan extends JPanel {
     private final JTable bang = GiaoDien.taoBang(model);
     private final TableRowSorter<DefaultTableModel> boLoc = new TableRowSorter<>(model);
 
-    private final JButton nutBatDau = taoNut("Bắt đầu khám", Color.decode("#0EA5E9"), Color.decode("#0284C7"));
-    private final JButton nutHoanThanh = taoNut("Hoàn thành", THANH_CONG, THANH_CONG.darker());
+    private final JButton nutBatDau = taoNut("Bắt đầu khám", true);
+    private final JButton nutHoanThanh = taoNut("Hoàn thành", true);
     private final JButton nutIn = taoNutTrang("In phiếu khám");
 
     public KhamBenhLeTan(TaiKhoan taiKhoan) {
@@ -136,7 +136,7 @@ public class KhamBenhLeTan extends JPanel {
         traiLoc.add(cbTruongLoc);
         hangTim.add(traiLoc, BorderLayout.WEST);
         hangTim.add(oTimKiem, BorderLayout.CENTER);
-        JButton nutTim = taoNut("Tìm kiếm", MAU_CHINH, MAU_CHINH_DAM);
+        JButton nutTim = taoNut("Tìm kiếm", false);
         nutTim.addActionListener(e -> locBang());
         JButton nutXoaLoc = taoNutTrang("Xóa lọc");
         nutXoaLoc.addActionListener(e -> {
@@ -144,7 +144,7 @@ public class KhamBenhLeTan extends JPanel {
             oTimKiem.setText("");
             locBang();
         });
-        JButton nutTaoPhieu = taoNut("+ Tạo phiếu khám", THANH_CONG, THANH_CONG.darker());
+        JButton nutTaoPhieu = taoNut("+ Tạo phiếu khám", true);
         nutTaoPhieu.addActionListener(e -> taoPhieuKham());
         soLuong.setFont(font(Font.BOLD, 12));
         soLuong.setForeground(MAU_CHINH);

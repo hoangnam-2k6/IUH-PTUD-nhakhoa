@@ -253,8 +253,7 @@ public class ThanhToanDialog extends JDialog {
 
     private JComponent taoChan() {
         JButton huy = taoNutTrang("Hủy");
-        JButton thu = taoNut("Xác nhận đã thu " + tien(hoaDon.getTongTien()) + " đ",
-                THANH_CONG.darker(), Color.decode("#047857"));
+        JButton thu = taoNut("Xác nhận đã thu " + tien(hoaDon.getTongTien()) + " đ", true);
         thu.setFont(font(Font.BOLD, 14));
         huy.addActionListener(e -> dispose());
         thu.addActionListener(e -> xacNhan());

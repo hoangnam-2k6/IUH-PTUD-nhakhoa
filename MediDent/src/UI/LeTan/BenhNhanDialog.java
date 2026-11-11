@@ -175,7 +175,7 @@ public class BenhNhanDialog extends JDialog {
 
     private JPanel taoHangNut() {
         JButton huy = taoNutTrang("Hủy");
-        JButton luu = taoNut("Lưu hồ sơ", MAU_CHINH, MAU_CHINH_DAM);
+        JButton luu = taoNut("Lưu hồ sơ", true);
         huy.addActionListener(e -> dispose());
         luu.addActionListener(e -> luu());
         JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));

@@ -47,26 +47,66 @@ public final class GiaoDien {
         return new Font("Segoe UI", kieu, coChu);
     }
 
-    /** Nút nền màu, chữ trắng, đổi màu khi rê chuột. */
-    public static JButton taoNut(String chu, Color nen, Color nenHover) {
-        JButton nut = new JButton(chu);
-        nut.setFont(font(Font.BOLD, 13));
-        nut.setForeground(Color.WHITE);
-        nut.setBackground(nen);
-        nut.setFocusPainted(false);
-        nut.setBorder(BorderFactory.createEmptyBorder(9, 18, 9, 18));
+    /**
+     * Nút theo hai kiểu chính/phụ của hệ thống:
+     * nền trắng, viền xám, bo góc; xanh khi nhấn.
+     * Thông số lấy theo bộ giao diện dùng chung: Segoe UI Bold 12,
+     * đệm 10/14, bo góc 10, kích thước 135 x 37.
+     */
+    public static JButton taoNut(String chu, boolean chinh) {
+        JButton nut = new JButton(chu) {
+            @Override
+            protected void paintComponent(Graphics graphics) {
+                Graphics2D g = (Graphics2D) graphics.create();
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g.setColor(getBackground());
+                g.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g.setColor(VIEN);
+                g.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g.dispose();
+                super.paintComponent(graphics);
+            }
+
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension kichThuoc = super.getPreferredSize();
+                return new Dimension(Math.max(135, kichThuoc.width), 37);
+            }
+        };
+        nut.setFont(font(Font.BOLD, 12));
+        nut.setBackground(chinh ? MAU_CHINH : NEN_THE);
+        nut.setForeground(chinh ? Color.WHITE : CHU_CHINH);
         nut.setContentAreaFilled(false);
-        nut.setOpaque(true);
+        nut.setOpaque(false);
+        nut.setFocusPainted(false);
+        nut.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
         nut.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         nut.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                nut.setBackground(nenHover);
+                nut.setBackground(chinh ? MAU_CHINH_DAM : NEN_APP);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                nut.setBackground(nen);
+                nut.setBackground(chinh ? MAU_CHINH : NEN_THE);
+                nut.setForeground(chinh ? Color.WHITE : CHU_CHINH);
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                nut.setBackground(MAU_CHINH);
+                nut.setForeground(Color.WHITE);
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                nut.setBackground(nut.getMousePosition() != null
+                        ? (chinh ? MAU_CHINH_DAM : NEN_APP)
+                        : (chinh ? MAU_CHINH : NEN_THE));
+                nut.setForeground(chinh || nut.getMousePosition() != null
+                        ? Color.WHITE : CHU_CHINH);
             }
         });
         return nut;
@@ -74,29 +114,7 @@ public final class GiaoDien {
 
     /** Nút nền trắng, viền xám (dùng cho "Nhập lại", "Đăng xuất"). */
     public static JButton taoNutTrang(String chu) {
-        JButton nut = new JButton(chu);
-        nut.setFont(font(Font.BOLD, 13));
-        nut.setForeground(CHU_CHINH);
-        nut.setBackground(NEN_THE);
-        nut.setFocusPainted(false);
-        nut.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(VIEN),
-                BorderFactory.createEmptyBorder(8, 16, 8, 16)));
-        nut.setContentAreaFilled(false);
-        nut.setOpaque(true);
-        nut.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        nut.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                nut.setBackground(NEN_APP);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                nut.setBackground(NEN_THE);
-            }
-        });
-        return nut;
+        return taoNut(chu, false);
     }
 
     /** Ô nhập chữ có viền xám và đệm hai bên. */
@@ -643,7 +661,7 @@ public final class GiaoDien {
             add(vungGiua, BorderLayout.CENTER);
 
             JButton huy = taoNutNho("Hủy");
-            JButton chon = taoNut("Chọn", MAU_CHINH, MAU_CHINH_DAM);
+            JButton chon = taoNut("Chọn", true);
             huy.setPreferredSize(new Dimension(76, 29));
             chon.setPreferredSize(new Dimension(82, 29));
             huy.addActionListener(e -> khiHuy.run());

@@ -111,7 +111,7 @@ public class LichHenDialog extends JDialog {
 
     private JPanel taoChan() {
         JButton huy = taoNutTrang("Hủy");
-        JButton luu = taoNut(lichHen == null ? "Tạo lịch hẹn" : "Lưu thay đổi", MAU_CHINH, MAU_CHINH_DAM);
+        JButton luu = taoNut(lichHen == null ? "Tạo lịch hẹn" : "Lưu thay đổi", true);
         huy.addActionListener(e -> dispose());
         luu.addActionListener(e -> luu());
         JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));

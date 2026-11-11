@@ -91,7 +91,7 @@ public final class HoTroDialog extends JDialog {
         chu.add(lblTen, BorderLayout.NORTH);
         chu.add(lblMo, BorderLayout.CENTER);
 
-        JButton mo2 = taoNut("Mở", MAU_CHINH, MAU_CHINH_DAM);
+        JButton mo2 = taoNut("Mở", true);
         mo2.setPreferredSize(new Dimension(84, 34));
         mo2.addActionListener(e -> moTaiLieu(this, tenFile));
 

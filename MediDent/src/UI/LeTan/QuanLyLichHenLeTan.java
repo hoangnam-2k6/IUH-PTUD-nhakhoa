@@ -73,11 +73,11 @@ public class QuanLyLichHenLeTan extends JPanel {
         soLuong.setFont(font(Font.BOLD, 12));
         soLuong.setForeground(MAU_CHINH);
         JButton nutLamMoi = taoNutTrang("Làm mới");
-        JButton nutTao = taoNut("Tạo lịch hẹn", MAU_CHINH, MAU_CHINH_DAM);
-        JButton nutSua = taoNut("Sửa", Color.decode("#475569"), Color.decode("#334155"));
-        JButton nutXacNhan = taoNut("Xác nhận", Color.decode("#0EA5E9"), Color.decode("#0284C7"));
-        JButton nutCheckIn = taoNut("Check-in / Cấp số", THANH_CONG, THANH_CONG.darker());
-        JButton nutHuy = taoNut("Hủy lịch", Color.decode("#DC2626"), Color.decode("#B91C1C"));
+        JButton nutTao = taoNut("Tạo lịch hẹn", true);
+        JButton nutSua = taoNut("Sửa", false);
+        JButton nutXacNhan = taoNut("Xác nhận", true);
+        JButton nutCheckIn = taoNut("Check-in / Cấp số", true);
+        JButton nutHuy = taoNut("Hủy lịch", false);
 
         nutLamMoi.addActionListener(e -> taiDuLieu());
         nutTao.addActionListener(e -> taoLichHen());
@@ -120,7 +120,7 @@ public class QuanLyLichHenLeTan extends JPanel {
         nhanTruong.setFont(font(Font.BOLD, 12));
         nhanTimKiem.setFont(font(Font.BOLD, 12));
 
-        JButton nutTim = taoNut("Tìm kiếm", MAU_CHINH, MAU_CHINH_DAM);
+        JButton nutTim = taoNut("Tìm kiếm", false);
         nutTim.addActionListener(e -> apDungLoc());
         oTimKiem.addActionListener(e -> apDungLoc());
         JButton nutXoaLoc = GiaoDien.taoNutTrang("Xóa lọc");

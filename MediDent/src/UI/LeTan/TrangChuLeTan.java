@@ -142,7 +142,7 @@ public class TrangChuLeTan extends JPanel {
         nhanGiaTri.setFont(font(Font.BOLD, 12));
         nhanGiaTri.setForeground(CHU_PHU);
 
-        JButton nutTim = taoNut("Tìm kiếm", MAU_CHINH, MAU_CHINH_DAM);
+        JButton nutTim = taoNut("Tìm kiếm", false);
         nutTim.addActionListener(e -> locBang());
         JButton nutXoaLoc = GiaoDien.taoNutTrang("Xóa lọc");
         nutXoaLoc.addActionListener(e -> {

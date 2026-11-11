@@ -94,7 +94,7 @@ public class PhieuKhamDialog extends JDialog {
         this.dsDichVu = dsDichVu;
         this.benhNhanDaChon = benhNhanCoDinh;
 
-        nutLuu = taoNut(lichHen == null ? "Tạo phiếu khám" : "Check-in", MAU_CHINH, MAU_CHINH_DAM);
+        nutLuu = taoNut(lichHen == null ? "Tạo phiếu khám" : "Check-in", true);
 
         setLayout(new BorderLayout());
         getContentPane().setBackground(NEN_THE);

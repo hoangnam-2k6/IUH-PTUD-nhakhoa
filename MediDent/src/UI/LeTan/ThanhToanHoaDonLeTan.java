@@ -107,7 +107,7 @@ public class ThanhToanHoaDonLeTan extends JPanel {
         oTuNgay.setPreferredSize(new Dimension(110, 32));
         oDenNgay.setPreferredSize(new Dimension(110, 32));
 
-        JButton nutTim = taoNut("Tìm kiếm", MAU_CHINH, MAU_CHINH_DAM);
+        JButton nutTim = taoNut("Tìm kiếm", false);
         nutTim.addActionListener(e -> taiDuLieu());
         JButton nutXoaLoc = taoNutTrang("Xóa bộ lọc");
         nutXoaLoc.addActionListener(e -> xoaLoc());
@@ -319,11 +319,11 @@ public class ThanhToanHoaDonLeTan extends JPanel {
 
     private JComponent taoPhanNut() {
         JButton nutLamMoi = taoNutTrang("Làm mới");
-        JButton nutLap = taoNut("Lập hóa đơn", MAU_CHINH, MAU_CHINH_DAM);
-        JButton nutSua = taoNut("Sửa hóa đơn", Color.decode("#475569"), Color.decode("#334155"));
-        JButton nutThu = taoNut("Thu tiền", THANH_CONG, THANH_CONG.darker());
-        JButton nutHuy = taoNut("Hủy hóa đơn", Color.decode("#DC2626"), Color.decode("#B91C1C"));
-        JButton nutIn = taoNut("In hóa đơn", Color.decode("#1D4ED8"), Color.decode("#1E40AF"));
+        JButton nutLap = taoNut("Lập hóa đơn", true);
+        JButton nutSua = taoNut("Sửa hóa đơn", false);
+        JButton nutThu = taoNut("Thu tiền", true);
+        JButton nutHuy = taoNut("Hủy hóa đơn", false);
+        JButton nutIn = taoNut("In hóa đơn", false);
 
         nutLamMoi.addActionListener(e -> taiDuLieu());
         nutLap.addActionListener(e -> lapHoaDon());

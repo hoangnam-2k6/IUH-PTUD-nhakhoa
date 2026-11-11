@@ -380,7 +380,7 @@ public class HoaDonDialog extends JDialog {
 
     private JComponent taoChan() {
         JButton huy = taoNutTrang("Hủy");
-        nutLuu = taoNut(dangSua ? "Lưu thay đổi" : "Lập hóa đơn", MAU_CHINH, MAU_CHINH_DAM);
+        nutLuu = taoNut(dangSua ? "Lưu thay đổi" : "Lập hóa đơn", true);
         JButton luu = nutLuu;
         huy.addActionListener(e -> dispose());
         luu.addActionListener(e -> luu());

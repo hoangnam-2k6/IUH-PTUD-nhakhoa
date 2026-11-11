@@ -57,7 +57,7 @@ public class LichSuKhamDialog extends JDialog {
     private final JLabel lblTaiKham = giaTri();
     private final JLabel lblCapNhat = giaTri();
     private final JLabel lblHoaDon = giaTri();
-    private final JButton nutIn = taoNut("In phiếu khám", MAU_CHINH, MAU_CHINH_DAM);
+    private final JButton nutIn = taoNut("In phiếu khám", false);
     private final JButton nutWord = taoNutTrang("Xuất Word");
 
     private LichSuKhamDialog(Component cha, BenhNhan bn) {

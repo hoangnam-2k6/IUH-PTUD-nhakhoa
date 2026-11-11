@@ -40,8 +40,8 @@ public class TraCuuThongTin extends JPanel {
         }
     };
     private final JTable bang = GiaoDien.taoBang(model);
-    private final JButton nutSua = taoNut("Sửa thông tin", MAU_CHINH, MAU_CHINH_DAM);
-    private final JButton nutLichSu = taoNut("Lịch sử khám", Color.decode("#7C3AED"), Color.decode("#6D28D9"));
+    private final JButton nutSua = taoNut("Sửa thông tin", false);
+    private final JButton nutLichSu = taoNut("Lịch sử khám", false);
 
     // Các ô hiển thị hồ sơ chi tiết
     private final JLabel vMa = giaTri(), vTen = giaTri(), vNgaySinh = giaTri(), vGioiTinh = giaTri(),
@@ -67,7 +67,7 @@ public class TraCuuThongTin extends JPanel {
         khoiTaoBoLoc();
 
         oTimKiem.addActionListener(e -> taiDuLieu());
-        JButton nutTim = taoNut("Tìm kiếm", MAU_CHINH, MAU_CHINH_DAM);
+        JButton nutTim = taoNut("Tìm kiếm", false);
         nutTim.addActionListener(e -> taiDuLieu());
         JButton nutXoaLoc = taoNutTrang("Xóa lọc");
         nutXoaLoc.setToolTipText("Bỏ bộ lọc và hiện lại toàn bộ bệnh nhân");
@@ -76,7 +76,7 @@ public class TraCuuThongTin extends JPanel {
             taiDuLieu();
             GiaoDien.focus(oTimKiem);
         });
-        JButton nutThem = taoNutTrang("+ Thêm bệnh nhân");
+        JButton nutThem = taoNut("+ Thêm bệnh nhân", true);
         nutThem.addActionListener(e -> themMoi());
         for (JButton n : new JButton[]{nutTim, nutXoaLoc, nutThem}) {
             n.setPreferredSize(new Dimension(n.getPreferredSize().width, CAO_O_LOC));
