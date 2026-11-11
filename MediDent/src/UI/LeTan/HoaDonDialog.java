@@ -299,14 +299,14 @@ public class HoaDonDialog extends JDialog {
         cuonBang.setMaximumSize(new Dimension(Integer.MAX_VALUE, 240));
         noi.add(cuonBang);
 
-        nutXoaDong = taoNutTrang("Xóa dòng");
+        nutXoaDong = taoNut("Xóa dòng", true);
         nutXoaDong.addActionListener(e -> xoaDong());
         JPanel hangDong = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
         hangDong.setOpaque(false);
         hangDong.setAlignmentX(Component.LEFT_ALIGNMENT);
         hangDong.setMaximumSize(new Dimension(Integer.MAX_VALUE, 42));
         hangDong.add(nutXoaDong);
-        nutKhoiPhuc = taoNutTrang("Khôi phục dịch vụ");
+        nutKhoiPhuc = taoNut("Khôi phục dịch vụ", true);
         nutKhoiPhuc.addActionListener(e -> khoiPhucDichVu());
         hangDong.add(nutKhoiPhuc);
         JLabel goiY = new JLabel(dangSua
@@ -379,7 +379,7 @@ public class HoaDonDialog extends JDialog {
     }
 
     private JComponent taoChan() {
-        JButton huy = taoNutTrang("Hủy");
+        JButton huy = taoNut("Hủy", true);
         nutLuu = taoNut(dangSua ? "Lưu thay đổi" : "Lập hóa đơn", true);
         JButton luu = nutLuu;
         huy.addActionListener(e -> dispose());

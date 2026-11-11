@@ -50,7 +50,7 @@ public class KhamBenhLeTan extends JPanel {
 
     private final JButton nutBatDau = taoNut("Bắt đầu khám", true);
     private final JButton nutHoanThanh = taoNut("Hoàn thành", true);
-    private final JButton nutIn = taoNutTrang("In phiếu khám");
+    private final JButton nutIn = taoNut("In phiếu khám", true);
 
     public KhamBenhLeTan(TaiKhoan taiKhoan) {
         this.taiKhoan = taiKhoan;

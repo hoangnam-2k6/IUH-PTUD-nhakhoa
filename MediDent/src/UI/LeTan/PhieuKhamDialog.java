@@ -410,7 +410,7 @@ public class PhieuKhamDialog extends JDialog {
     }
 
     private JPanel taoChan() {
-        JButton huy = taoNutTrang("Hủy");
+        JButton huy = taoNut("Hủy", true);
         huy.addActionListener(e -> dispose());
         nutLuu.addActionListener(e -> luu());
         JPanel p = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));

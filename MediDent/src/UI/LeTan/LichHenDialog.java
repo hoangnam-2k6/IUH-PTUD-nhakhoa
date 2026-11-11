@@ -110,7 +110,7 @@ public class LichHenDialog extends JDialog {
     }
 
     private JPanel taoChan() {
-        JButton huy = taoNutTrang("Hủy");
+        JButton huy = taoNut("Hủy", true);
         JButton luu = taoNut(lichHen == null ? "Tạo lịch hẹn" : "Lưu thay đổi", true);
         huy.addActionListener(e -> dispose());
         luu.addActionListener(e -> luu());

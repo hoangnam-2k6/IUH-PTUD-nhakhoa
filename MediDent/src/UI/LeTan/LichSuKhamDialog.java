@@ -57,8 +57,8 @@ public class LichSuKhamDialog extends JDialog {
     private final JLabel lblTaiKham = giaTri();
     private final JLabel lblCapNhat = giaTri();
     private final JLabel lblHoaDon = giaTri();
-    private final JButton nutIn = taoNut("In phiếu khám", false);
-    private final JButton nutWord = taoNutTrang("Xuất Word");
+    private final JButton nutIn = taoNut("In phiếu khám", true);
+    private final JButton nutWord = taoNut("Xuất Word", true);
 
     private LichSuKhamDialog(Component cha, BenhNhan bn) {
         super(cha == null ? null : SwingUtilities.getWindowAncestor(cha),
@@ -238,7 +238,7 @@ public class LichSuKhamDialog extends JDialog {
     }
 
     private JPanel taoChan() {
-        JButton dong = taoNutTrang("Đóng");
+        JButton dong = taoNut("Đóng", true);
         nutIn.addActionListener(e -> inPhieu());
         nutIn.setEnabled(false);
         nutWord.addActionListener(e -> xuatPhieuWord());

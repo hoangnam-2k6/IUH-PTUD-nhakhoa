@@ -74,10 +74,10 @@ public class QuanLyLichHenLeTan extends JPanel {
         soLuong.setForeground(MAU_CHINH);
         JButton nutLamMoi = taoNutTrang("Làm mới");
         JButton nutTao = taoNut("Tạo lịch hẹn", true);
-        JButton nutSua = taoNut("Sửa", false);
+        JButton nutSua = taoNut("Sửa", true);
         JButton nutXacNhan = taoNut("Xác nhận", true);
         JButton nutCheckIn = taoNut("Check-in / Cấp số", true);
-        JButton nutHuy = taoNut("Hủy lịch", false);
+        JButton nutHuy = taoNut("Hủy lịch", true);
 
         nutLamMoi.addActionListener(e -> taiDuLieu());
         nutTao.addActionListener(e -> taoLichHen());

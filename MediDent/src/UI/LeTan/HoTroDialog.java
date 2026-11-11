@@ -57,7 +57,7 @@ public final class HoTroDialog extends JDialog {
         }
         goc.add(ds, BorderLayout.CENTER);
 
-        JButton dong = taoNutTrang("Đóng");
+        JButton dong = taoNut("Đóng", true);
         dong.addActionListener(e -> dispose());
         JPanel chan = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         chan.setOpaque(false);

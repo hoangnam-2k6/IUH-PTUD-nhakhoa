@@ -320,10 +320,10 @@ public class ThanhToanHoaDonLeTan extends JPanel {
     private JComponent taoPhanNut() {
         JButton nutLamMoi = taoNutTrang("Làm mới");
         JButton nutLap = taoNut("Lập hóa đơn", true);
-        JButton nutSua = taoNut("Sửa hóa đơn", false);
+        JButton nutSua = taoNut("Sửa hóa đơn", true);
         JButton nutThu = taoNut("Thu tiền", true);
-        JButton nutHuy = taoNut("Hủy hóa đơn", false);
-        JButton nutIn = taoNut("In hóa đơn", false);
+        JButton nutHuy = taoNut("Hủy hóa đơn", true);
+        JButton nutIn = taoNut("In hóa đơn", true);
 
         nutLamMoi.addActionListener(e -> taiDuLieu());
         nutLap.addActionListener(e -> lapHoaDon());

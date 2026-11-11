@@ -252,7 +252,7 @@ public class ThanhToanDialog extends JDialog {
     }
 
     private JComponent taoChan() {
-        JButton huy = taoNutTrang("Hủy");
+        JButton huy = taoNut("Hủy", true);
         JButton thu = taoNut("Xác nhận đã thu " + tien(hoaDon.getTongTien()) + " đ", true);
         thu.setFont(font(Font.BOLD, 14));
         huy.addActionListener(e -> dispose());

@@ -40,8 +40,8 @@ public class TraCuuThongTin extends JPanel {
         }
     };
     private final JTable bang = GiaoDien.taoBang(model);
-    private final JButton nutSua = taoNut("Sửa thông tin", false);
-    private final JButton nutLichSu = taoNut("Lịch sử khám", false);
+    private final JButton nutSua = taoNut("Sửa thông tin", true);
+    private final JButton nutLichSu = taoNut("Lịch sử khám", true);
 
     // Các ô hiển thị hồ sơ chi tiết
     private final JLabel vMa = giaTri(), vTen = giaTri(), vNgaySinh = giaTri(), vGioiTinh = giaTri(),
